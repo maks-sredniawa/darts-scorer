@@ -19,3 +19,4 @@ description: Scores your darts from a photo or two of the board, offline.
 maksforge:
   icon: /assets/icons/darts-scorer.webp
   status: building
+  kind: Android app
