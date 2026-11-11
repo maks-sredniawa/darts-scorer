@@ -1,9 +1,10 @@
 # Darts Scorer
 
-<One or two sentences: what the app does, and for whom.>
+Darts Scorer counts your darts score from a few photos of the board, taken from different angles,
+as few as it needs, so you don't have to tally the darts by hand.
 
-<The constraint that shapes everything — for example: "Every feature is free. No ads, no server, no
-account.">
+The photos never leave the phone: finding the board and the darts runs on the device, offline. Free,
+no ads, no account.
 
 ## Status
 
