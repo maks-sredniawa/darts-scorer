@@ -1,37 +1,31 @@
 ---
 layout: default
-title: <App name>
+title: Darts Scorer
 ---
 
-# <App name>
+# Darts Scorer
 
-<!--
-    The site root, published from `docs/` at maksforge.com/<repo>/. It exists for two reasons: Play's listing
-    asks for a Website, and the privacy policy needs a hosted URL. Both come free from a public
-    repo — no hosting, no domain, no bill.
+**Scores a darts visit from a photo or two of the board, so you don't have to tally the darts by
+hand.** The photos never leave your phone: finding the board and the darts runs on the device,
+offline. Free, no ads, no account.
 
-    Write it for someone who found the app in the store and wants to know what it is before
-    installing. It is not the store listing (that is `store-listing.md`, which scripts parse) and it
-    is not the README (that is for someone reading the code).
--->
-
-**<One sentence about what it does.>** <And the constraint that makes it different — "Free, ad-free,
-and entirely on your own phone: no account, no sign-up, no server.">
+Darts Scorer is still being built, and is not on Google Play yet.
 
 ## What it does
 
-- **<Feature>** — <what it is for, in the user's words, not the schema's>.
-- **<Feature>** — <…>.
+- **Scores a visit from photos.** Take a photo of the board after your throws, and the app finds the
+  darts and adds up the score.
+- **Asks for another angle only when it needs one.** If a dart is hidden behind another or its spot
+  is unclear, the app asks for one more photo from a different side; otherwise one is enough.
 
-## <The honest limitation>
+## What it does not do
 
-<If the app is in a domain where people might over-trust it — health, finance, safety — say plainly
-what it does not do. This section costs nothing and is the one people remember.>
+Darts Scorer reads a regulation steel-tip board. It is not built for soft-tip or electronic boards.
 
-## Your data stays on your device
+## Your data stays on your phone
 
-There is no backend to send anything to. Everything lives in the app's private storage on your phone,
-and backups go to storage you choose. The details are in the
+There is no backend to send anything to. The photos are processed on your phone and are never
+uploaded anywhere. The details are in the
 
 **[Privacy Policy](privacy-policy.md)**.
 
