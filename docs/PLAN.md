@@ -122,7 +122,8 @@ Darts Scorer schedules nothing. The photo path stays, because the board photo ar
 one. The first version stores no visit history, so Room and the custom backup go here too, before
 the first upload while deleting them is still free, with the amendments to ADR-0001 and ADR-0005
 that `optional-modules.md` lists. Storing history is a later phase, with its own ADR, if it is
-wanted.
+wanted. Whatever platform Auto Backup takes in the custom agent's place excludes the photo
+directories, because a backed-up photo is a photo that left the phone.
 
 ## Phase M1 — The data
 
