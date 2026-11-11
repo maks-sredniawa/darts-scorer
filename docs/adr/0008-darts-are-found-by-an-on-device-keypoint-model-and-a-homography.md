@@ -52,8 +52,9 @@ and the app is on Play with a tip purchase:
   | Outer double wire | 170.0 − *w* | 170.0 |
 
   A region runs between the wires around it, and a dart scores on the side of the wire its point
-  enters (§3.03). The app takes *w* as 1.5 mm; a real board's wire differs from that by at most
-  0.35 mm, inside the 2 mm wire margin below. Older BDO tables give the treble as 107.0 mm; WDF rev. 20 gives 107.4 mm, and that is used.
+  enters (§3.03). The app takes *w* as 1.5 mm. A real board's wire differs from that by at most
+  0.35 mm, so an edge measured across one wire moves by up to 0.35 mm and the inner treble and
+  double edges, measured across two, by up to 0.7 mm: both inside the 2 mm wire margin below. Older BDO tables give the treble as 107.0 mm; WDF rev. 20 gives 107.4 mm, and that is used.
   Segments run clockwise from the top starting at 20: 20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7,
   16, 8, 11, 14, 9, 12, 5.
 - **The homography is fitted with RANSAC.** Each entry point is mapped into board millimetres and
