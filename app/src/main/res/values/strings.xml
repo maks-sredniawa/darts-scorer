@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The base language. **Every user-visible string lives here**, never as a literal in Kotlin — that
+    is what makes the app translatable at all, and `TranslationTest` is what keeps it true.
+
+    Two rules with teeth:
+
+    - A string with a format argument must carry the **same arguments in every locale**, and
+      positional (`%1$s`) rather than bare (`%s`) whenever there is more than one, so a translator
+      can reorder them. `TranslationTest` checks this continuously.
+    - A count-dependent string is a `<plurals>`, never string concatenation. The categories that
+      apply differ by language — Polish has `one`, `few`, `many`, `other` where English has two —
+      and CLDR decides which, not the translator.
+
+    `translatable="false"` marks a string that is deliberately identical everywhere: the app's own
+    name, and the language endonyms in the switcher, which are named in their own language on
+    purpose so someone lost in a language they cannot read can find their way back.
+-->
+<resources>
+    <string name="app_name" translatable="false">Darts Scorer</string>
+
+    <!-- Navigation -->
+    <string name="tab_items">Items</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+    <string name="action_save">Save</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Items -->
+    <string name="item_add">Add an item</string>
+    <string name="item_detail_title">Item</string>
+    <string name="item_title_label">Title</string>
+    <string name="item_notes_label">Notes</string>
+    <string name="item_pick_image">Choose a picture</string>
+    <!-- Says what to do, not that there is nothing. -->
+    <string name="items_empty">Nothing here yet. Tap + to add your first item.</string>
+    <!-- The tip's one ask (ADR-0007): once per install, so a moved install asks again -->
+    <string name="items_tip_ask_title">This app is free, and stays free</string>
+    <string name="items_tip_ask_body">If it is useful to you, you can leave the developer a tip. It unlocks nothing, and the app will not ask again on this phone.</string>
+    <string name="items_tip_ask_accept">Leave a tip</string>
+    <string name="items_tip_ask_decline">No thanks</string>
+    <plurals name="items_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+
+    <!-- Settings -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_material_you">Use my wallpaper colours</string>
+    <string name="settings_material_you_hint">Android 12 and later. Off by default, so the app keeps its own palette.</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System</string>
+    <string name="settings_language_english" translatable="false">English</string>
+    <string name="settings_language_polish" translatable="false">Polski</string>
+    <string name="settings_language_report">Something read wrong?</string>
+    <string name="settings_language_report_hint">Tell me if a word looks wrong in your language. Opens your email app, with the language you are reading already filled in.</string>
+    <string name="settings_reminders">Reminders</string>
+    <string name="settings_reminders_enabled">Remind me</string>
+    <string name="settings_reminders_hint">A single daily check. Nothing is sent anywhere.</string>
+    <!-- The banner, not the switch: said as what is lost, because a user who has just refused a
+         permission can already see that it is off. PLAN.md rule 4's third clause. -->
+    <string name="settings_reminders_blocked_title">Reminders will not arrive</string>
+    <string name="settings_reminders_blocked_body">Android is set to hide reminders from this app, so nothing will be shown when something is due.</string>
+    <string name="settings_reminders_blocked_action">Open notification settings</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_backup">Backup and restore</string>
+    <!-- Settings → Data: every setting, the app language included, back to how the app came, after a confirmation. Items and backups are untouched. -->
+    <string name="settings_restore">Restore default settings</string>
+    <string name="settings_restore_hint">Theme, colours, reminders and language</string>
+    <string name="settings_restore_confirm_title">Restore default settings?</string>
+    <string name="settings_restore_confirm_body">The theme, colours, reminders and language go back to how the app came. Your items and backups stay as they are. This cannot be undone.</string>
+    <string name="settings_restore_confirm">Restore</string>
+    <string name="settings_about">About</string>
+    <string name="settings_support">Help and feedback</string>
+    <string name="settings_licences">Open-source licences</string>
+
+    <!-- Help and feedback. The three `support_subject_*` are translatable="false" on purpose:
+         they are the filter tag you sort your own mail on and the user never reads them, while
+         the prompt beside each one is a sentence addressed to them and is translated. A Polish
+         report arriving under the untranslated "#bug" subject is the correct outcome. -->
+    <string name="support_title">Help and feedback</string>
+    <string name="support_report">Report a problem</string>
+    <string name="support_report_hint">Opens your email app with what the app knows about your phone already filled in.</string>
+    <string name="support_feature">Suggest a feature</string>
+    <string name="support_feature_hint">Say what you would like the app to do, and what you would use it for.</string>
+    <string name="support_subject_bug" translatable="false">Darts Scorer #bug</string>
+    <string name="support_subject_feature" translatable="false">Darts Scorer #feature</string>
+    <string name="support_subject_language" translatable="false">Darts Scorer #language</string>
+    <string name="support_body_bug">What happened, and what you expected instead:</string>
+    <string name="support_body_feature">What would you like the app to do?</string>
+    <string name="support_body_language">Which word read wrong, and on which screen?</string>
+    <string name="support_no_mail_app">No email app on this phone to open.</string>
+    <string name="support_rate">Rate this app on Google Play</string>
+    <string name="support_rate_hint">Opens this app on Google Play. Rating is optional and unlocks nothing.</string>
+    <string name="support_no_play">No Google Play or web browser on this phone to open.</string>
+    <!-- The tip (ADR-0007): a payment to the developer that unlocks nothing. Never "donate" or
+         "support the project". The buttons are Play's own formatted prices, not strings -->
+    <string name="support_tip">Tip the developer</string>
+    <string name="support_tip_hint">A one-off tip, paid through Google Play. It unlocks nothing, because nothing in this app is locked.</string>
+    <string name="support_tip_thanks">Thank you. It means a lot.</string>
+    <string name="support_tip_pending">Your payment is still being processed. Google Play will finish it.</string>
+
+    <!-- Backup -->
+    <string name="backup_explainer">Everything stays on this phone. A backup is a single file you keep wherever you like.</string>
+    <string name="backup_export_records">Export records</string>
+    <string name="backup_export_everything">Export everything</string>
+    <string name="backup_restore">Restore from a file…</string>
+    <!-- Android's own automatic backup to the user's Google account, as the app last saw it run. %1$s is a localised date and time. -->
+    <string name="backup_auto_last">Android last backed up the app on %1$s.</string>
+    <string name="backup_auto_none">Android has not backed up the app yet.</string>
+    <!-- %1$s is a localised date and time: when the last automatic backup before the refused one ran. -->
+    <string name="backup_auto_over_quota">Android\'s latest automatic backup was refused as too large. The one from %1$s is the last that went through. Export a backup yourself.</string>
+    <string name="backup_auto_over_quota_none_earlier">Android\'s latest automatic backup was refused as too large, and the app has no record of an earlier one that went through. Export a backup yourself.</string>
+    <!-- Follows backup_auto_last in the same paragraph. Thumbnails are the small copies of photos. -->
+    <plurals name="backup_auto_left_out">
+        <item quantity="one">%d older thumbnail did not fit and was left out.</item>
+        <item quantity="other">%d older thumbnails did not fit and were left out.</item>
+    </plurals>
+
+    <!-- Licences -->
+    <string name="licence_text_missing">The text of this licence is not bundled with the app.</string>
+
+    <!-- Notification channels. The convention `channel_<id>_name` / `channel_<id>_description` is
+         asserted by ReminderChannelsTest, so a new channel cannot ship with no name. -->
+    <string name="channel_reminders_name">Reminders</string>
+    <string name="channel_reminders_description">The daily check for anything due.</string>
+
+    <!-- The schema gate's screen. Deliberately plain: someone reading it is already worried. -->
+    <string name="schema_mismatch_title">This data was saved by a different version</string>
+    <string name="schema_mismatch_body">The data on this phone was saved at version %1$d, and this build reads version %2$d.</string>
+    <string name="schema_mismatch_copy">A copy has been kept as %1$s. Nothing has been deleted.</string>
+</resources>
