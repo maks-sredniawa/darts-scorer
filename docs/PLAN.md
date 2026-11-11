@@ -14,17 +14,24 @@ per phase, no task lists. The detail is written when the phase opens, not now. T
 was extracted from and the first app built from it settled on exactly this split independently.
 [`phase-template.md`](phase-template.md) is the shape a phase file settled into; copy it on the day.
 
-<!--
-    A skeleton. Replace the phases with yours; keep the four rules at the bottom unless you have a
-    reason, because each of them was paid for by an app built from this template.
--->
 
 ## Status
 
-- [ ] **Phase 0** — Skeleton: the placeholder domain gone, the palette and the mark chosen
+- [ ] **Phase 0** — Skeleton: the placeholder Items and reminders gone, the system camera and Photo
+  Picker kept for the board photo, Darts Scorer's palette and mark
+- [ ] **Phase M** — The model, off the phone (ADR-0008): the `ml/` folder, the DeepDarts dataset and
+  the owner's own labelled handheld photos, a detector trained with Apache or MIT code, and its
+  accuracy measured on held-out handheld photos. **It runs alongside phases 0 and P, and phase 1
+  waits for it**
 - [ ] **Phase P** — The pipeline: repository setup, upload key, Play entry, secrets, a green internal upload
-- [ ] **Phase 1** — *(the smallest version of the app's one mechanism, working on the phone)*
-- [ ] **Phase 2** — *(safe to hand to a stranger)* ← **the door: closed testing opens here**
+- [ ] **Phase 1** — The mechanism on the phone: one photo in, the darts drawn on the board with their
+  score, offline, plus tapping the board to correct a dart. Readings: real throws on a real board,
+  in ordinary room light
+- [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
+  asking for another angle only when a dart is missing, unsure, or on a wire (ADR-0008)
+- [ ] **Phase 3** — *(safe to hand to a stranger)* ← **the door: closed testing opens here**. The
+  camera ask and its denial path, the first-run path, the DeepDarts attribution on the licences
+  screen
 - [ ] **Phase N** — Ship shape: listing, screenshots, the App content answers
 
 ---
@@ -108,12 +115,38 @@ introduces the behaviour owns saying so.
 
 ## Phase 0 — Skeleton
 
-*(one paragraph)*
+The template's placeholder domain goes: Items, and the reminders module (`work/`, exact alarms).
+Darts Scorer schedules nothing. The photo path stays, because the board photo arrives through
+`TakePicture` or the Photo Picker. Whether it is kept after scoring is phase 1's question, not this
+one. Room and backup stay until phase 1 decides whether any visit history is stored; if none is,
+both go before the first upload, while deleting them is still free (`optional-modules.md`).
+
+## Phase M — The model
+
+The riskiest part, and the one that decides whether there is an app at all. Its first stop is the
+board alone: from a handheld photo, find the calibration points and fit the homography. The reading
+is the error in millimetres at the double and treble wires. A detector that cannot place the board
+cannot place a dart, so the darts come second, measured as the share of visits scored exactly right
+on held-out handheld photos, at the angles a player actually stands at. The bar for opening phase 1
+is written in `phase-M.md` before training starts, not fitted to the first result. Labelling the
+owner's photos and training the model cost very different amounts, so per rule 2 they are tracked as
+separate checkpoints.
 
 ## Phase P — The pipeline
 
-*(one paragraph — `DOD.md`'s "Before the first upload" is most of it)*
+`DOD.md`'s *Before the first upload*: the GitHub repository and its ruleset, upload key, Play entry
+under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the skeleton.
+
+## Asks
+
+| Ask | When | Owner |
+| --- | --- | --- |
+| Camera (through the system camera, so no `CAMERA` permission) | the first tap on *Take a photo* | phase 1 |
 
 ## Not in this plan
 
-*(what the app will deliberately never do, so a phase cannot quietly grow it back)*
+- Sending a photo off the phone, for any reason, including to train the model.
+- A live camera view that scores while the darts are being thrown. The app scores still photos of
+  darts already on the board.
+- Fixed or mounted cameras.
+- Soft-tip (electronic) boards, until an ADR covers their geometry.
