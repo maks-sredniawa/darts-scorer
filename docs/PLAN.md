@@ -123,7 +123,9 @@ one. The first version stores no visit history, so Room and the custom backup go
 the first upload while deleting them is still free, with the amendments to ADR-0001 and ADR-0005
 that `optional-modules.md` lists. Storing history is a later phase, with its own ADR, if it is
 wanted. Whatever platform Auto Backup takes in the custom agent's place excludes the photo
-directories, because a backed-up photo is a photo that left the phone.
+directories, because a backed-up photo is a photo that left the phone: in both
+`dataExtractionRules` (Android 12 and later, cloud backup and device transfer) and
+`fullBackupContent` (Android 8 to 11), or the photos live in `noBackupFilesDir` instead.
 
 ## Phase M1 — The data
 
