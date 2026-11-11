@@ -34,3 +34,14 @@ __pycache__/
 fastlane/report.xml
 fastlane/README.md
 fastlane/metadata/
+
+# ml/ holds code only: datasets, labels and weights are never published (ADR-0008).
+/ml/**
+!/ml/**/
+!/ml/**/*.py
+!/ml/**/*.toml
+!/ml/**/*.yaml
+!/ml/**/*.yml
+!/ml/**/*.md
+!/ml/**/*.lock
+!/ml/**/.python-version

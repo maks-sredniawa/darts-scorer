@@ -3,8 +3,8 @@
 ## Context
 
 The app reads a darts score from handheld photos of the board: no fixed camera, no photo of the
-empty board before the throw, often an oblique angle, and darts that hide each other. Photos never
-leave the phone (`CLAUDE.md`), so there is no server to run anything on.
+empty board before the darts are thrown, often an oblique angle, and darts that hide each other. A
+player's photos never leave the phone (`CLAUDE.md`), so there is no server to run anything on.
 
 The published work that comes closest is **DeepDarts** (McNally et al., CVPR 2021 Workshops,
 [arXiv 2105.09880](https://arxiv.org/abs/2105.09880)). One detector finds four calibration points on
@@ -35,22 +35,45 @@ and the app is on Play with a tip purchase:
     is many points rather than DeepDarts' four, so a homography still fits when darts cover some of
     them.
   - **Entry points:** where each dart's shaft enters the board.
-- **The board is the regulation steel-tip board** (WDF Rules rev. 20, §4): double wire at 170.0 mm,
-  treble wire at 107.4 mm, 25 ring at 15.9 mm, bull at 6.35 mm, segments clockwise from the top
-  starting at 20: 20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5.
+- **The board is the regulation steel-tip wire board** of the
+  [WDF Playing and Tournament Rules, rev. 20](https://site.dartswdf.com/wp-content/uploads/2020/05/2018-02-28_WDF_Playing_and_Tournament_Rules_rev20.pdf),
+  §4.01, checked against that PDF on 2026-11-11. The rules fix the bull and 25 rings by their inside
+  diameters (12.7 mm and 31.8 mm), the treble and double wires by their outside edge (107.4 mm and
+  170.0 mm from the centre), and both narrow rings as 8.0 mm wide measured inside wire to inside
+  wire. A wire may be 1.27–1.85 mm thick, written *w*. Each wire is a band, in mm from the centre:
+
+  | Wire | Inner edge | Outer edge |
+  | --- | --- | --- |
+  | Bull ring | 6.35 | 6.35 + *w* |
+  | 25 ring | 15.9 | 15.9 + *w* |
+  | Inner treble wire | 99.4 − 2*w* | 99.4 − *w* |
+  | Outer treble wire | 107.4 − *w* | 107.4 |
+  | Inner double wire | 162.0 − 2*w* | 162.0 − *w* |
+  | Outer double wire | 170.0 − *w* | 170.0 |
+
+  A region runs between the wires around it, and a dart scores on the side of the wire its point
+  enters (§3.03). The app takes *w* as 1.5 mm; a real board's wire differs from that by at most
+  0.35 mm, inside the 2 mm wire margin below. Older BDO tables give the treble as 107.0 mm; WDF rev. 20 gives 107.4 mm, and that is used.
+  Segments run clockwise from the top starting at 20: 20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7,
+  16, 8, 11, 14, 9, 12, 5.
 - **The homography is fitted with RANSAC.** Each entry point is mapped into board millimetres and
   scored there. Only the entry point is mapped: the homography is correct only on the board's plane,
   and a dart's flight sticks out of it.
-- **Several photos are merged in board millimetres.** Entry points from different photos that lie
-  within a few millimetres of each other are the same dart, and their positions are averaged,
-  weighted by confidence. The app asks for **another angle** only when one of these is true:
+- **Several photos are merged in board millimetres, one dart to one dart.** Each further photo's
+  Entry points are matched to the darts found so far by an assignment on distance, so two Entry
+  points from the same photo never land on one dart. A pair further apart than a gate of a few
+  millimetres is not a match: those stay separate darts. A matched dart's position is the average of
+  its Entry points, weighted by confidence. The app asks for **another angle** only when one of these
+  is true:
   - fewer darts were found than were thrown;
   - a dart's confidence is low;
   - the photos disagree on a dart's segment;
   - an entry point sits within about 2 mm of a wire.
 - **The model is trained off the phone, with Apache or MIT code only**, in this repo's `ml/` folder.
-  It is exported to a file that ships inside the app, so scoring needs no network, and Play
-  services does not supply the runtime. Which framework and which runtime is settled in phase M by
+  `ml/` holds code only: the datasets, the labels and the training weights are git-ignored and never
+  published, because the owner's photos show their home. The one thing that leaves `ml/` is the
+  exported model file that ships inside the app, so scoring needs no network, and Play services
+  does not supply the runtime. Which framework and which runtime is settled in phase M2 by
   measurement, not here.
 - **Training data:**
   - the DeepDarts dataset, credited on the open-source licences screen;
@@ -64,11 +87,11 @@ and the app is on Play with a tip purchase:
 
 - **Classical computer vision only:** red and green ring masks, an ellipse fit, and the segment
   boundaries as calibration points (Zgonc & Batagelj, ROSUS 2023). It finds the board well. It finds
-  the dart tip only by comparing against a photo taken before the throw from the same fixed camera,
-  which a handheld phone does not have. **Kept as a cross-check** on the calibration, not as the way
-  darts are found.
+  a dart's Entry point only by comparing against a photo taken before the dart from the same fixed
+  camera, which a handheld phone does not have. **Kept as a cross-check** on the calibration, not as
+  the way darts are found.
 - **Fixed-camera systems (Autodarts, Scolia):** these use three cameras mounted around the board and
-  compare frames from before and after each throw. The app has neither the mounted cameras nor the
+  compare frames from before and after each dart. The app has neither the mounted cameras nor the
   before frame. What carries over is the idea that more views settle a hidden dart, which is what
   the second angle is for.
 - **A cloud vision model** (any hosted multimodal API): the photo would leave the phone, the app
@@ -80,10 +103,10 @@ and the app is on Play with a tip purchase:
 ## Consequences
 
 - **Most of the work is data.** Hundreds of labelled handheld photos from several angles have to be
-  taken and labelled before any accuracy figure means anything. Phase M is that work, and it comes
-  before the app shows anything real.
+  taken and labelled before any accuracy figure means anything. Phase M1 is that work and phase M2
+  trains on it; both come before the app shows anything real.
 - **A dart on a wire needs 1–2 mm of accuracy.** Lens distortion, a calibration point hidden by a
-  dart, or a tip mistaken for the entry point each cost that much. So the app will sometimes be
+  dart, or the wrong spot on a dart taken for its Entry point each cost that much. So the app will sometimes be
   unsure, says so, and lets the player correct a dart by tapping the board.
 - Steel-tip regulation boards only. A soft-tip board has different geometry and needs its own ADR.
 - The app ships the model, which adds roughly 5–20 MB.
