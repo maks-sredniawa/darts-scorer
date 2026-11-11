@@ -24,8 +24,9 @@ user-facing word genuinely differ, both are written here with the difference sta
 
 ## Words we deliberately avoid
 
-<For example: "'delete' is reserved for something irreversible; anything recoverable is 'archived'."
-The value here is in the distinctions, not the definitions.>
+- **"tip"** means the payment (ADR-0007) and nothing else; `tip/` is the billing package. The part of
+  a Dart that enters the Board is never its tip: where it enters is the **Entry point**. The board
+  types *steel-tip* and *soft-tip* are the only other place the word appears.
 
 ## Naming conventions in code
 
