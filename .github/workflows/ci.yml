@@ -228,15 +228,15 @@ jobs:
   # capture portrait under a landscape name. `scripts/edge-to-edge.py`'s CONFIGS says the same.
   #
   # Deliberately NOT on `pull_request`, and deliberately not part of `instrumented-gate`:
-  # `edge-to-edge.py` walks ~75 scenes per cell by driving uiautomator taps, and its `settle()`
+  # `edge-to-edge.py` walks its scenes in every cell by driving uiautomator taps, and its `settle()`
   # timings are tuned to real hardware — an emulator is where they go flaky rather than fail. A
   # flaky check on every PR is a check people learn to re-run without reading, which is worse than
   # no check. Nightly plus the Run workflow button keeps the coverage and keeps the merge path
   # honest. Promote it to `pull_request` once a few weeks of nightlies have shown it steady.
   #
   # The second half of the `if:` is the same reasoning as release-please's, for the same repository.
-  # This job drives ~75 scenes per cell against screens the template does not have yet — its app is
-  # a placeholder, so the nightly boots ten emulators to walk a UI nobody has written and reports a
+  # This job drives its scenes against screens the template does not have yet — its app is a
+  # placeholder, so the nightly boots ten emulators to walk a UI nobody has written and reports a
   # red that means nothing. A repo *generated* from the template is not itself a template, so the
   # condition is false there and the nightly runs normally. Nothing for repo-setup.py to rewrite,
   # and no repository name hardcoded. Parentheses are load-bearing: `&&` binds tighter than `||`.
@@ -246,10 +246,10 @@ jobs:
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
       && github.event.repository.is_template != true
     runs-on: ubuntu-latest
-    # One configuration per job, so ~75 scenes rather than the ~300 a whole leg used to walk in one
-    # go. The old shape put all four configurations of API 36 in a single job that was still going
-    # after 13 minutes with no cell finished, against a 240-minute ceiling it would plausibly have
-    # reached. Fanning out costs an emulator boot and a build per job — minutes are free on a public
+    # One configuration per job, so one cell of scenes rather than the four a whole leg used to walk
+    # in one go. The old shape put all four configurations of API 36 in a single job that was still
+    # going after 13 minutes with no cell finished, against a 240-minute ceiling it would plausibly
+    # have reached. Fanning out costs an emulator boot and a build per job — minutes are free on a public
     # repository — and buys a wall clock a nightly can actually finish in, plus a red that names the
     # configuration that broke instead of the API level that contained it.
     timeout-minutes: 90
@@ -311,9 +311,9 @@ jobs:
             ./gradlew installDebug
             # One line on purpose: `android-emulator-runner` does not honour a backslash
             # continuation here, and passes the backslash on as an argument of its own.
-            # `--retry-unreached 2` is for the emulator and nowhere else. A missed tap out of ~75
-            # scenes reddens a 36-minute cell, and re-running the whole cell to repair one scene
-            # costs another 36 — so the scene is re-walked in place instead, for about a minute.
+            # `--retry-unreached 2` is for the emulator and nowhere else. A missed tap reddens
+            # the whole cell, and re-running the cell to repair one scene costs the cell again — so
+            # the scene is re-walked in place instead, for about a minute.
             # It does not soften the check: a scene that never lands still fails the assert, and
             # one that needed two goes is printed as `flaky:` whether the run is red or green.
             python3 scripts/edge-to-edge.py --out artifacts/edge-to-edge --assert-clean --retry-unreached 2 --config ${{ matrix.config }}
