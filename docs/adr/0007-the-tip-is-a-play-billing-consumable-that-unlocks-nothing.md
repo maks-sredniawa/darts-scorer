@@ -77,3 +77,10 @@ Billing, and it unlocks nothing.**
 Auto Backup now carries every preference (ADR-0005's 2026-11-12 amendment), `tip_asked` among them,
 so a user who answered the ask is not asked again after moving phones. The month still restarts on
 the new phone, since `firstInstallTime` is not backed up, but the ask does not come back.
+
+## Amendment — 2026-11-12: the ask counts Visits scored, on the Visit screen
+
+The app has no Items, so the home-screen card lives on the Visit screen, the home tab, and its
+measure of use is Visits scored rather than items recorded: the preference `visits_scored`, against
+`TIP_ASK_AFTER_VISITS`, still 10. The 30 days are unchanged. Nothing writes the count until phase 1
+can score a Visit, so until then the ask never comes due.
