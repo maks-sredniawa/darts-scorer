@@ -40,7 +40,7 @@ Read at **versionCode _, versionName _** by `publish-play.yml`'s verify step on 
 
 The billing library's `datatransport` dependency merges `INTERNET`; the manifest removes it with
 `tools:node="remove"`, and the gate is what proves it stayed out. It merges `ACCESS_NETWORK_STATE`
-too, the row's only owner, so that row goes with the tip.
+too, and is that row's only owner, so the row goes with the tip.
 
 **Forbidden, and asserted absent**: `INTERNET`, `AD_ID`, `QUERY_ALL_PACKAGES`,
 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `CAMERA`, `USE_EXACT_ALARM`. The first two are what the Data
