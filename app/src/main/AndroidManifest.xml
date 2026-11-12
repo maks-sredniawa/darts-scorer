@@ -18,9 +18,6 @@
         What visibility *does* block is `resolveActivity`, which would answer "no mail app" on every
         phone that has one. Nothing performs such a pre-check today; these entries exist so one added
         later cannot silently lie.
-
-        The two SEND entries are load-bearing: ui/common/Share.kt lists the apps that take a share
-        through them, to grant each its read access ahead of the share sheet.
     -->
     <queries>
         <intent>
@@ -35,14 +32,6 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
-        <intent>
-            <action android:name="android.intent.action.SEND" />
-            <data android:mimeType="*/*" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.SEND_MULTIPLE" />
-            <data android:mimeType="*/*" />
-        </intent>
     </queries>
 
     <!--
@@ -50,21 +39,12 @@
         it silences lint's "unused below minSdk" note without weakening anything at runtime. Older
         devices ignore the attribute and AppCompat's backport reads the same file, so the list of
         shipped languages stays in one place across the whole supported range (ADR-0004).
-
-        Auto Backup runs through AppBackupAgent, which names its own file set (ADR-0005) — so
-        `backup_rules.xml` and `data_extraction_rules.xml` are absent along with the attributes that
-        would point at them. Static include/exclude XML cannot checkpoint the write-ahead log, and
-        without that the platform is eligible to copy the live database and its `-wal` sidecar
-        mid-write: a backup that appears to work and restores corrupt.
-
-        `fullBackupOnly` is not optional beside `backupAgent`. Declaring an agent without it puts
-        the app on the key/value path, where the agent's no-op onBackup is what runs.
     -->
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
-        android:backupAgent=".AppBackupAgent"
-        android:fullBackupOnly="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
@@ -81,10 +61,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <receiver
-            android:name=".ui.common.ShareChosenReceiver"
-            android:exported="false" />
 
         <!--
             The camera app writes the photo it takes into a file we own, and hands back a Uri for

@@ -22,7 +22,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import app.dartsscorer.ui.backup.BackupScreen
 import app.dartsscorer.ui.items.ItemDetailScreen
 import app.dartsscorer.ui.items.ItemEditorScreen
 import app.dartsscorer.ui.items.ItemsScreen
@@ -137,13 +136,9 @@ fun MainNavigation(modifier: Modifier = Modifier) {
                     }
                     entry<Settings> {
                         SettingsScreen(
-                            onOpenBackup = { backStack.add(Backup) },
                             onOpenLicences = { backStack.add(Licences) },
                             onOpenSupport = { backStack.add(Support) },
                         )
-                    }
-                    entry<Backup> {
-                        BackupScreen(onBack = { backStack.removeLastOrNull() })
                     }
                     entry<Support> {
                         SupportScreen(onBack = { backStack.removeLastOrNull() })

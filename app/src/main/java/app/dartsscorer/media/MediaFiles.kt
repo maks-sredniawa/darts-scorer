@@ -53,9 +53,6 @@ sealed interface DownsampleSpec {
  * large long-edge cap, and a document downsampled to gallery dimensions can make small print
  * unreadable (ADR-0002).
  *
- * The directory doubles as the export scope: the backup scopes in `data/backup/` are a list of
- * [MediaKind], not a list of magic strings (ADR-0005).
- *
  * **Judge a spec against a real capture on a real phone before changing it.** These numbers came
  * from measurement; a replacement picked by eye is a guess wearing the same clothes.
  *
@@ -196,7 +193,6 @@ class MediaFiles(
      */
     fun delete(relativePath: String): Boolean = File(root, relativePath).delete()
 
-    /** The directory holding one kind — the backup export scopes are built from these. */
     fun directoryFor(kind: MediaKind): File = File(root, kind.directory)
 
     /**

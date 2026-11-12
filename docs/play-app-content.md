@@ -123,11 +123,14 @@ The answer rests on one fact per route data could take:
 1. **The app cannot transmit anything.** `INTERNET` is absent from the artifact, and
    `aab-permissions.py` fails the upload if it ever appears. This one fact is most of the answer.
 2. **Photos are processed only on the device.** Picked or taken, re-encoded by `media/MediaFiles.kt`
-   with their metadata — GPS included — stripped, and stored in the app's private storage.
+   with their metadata — GPS included — stripped, and stored in the app's private storage, which no
+   backup takes them out of (point 3). The app has no share or export of its own.
 3. **Auto Backup is still "no data collected".** The platform moves the user's backup to the user's
    own Google Drive; the developer never sees it. That is Android transmitting the user's backup, not
-   the app transmitting to the developer. ⚠ Every file the backup carries lands on the user's *next*
-   phone too — see ADR-0005 for what is included and why.
+   the app transmitting to the developer. It carries the preferences and the chosen language, and
+   **never a photo**: both rule files are include-only and name nothing else, for the cloud backup
+   and the device transfer alike, and `BackupRulesTest` fails on any other include. ⚠ Every key the
+   backup carries lands on the user's *next* phone too — see ADR-0005's 2026-11-12 amendment.
 4. **A support mail is still "no data collected", and the reason is the definition rather than an
    exemption.** A `mailto:` hands a draft to **another app**; the user reads it, can edit every line,
    and sends it from their own mail client, or does not. ⚠ **Do not write "Play exempts support
@@ -149,6 +152,8 @@ Would change any of it:
 - **The app keeping a purchase**, such as a tip history or a supporter badge: that is *Purchase
   history* the app collects, and the form has no way to declare it as Google Play's.
 - **Location of any kind**, including through a photo's metadata surviving into storage or a backup.
+- **A backup rule that names a photo directory**, or a share or export of a photo: point 2 stops
+  being the whole story.
 
 ## Advertising ID
 

@@ -146,10 +146,9 @@ jobs:
           # `targetSdk` moves, these lines move with it in the same commit — a floor leg below
           # `minSdk` covers code the app cannot run, on a level it cannot install on.
           #
-          # The `minSdk` floor. Three SDK_INT branches — the pre-S path into system
-          # backup settings, the pre-R agent branch and the pre-S theme — plus
-          # AppCompat's pre-13 locale backport (ADR-0004) run *only* down here, and a
-          # single modern emulator never executes any of them. `default` rather than
+          # The `minSdk` floor. The pre-S theme branch and AppCompat's pre-13 locale
+          # backport (ADR-0004) run *only* down here, and a single modern emulator never
+          # executes either of them. `default` rather than
           # `aosp_atd`: the slim ATD images start at API 30, so 26 has no such image.
           - api-level: 26
             target: default

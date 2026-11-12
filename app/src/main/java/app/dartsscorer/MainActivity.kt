@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.dartsscorer.theme.AppTheme
-import app.dartsscorer.ui.common.revokeUnpickedShare
 import app.dartsscorer.ui.wipe.SchemaMismatchScreen
 
 /**
@@ -25,11 +24,6 @@ import app.dartsscorer.ui.wipe.SchemaMismatchScreen
  * all still work unchanged.
  */
 class MainActivity : AppCompatActivity() {
-    override fun onResume() {
-        super.onResume()
-        revokeUnpickedShare()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

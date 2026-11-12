@@ -44,7 +44,6 @@ class AppPreferences(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val MATERIAL_YOU = booleanPreferencesKey("material_you")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
-        val BACKUP_FOLDER_URI = stringPreferencesKey("backup_folder_uri")
         val TIP_ASKED = booleanPreferencesKey("tip_asked")
 
         /** What *Restore to default* removes: everything the user chose, so each reads its default again. */
@@ -61,7 +60,6 @@ class AppPreferences(
         val KEPT: List<Preferences.Key<*>> =
             listOf(
                 ONBOARDING_DONE,
-                BACKUP_FOLDER_URI,
                 TIP_ASKED,
             )
     }
@@ -93,19 +91,8 @@ class AppPreferences(
     val onboardingDone: Flow<Boolean> = store.data.map { it[Keys.ONBOARDING_DONE] ?: false }
 
     /**
-     * The tree Uri the user picked for automatic backups, if any.
-     *
-     * Stored as a string because that is what `Uri.toString()`/`Uri.parse()` round-trip, and because
-     * the persisted permission grant it refers to is held by the system, not here. A stored Uri whose
-     * grant has been revoked reads back fine and fails at write time — so treat this as a *hint*, and
-     * handle the failure where the write happens.
-     */
-    val backupFolderUri: Flow<String?> = store.data.map { it[Keys.BACKUP_FOLDER_URI] }
-
-    /**
-     * Whether the home screen's one tip ask has been answered, either way (ADR-0007). It does not reach
-     * the next phone: `AppBackupAgent` backs up only the database and the thumbnails (ADR-0005), so
-     * after a move the user is asked once more, a month after the new install.
+     * Whether the home screen's one tip ask has been answered, either way (ADR-0007). Auto Backup
+     * carries it to the next phone with every other key (ADR-0005), so the ask is once per person.
      */
     val tipAsked: Flow<Boolean> = store.data.map { it[Keys.TIP_ASKED] ?: false }
 
@@ -133,12 +120,6 @@ class AppPreferences(
 
     suspend fun markTipAsked() {
         store.edit { it[Keys.TIP_ASKED] = true }
-    }
-
-    suspend fun setBackupFolderUri(uri: String?) {
-        store.edit { prefs ->
-            if (uri == null) prefs.remove(Keys.BACKUP_FOLDER_URI) else prefs[Keys.BACKUP_FOLDER_URI] = uri
-        }
     }
 
     /**

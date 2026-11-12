@@ -5,7 +5,7 @@ title: Privacy Policy
 
 # Privacy Policy
 
-_Last updated: 11 November 2026_
+_Last updated: 12 November 2026_
 
 Darts Scorer is an Android app that scores a darts visit from one or more photos of the board. This
 policy describes what the app does with the information you give it. It is short because the app
@@ -35,9 +35,11 @@ The Google Play Billing library, which handles tips, carries usage logging of it
 These are done by the operating system or by Google, not by Darts Scorer, but they are the honest
 answer to "where could my data be":
 
-1. **Android's automatic backup.** If it is enabled on your phone, Android backs up the app's data
-   to your own Google Drive, in a space that does not count against your storage quota and that
-   Google states apps cannot read. You can turn this off in your phone's settings.
+1. **Android's automatic backup.** If it is enabled on your phone, Android backs up the app's
+   settings, such as the theme and the language, to your own Google Drive, in a space that does not
+   count against your storage quota and that Google states apps cannot read, and copies them to a new
+   phone when you move to one. **Your photos are never part of it.** You can turn this off in your
+   phone's settings.
 2. **Google Play.** Installing and updating an app is a transaction between your phone and Google,
    with its own privacy policy. About installs, the developer of this app receives aggregate,
    anonymous statistics — install counts, crash rates, country-level breakdowns — and no information
@@ -58,7 +60,7 @@ The app is not directed at children and collects nothing from anyone.
 ## Deleting your data
 
 Uninstalling the app removes everything it stored on the phone. The only other copy is Android's
-backup in your Google account, if backup is on; turn backup off in your phone's settings, or delete
+backup of the app's settings in your Google account, if backup is on; turn backup off in your phone's settings, or delete
 the backup under Backups in Google Drive, to remove it.
 
 ## Changes

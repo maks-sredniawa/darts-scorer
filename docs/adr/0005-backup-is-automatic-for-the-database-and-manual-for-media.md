@@ -77,3 +77,33 @@ system — for a feature the platform already provides.
   the format.
 - Media is merged rather than replaced on restore: filenames are UUIDs, so a collision means the same
   file, and keeping files the archive does not mention costs disk where deleting them costs photos.
+
+## Amendment — 2026-11-12: platform Auto Backup, include-only, preferences only
+
+Darts Scorer's first version keeps no records ([`phase-0.md`](../phase-0.md) §§ 2–3), and the one thing
+it keeps besides its settings is the photos of the board, which the app exists to keep on the phone.
+Both halves of the decision above lose their reason: there is no database whose write-ahead log needs
+a checkpoint, and the media that needed a quota budget is the media that must not leave. So the custom
+agent, the in-app export and restore, the Backup screen and sharing are gone, with
+`scripts/upgrade-diff.py`, which read the export.
+
+Platform Auto Backup takes over: `allowBackup="true"` and two rule files that say the same thing.
+`res/xml/data_extraction_rules.xml` (`android:dataExtractionRules`) is read on Android 12 and later,
+for `<cloud-backup>` and `<device-transfer>` alike, and `res/xml/backup_rules.xml`
+(`android:fullBackupContent`) on Android 8 to 11. Both are **include-only** and name two things:
+`datastore/`, the preferences, and AppCompat's locale record,
+`androidx.appcompat.app.AppCompatDelegate.application_locales_record_file`, so the chosen language
+follows the user below Android 13. Both are in the `file` domain; the record's name was read off a
+device, not guessed (`phase-0.md`, R2). Include-only fails closed: a directory added later stays on
+the phone until someone names it. `BackupRulesTest` holds each of the three sets to exactly those
+two includes.
+
+- Every preference key reaches the next phone, the tip's answer included (ADR-0007's 2026-11-12
+  amendment). A key that is live state rather than a setting is judged at the read
+  ([`optional-modules.md`](../optional-modules.md)).
+- A device transfer carries no more than the cloud backup: a user's photos stay on the old phone.
+- The over-quota failure above cannot happen: the set is a few kilobytes.
+
+The custom agent's reasoning returns with a database. A feature that adds a table starts from the
+decision above and the code at `e6409d8` (`AppBackupAgent.kt`, `data/backup/`, `ui/backup/`,
+`ui/common/Share.kt`, `scripts/upgrade-diff.py`), because static XML still cannot checkpoint a WAL.
