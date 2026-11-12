@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.dartsscorer.theme.AppTheme
-import app.dartsscorer.ui.wipe.SchemaMismatchScreen
 
 /**
  * AppCompatActivity rather than ComponentActivity, and for one reason only: it is where
@@ -57,11 +56,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            // Read from the application, never from `app.container` — that property is the `lazy`
-            // that *is* ADR-0001's wipe guard, and the theme below wraps the schema-mismatch screen
-            // as well as the app, so forcing it here would open the gate from inside the thing
-            // standing in front of it.
-            //
             // Kotlin note: a plain `Flow` has no current value the way a `StateFlow` does, so
             // collecting one as state needs an initial. `false` is also the stored default, which is
             // what keeps the first frame from being the wrong palette and then repainting.
@@ -78,19 +72,7 @@ class MainActivity : AppCompatActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    val schemaMismatch by app.schemaMismatch.collectAsStateWithLifecycle()
-
-                    // Kotlin note: assigned to a local first because smart-casting a `var` read from
-                    // another object is not allowed — the compiler cannot prove it has not changed
-                    // between the null check and the use. A local `val` it can.
-                    val mismatch = schemaMismatch
-                    if (mismatch != null) {
-                        // The guard is structural: `MainNavigation` is what first reads
-                        // `AppContainer`, so not composing it is what keeps Room out of existence.
-                        SchemaMismatchScreen(mismatch = mismatch, onContinue = app::consentToWipe)
-                    } else {
-                        MainNavigation()
-                    }
+                    MainNavigation()
                 }
             }
         }

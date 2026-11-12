@@ -13,10 +13,6 @@
 #   * **The manifest's classes.** AGP generates `aapt_rules.txt` from the merged manifest, which
 #     covers the application, the activity, every receiver and provider.
 #
-#   * **Room.** `-keep class * extends androidx.room.RoomDatabase` plus R8's own handling of the
-#     `Class.forName(… + "_Impl")` lookup. `AppDatabase_Impl` stays unrenamed. The DAOs are renamed,
-#     which is fine — nothing looks them up by name.
-#
 #   * **kotlinx.serialization** — the licence list and every Nav3 route key. The library ships R8
 #     rules preserving the `Companion` field and the `serializer()` method, which is the reflective
 #     path `serializer(KClass)` takes. Renaming the *classes* is harmless: a `@Serializable` class's

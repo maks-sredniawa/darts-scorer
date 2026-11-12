@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -17,7 +18,7 @@ enum class ThemeMode {
 }
 
 /**
- * Everything the app remembers that is not a row in the database.
+ * Everything the app remembers.
  *
  * **DataStore, not SharedPreferences.** SharedPreferences' `commit()` blocks and its `apply()` can
  * still write on the main thread at the wrong moment; DataStore is `suspend`-only and transactional,
@@ -45,6 +46,7 @@ class AppPreferences(
         val MATERIAL_YOU = booleanPreferencesKey("material_you")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val TIP_ASKED = booleanPreferencesKey("tip_asked")
+        val VISITS_SCORED = intPreferencesKey("visits_scored")
 
         /** What *Restore to default* removes: everything the user chose, so each reads its default again. */
         val SETTINGS: List<Preferences.Key<*>> =
@@ -61,6 +63,7 @@ class AppPreferences(
             listOf(
                 ONBOARDING_DONE,
                 TIP_ASKED,
+                VISITS_SCORED,
             )
     }
 
@@ -69,8 +72,6 @@ class AppPreferences(
      *
      * Unknown stored values fall back to [ThemeMode.SYSTEM] rather than throwing: a preference file
      * survives a downgrade, and a crash loop at startup is a far worse outcome than the wrong theme.
-     * This is the opposite of the rule for enums stored in the *database*, where an unknown value
-     * means the schema gate missed something and should be loud.
      */
     val themeMode: Flow<ThemeMode> =
         store.data.map { prefs ->
@@ -92,6 +93,9 @@ class AppPreferences(
 
     /** Whether the home screen's one tip ask has been answered, either way (ADR-0007). */
     val tipAsked: Flow<Boolean> = store.data.map { it[Keys.TIP_ASKED] ?: false }
+
+    /** How many Visits have been scored: the tip ask's measure of use (ADR-0007). */
+    val visitsScored: Flow<Int> = store.data.map { it[Keys.VISITS_SCORED] ?: 0 }
 
     /**
      * The theme mode, read once, before any Activity exists.
@@ -117,6 +121,10 @@ class AppPreferences(
 
     suspend fun markTipAsked() {
         store.edit { it[Keys.TIP_ASKED] = true }
+    }
+
+    suspend fun incrementVisitsScored() {
+        store.edit { it[Keys.VISITS_SCORED] = (it[Keys.VISITS_SCORED] ?: 0) + 1 }
     }
 
     /**

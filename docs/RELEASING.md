@@ -78,9 +78,10 @@ is why it is enforced by the repo setting instead of by remembering.
 
 ## Release notes are a merge gate, not an afterthought
 
-`scripts/notes-gate.py` runs in CI on every pull request, beside the schema and translation gates. It
-asserts one thing: the newest `### x.y.z` under `## Release notes` in
-[`store-listing.md`](store-listing.md) is the `versionName` about to ship.
+`scripts/notes-gate.py` runs in CI on every pull request, beside the translation gate and the schema
+gate (parked: it passes while there is no database). It asserts one thing: the newest `### x.y.z`
+under `## Release notes` in [`store-listing.md`](store-listing.md) is the `versionName` about to
+ship.
 
 It exists because `play-metadata.py` uploads **the newest notes it finds** and nothing else consults
 them. Bump `versionName` without moving the notes and the previous release's text goes up attached to

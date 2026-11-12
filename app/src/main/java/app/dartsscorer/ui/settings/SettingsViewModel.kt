@@ -67,8 +67,6 @@ class SettingsViewModel(
             viewModelFactory {
                 initializer {
                     val app = this[APPLICATION_KEY] as MainApplication
-                    // Preferences, not the container: Settings is reachable while the schema gate
-                    // is open, and forcing the container here would be forcing Room.
                     SettingsViewModel(app.preferences)
                 }
             }

@@ -20,7 +20,7 @@ user-facing word genuinely differ, both are written here with the difference sta
 | **Entry point** | where a Dart's shaft enters the Board; the only point that is scored | tip, hit point |
 | **Calibration point** | a point on the Board's wires whose position is known, used to map a Photo onto the Board | keypoint, anchor, marker |
 | **Score** | a Dart's value (e.g. *treble 20*, 60) or a Visit's total | points, result |
-| **Tip** | a one-off payment to the developer through Google Play that **unlocks nothing** (ADR-0007). The home screen mentions it once per install; Help and feedback offers it for good | donation, support the project, premium, supporter |
+| **Tip** | a one-off payment to the developer through Google Play that **unlocks nothing** (ADR-0007). The Visit screen mentions it once, and the answer follows the user to a new phone; Help and feedback offers it for good | donation, support the project, premium, supporter |
 
 ## Words we deliberately avoid
 

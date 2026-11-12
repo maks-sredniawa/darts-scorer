@@ -8,31 +8,16 @@
     supplying only `one` and `other` here would be a red build, not a silently wrong app.
 -->
 <resources>
-    <string name="tab_items">Rzeczy</string>
+    <string name="tab_visit">Podejście</string>
     <string name="tab_settings">Ustawienia</string>
 
     <string name="action_back">Wstecz</string>
-    <string name="action_save">Zapisz</string>
-    <string name="action_edit">Edytuj</string>
-    <string name="action_delete">Usuń</string>
     <string name="action_cancel">Anuluj</string>
 
-    <string name="item_add">Dodaj rzecz</string>
-    <string name="item_detail_title">Rzecz</string>
-    <string name="item_title_label">Tytuł</string>
-    <string name="item_notes_label">Notatki</string>
-    <string name="item_pick_image">Wybierz zdjęcie</string>
-    <string name="items_empty">Nic tu jeszcze nie ma. Dotknij +, aby dodać pierwszą rzecz.</string>
-    <string name="items_tip_ask_title">Ta aplikacja jest darmowa i taka zostanie</string>
-    <string name="items_tip_ask_body">Jeśli ci się przydaje, możesz zostawić twórcy napiwek. Niczego nie odblokowuje, a na tym telefonie aplikacja więcej o to nie zapyta.</string>
-    <string name="items_tip_ask_accept">Zostaw napiwek</string>
-    <string name="items_tip_ask_decline">Nie, dziękuję</string>
-    <plurals name="items_count">
-        <item quantity="one">%d rzecz</item>
-        <item quantity="few">%d rzeczy</item>
-        <item quantity="many">%d rzeczy</item>
-        <item quantity="other">%d rzeczy</item>
-    </plurals>
+    <string name="visit_tip_ask_title">Ta aplikacja jest darmowa i taka zostanie</string>
+    <string name="visit_tip_ask_body">Jeśli ci się przydaje, możesz zostawić twórcy napiwek. Niczego nie odblokowuje, a na tym telefonie aplikacja więcej o to nie zapyta.</string>
+    <string name="visit_tip_ask_accept">Zostaw napiwek</string>
+    <string name="visit_tip_ask_decline">Nie, dziękuję</string>
 
     <string name="settings_appearance">Wygląd</string>
     <string name="settings_theme_system">Systemowy</string>
@@ -48,7 +33,7 @@
     <string name="settings_restore">Przywróć ustawienia domyślne</string>
     <string name="settings_restore_hint">Motyw, kolory i język</string>
     <string name="settings_restore_confirm_title">Przywrócić ustawienia domyślne?</string>
-    <string name="settings_restore_confirm_body">Motyw, kolory i język wrócą do wartości początkowych. Twoje rzeczy i kopie zapasowe zostaną bez zmian. Tego nie można cofnąć.</string>
+    <string name="settings_restore_confirm_body">Motyw, kolory i język wrócą do wartości początkowych. Tego nie można cofnąć.</string>
     <string name="settings_restore_confirm">Przywróć</string>
     <string name="settings_about">O aplikacji</string>
     <string name="settings_support">Pomoc i opinie</string>
@@ -72,8 +57,4 @@
     <string name="support_tip_pending">Płatność jeszcze się rozlicza. Google Play ją dokończy.</string>
 
     <string name="licence_text_missing">Treść tej licencji nie jest dołączona do aplikacji.</string>
-
-    <string name="schema_mismatch_title">Te dane zapisała inna wersja</string>
-    <string name="schema_mismatch_body">Dane na tym telefonie zapisano w wersji %1$d, a ta kompilacja odczytuje wersję %2$d.</string>
-    <string name="schema_mismatch_copy">Kopia została zachowana jako %1$s. Nic nie zostało usunięte.</string>
 </resources>

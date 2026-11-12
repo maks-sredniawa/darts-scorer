@@ -193,8 +193,6 @@ class MediaFiles(
      */
     fun delete(relativePath: String): Boolean = File(root, relativePath).delete()
 
-    fun directoryFor(kind: MediaKind): File = File(root, kind.directory)
-
     /**
      * The two things the source's metadata is good for, read once before it is discarded.
      */

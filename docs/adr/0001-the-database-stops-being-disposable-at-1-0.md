@@ -62,3 +62,18 @@ A completely green migration suite says nothing about whether a real upgrade is 
   one file per variant, so a release binary carries neither it nor its string; the flag is still
   needed because `-PreleaseShapedDebug` compiles the debug half without the destructive fallback.
 - `preserved/` is never pruned. It is small and it is the last copy.
+
+## Amendment — 2026-11-12: no database in the first version
+
+Darts Scorer's first version stores no Visit history ([`PLAN.md`](../PLAN.md)), so it has no
+database ([`phase-0.md`](../phase-0.md) § 3). Room went with the template's placeholder Items: the
+entities, DAO, migrations and `app/schemas/`, the launch gate (`SchemaGate.kt`,
+`DatabasePreserve.kt`, `BackgroundSchemaGuard.kt`), the schema-mismatch screen and its continue
+button, `preserved/` with its `FileProvider` path, and `SchemaGateTest`, `ItemDaoTest` and
+`MigrationTest`. Nothing had shipped, so no install held a database to lose.
+
+The schema gate is parked, not deleted. `docs/DOD.md` keeps its five points verbatim, and
+`scripts/schema-gate.py` stays in CI, where it passes with "no database, nothing to gate" because
+`scripts/project.py` reads `HAS_DATABASE` off `data/AppDatabase.kt`. The decision above and the gate
+return with the first table, which starts at version 1 with its own ADR and from the code at
+`f280ce5` (`data/`, `ui/wipe/`, `app/schemas/`), rather than as a migration from a placeholder.

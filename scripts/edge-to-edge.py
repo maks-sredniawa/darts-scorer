@@ -777,8 +777,8 @@ def relaunch() -> None:
 # it is exactly the question "is a top-level destination on screen?" — and [HOME_TAB] is the bar's
 # first item, the one the back stack is rooted at. Naming them here rather than inline is what lets
 # a locale run translate them with the rest of the table.
-TAB_BAR = "Items"
-HOME_TAB = "Items"
+TAB_BAR = "Visit"
+HOME_TAB = "Visit"
 
 # The top-level destinations, named so [tap] can tell a tab from anything else it is asked to
 # press. Two things follow from being on this list, and both are about a tab label being a *short*
@@ -1197,21 +1197,12 @@ def wipe() -> None:
 
 
 def reset_to_seeded() -> None:
-    """Wipe, skip the wizard, and seed the debug sample data — a known state, not just a clean one.
+    """Put the phone on the `full` suite's fixture: a wiped install, since the app keeps no records to seed.
 
-    The inverse of [wipe]: the `empty` suite ends with the install wiped, so without this a matrix
-    run leaves the phone with no sample data and no media directories at all.
-
-    It matters more than tidiness for repeat runs. Anything the seed stages for a scene to answer — a
-    prompt, a pending state — is consumed the first time a scene answers it, so without a reseed a
-    second capture cell would find it already gone and quietly shoot the wrong screen.
+    A second capture cell starting from whatever the first left behind would shoot a different
+    screen under the same name, so the fixture is restored rather than assumed.
     """
     wipe()
-    for label in SEED_WALK:
-        # `tap` scrolls when it cannot find its target, which is what reaches *Add the sample data*:
-        # the sample-data block is the debug-only tail of a scrolling Settings column.
-        tap(label)
-    settle(1.0)
 
     global _SEEDED
     _SEEDED = ""
@@ -1412,49 +1403,16 @@ class Scene:
 
 # The order matters only in that each scene starts from a relaunch, so they are independent.
 SCENES = [
-    # --- the screen with no Scaffold at all, reachable only by lying to the schema guard --------
-    #
-    # `SchemaMismatchScreen` is the one screen outside a `Scaffold` — it pads itself — so it is
-    # exactly the outlier this matrix exists to look at, and there is no route to it through the UI.
-    Scene(
-        "schema-mismatch",
-        "chrome-free",
-        [("fake_schema_mismatch", "")],
-        suite="mismatch",
-    ),
-    Scene(
-        "schema-mismatch-bottom",
-        "chrome-free",
-        [("fake_schema_mismatch", ""), ("swipe_end", "")],
-        suite="mismatch",
-    ),
+    Scene("visit-first-run", "tab", [("wipe", "")], suite="empty"),
 
-    # --- a wiped install: the empty states, which no seeded run can show ------------------------
-    Scene("items-empty", "tab", [("wipe", "")], suite="empty"),
-
-    # --- the tabs ------------------------------------------------------------------------------
-    Scene("items", "tab", []),
-    Scene("items-bottom", "tab", [("swipe_end", "")]),
+    Scene("visit", "tab", []),
     Scene("settings", "tab", [("tap", "Settings")]),
     Scene("settings-bottom", "tab", [("tap", "Settings"), ("swipe_end", "")]),
 
-    # --- detail screens: no bottom bar, so the navigation-bar inset is the app's own problem ----
-    Scene("item-detail", "detail", [("tap", "First item")]),
+    # Detail screens have no bottom bar, so the navigation-bar inset is the app's own problem.
     Scene("support", "detail", [("tap", "Settings"), ("tap", "Help and feedback")]),
     Scene("licences", "detail", [("tap", "Settings"), ("tap", "Open-source licences")]),
     Scene("licences-bottom", "detail", [("tap", "Settings"), ("tap", "Open-source licences"), ("swipe_end", "")]),
-
-    # --- forms: the keyboard is an inset too, and this is where `imePadding` is proved ----------
-    Scene("item-editor", "form", [("tap", "Add an item")]),
-    Scene("item-editor-bottom", "form", [("tap", "Add an item"), ("swipe_end", "")]),
-    Scene(
-        "item-editor-keyboard",
-        "form",
-        # Focus the first field and wait for the keyboard to finish animating in. This is the scene
-        # that catches a window being *panned* instead of resized — the top bar, Save button and all,
-        # slides off the top of the screen and only a screenshot shows it.
-        [("tap", "Add an item"), ("tap_field", "0"), ("wait", "1.5")],
-    ),
 ]
 
 
@@ -1477,10 +1435,6 @@ DEBUG_RES_DIR = Path(__file__).resolve().parent.parent / "app" / "src" / "debug"
 # The label that dismisses a seeded one-shot prompt before a scene can be walked. The template
 # stages none; leave it as None until yours does, and see `Scene.keeps_seeded_prompt`.
 PROMPT_DISMISS: "str | None" = None
-
-# The walk from a wiped install to the seeded fixture: into Settings and through the debug-only
-# sample-data block at the end of it. Extend this as your app grows a first-run wizard in front of it.
-SEED_WALK = ("Settings", "Seed sample data")
 
 
 def require_bcp47(tag: str) -> None:
@@ -1544,7 +1498,7 @@ def load_strings(locale: str | None) -> dict[str, str]:
 
 def scene_needles() -> set[str]:
     """Every string this driver will look for on screen, across all suites."""
-    needles = {TAB_BAR, HOME_TAB, *SEED_WALK}
+    needles = {TAB_BAR, HOME_TAB}
     if PROMPT_DISMISS is not None:
         needles.add(PROMPT_DISMISS)
     for scene in SCENES:

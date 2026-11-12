@@ -61,3 +61,11 @@ Android 8 to 11's full backup alike, because the backup rules are include-only a
 (ADR-0005's 2026-11-12 amendment). The directory no longer doubles as a backup export scope: there
 is no export. Stripping the metadata on re-encode stays as decided, for any route a later phase opens
 off the phone.
+
+## Amendment — 2026-11-12: no database holds the paths yet
+
+The first version keeps no records (ADR-0001's 2026-11-12 amendment), so nothing stores a relative
+path and *the file is written before the row* has no row yet. `MediaFiles.persist` and the kinds
+stay as decided, for phase 1's photos; whatever first stores a path stores it relative, and a table
+that does brings the file-before-row order back with it. `MediaFiles.directoryFor`, which listed a
+kind's directory for the export, went with the export.
