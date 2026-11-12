@@ -90,10 +90,7 @@ class AppPreferences(
     /** Whether first-run setup has been completed. */
     val onboardingDone: Flow<Boolean> = store.data.map { it[Keys.ONBOARDING_DONE] ?: false }
 
-    /**
-     * Whether the home screen's one tip ask has been answered, either way (ADR-0007). Auto Backup
-     * carries it to the next phone with every other key (ADR-0005), so the ask is once per person.
-     */
+    /** Whether the home screen's one tip ask has been answered, either way (ADR-0007). */
     val tipAsked: Flow<Boolean> = store.data.map { it[Keys.TIP_ASKED] ?: false }
 
     /**
