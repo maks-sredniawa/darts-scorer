@@ -65,8 +65,7 @@ def select_build(build: str) -> None:
     **`release` is the build a store screenshot has to come from**, and not for tidiness: the
     developer-only Settings section lives in `app/src/debug/`, so on the shipped build
     `DebugSettings()` is a no-op and the section is *absent* rather than hidden. A set shot off
-    `debug` photographs *Seed sample data* the moment any scene scrolls Settings — which is what an
-    app built from this template's first trial run did.
+    `debug` photographs any developer row the moment a scene scrolls Settings.
 
     It also takes the wipe away, which is the dangerous half. `debug` is a scratch install nobody
     mourns; the release id is the app on the phone's home screen — installed from Play, or with
@@ -1208,37 +1207,10 @@ def reset_to_seeded() -> None:
     _SEEDED = ""
 
 
-# Which seed the phone is currently carrying: "" for the plain sample data, a variant name for one
-# of [SeedVariantReceiver]'s, and None for "unknown" — which is what a wipe leaves and what the
-# start of every cell asserts, so the first scene of a cell always reseeds exactly as it always did.
+# Which seed the phone is currently carrying: "" for the plain fixture, a variant name once a debug
+# seeder exists, and None for "unknown" — which is what a wipe leaves and what the start of every
+# cell asserts, so the first scene of a cell always reseeds exactly as it always did.
 _SEEDED: "str | None" = None
-
-SEED_RECEIVER = f"{PACKAGE}/{project.NAMESPACE}.debug.SeedReceiver"
-
-
-def seed_variant(variant: str) -> None:
-    """Add a variant on top of the sample data, through the debug build's own receiver.
-
-    **The default seed is never changed, and that is the constraint rather than a nicety.** Sixty-one
-    scenes, the before/after comparison and the Play listing screenshots all rest on it, so a third
-    row or a repurposed series would move evidence that is already banked. A variant is additive
-    and asked for by name.
-
-    `-f 0x00000020` is `FLAG_INCLUDE_STOPPED_PACKAGES`: a package is in the stopped state after
-    `pm clear` until something launches it, and a broadcast to a stopped package is dropped in
-    silence — which would look exactly like a variant that seeded nothing.
-
-    The receiver reports through the broadcast result, so this can fail on what actually happened
-    rather than on a timeout: `result=0` and the data string it set, or a loud failure naming the
-    exception. See [SeedVariantReceiver] for why it is a broadcast at all.
-    """
-    global _SEEDED
-    output = shell(f"am broadcast -n {SEED_RECEIVER} -f 0x00000020 --es variant {variant}")
-    if "result=0" not in output:
-        raise StepFailed(f"seeding variant {variant!r} failed: {output.strip()[:200]}")
-    _SEEDED = variant
-    settle(1.0)
-
 
 # Whether every scene runs with a notification trying to post over it. Off unless `--live-notice`
 # asks for it, because it changes what every screenshot contains.
@@ -1250,7 +1222,7 @@ def seed_variant(variant: str) -> None:
 # flag is what makes a clean run mean anything, because DND suppressing a banner nobody posted is
 # not evidence of DND.
 #
-# Wire it to whatever your debug build can make post on demand, the way `seed_variant` is wired.
+# Wire it to whatever your debug build can make post on demand.
 _LIVE_NOTICE = False
 
 
@@ -1258,9 +1230,9 @@ def arm_live_notice() -> None:
     """Make one notification post over the scene about to be captured. **Unwired in the template.**
 
     There is nothing generic to put here: what can be made to post on demand is whatever your debug
-    build exposes, so this is a seam rather than an implementation. Wire it like [seed_variant] — a
-    broadcast to a receiver in `app/src/debug/` that re-arms a slot just behind `now`, checked on
-    the broadcast result so a silent no-op cannot pass for an armed one.
+    build exposes, so this is a seam rather than an implementation. Wire it as a broadcast to a
+    receiver in `app/src/debug/` that re-arms a slot just behind `now`, checked on the broadcast
+    result so a silent no-op cannot pass for an armed one.
 
     It raises rather than returning quietly because a `--live-notice` run that arms nothing produces
     a full green report of scenes no notification ever covered — evidence for a claim the run never
@@ -1288,9 +1260,9 @@ def ensure_seed(variant: str) -> None:
     if _SEEDED == variant:
         return
     print(f"  -- seeding{f' + {variant}' if variant else ''}")
-    reset_to_seeded()
     if variant:
-        seed_variant(variant)
+        raise StepFailed(f"scene asks for seed variant {variant!r}, and this app has no debug seeder")
+    reset_to_seeded()
 
 
 DATABASE = f"/data/data/{PACKAGE}/databases/{project.DATABASE_FILE}"
@@ -1373,10 +1345,10 @@ class Scene:
     # prompt sets this: it runs first in each cell, is never backed out of or retried, and every
     # other scene dismisses the prompt with [PROMPT_DISMISS] before walking. The template stages none.
     keeps_seeded_prompt: bool = False
-    # The seed this scene needs, "" being the plain sample data. Anything else is a variant name the
-    # debug build's SeedVariantReceiver knows, added *on top of* the sample data — the default seed
-    # is never edited, because every scene and the listing screenshots rest on it. Scenes are grouped
-    # by this, so a variant costs one reseed per cell rather than one per scene.
+    # The seed this scene needs, "" being the plain fixture. Anything else is a variant name a debug
+    # seeder knows, added *on top of* the plain fixture — the default seed is never edited, because
+    # every scene and the listing screenshots rest on it. Scenes are grouped by this, so a variant
+    # costs one reseed per cell rather than one per scene.
     seed: str = ""
 
 
