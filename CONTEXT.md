@@ -30,7 +30,7 @@ user-facing word genuinely differ, both are written here with the difference sta
 
 ## Naming conventions in code
 
-Some names in this codebase are deliberately generic — `AppDatabase`, `AppTheme`, `AppPreferences`,
+Some names in this codebase are deliberately generic — `AppTheme`, `AppPreferences`,
 `AppContainer`, `MainApplication`, `MainActivity`. They stay correct whatever the app is called, so
 renaming the app is a package move rather than a repo-wide find-and-replace. Don't rename them to
 match the product; name the *domain* types after the domain instead.
