@@ -95,7 +95,7 @@ and `scripts/play-whatsnew.py` renders exactly that from the blocks below:
 
 ```bash
 python3 scripts/play-whatsnew.py                 # newest version here, to stdout
-python3 scripts/play-whatsnew.py --version 0.1.0 # a named one
+python3 scripts/play-whatsnew.py --version 0.2.0 # a named one
 ```
 
 It reformats and never retypes, so this document stays the only copy. It exits non-zero if a note is
@@ -111,7 +111,10 @@ note; the feature it made possible is. A release where nothing user-visible chan
 heading — rename it and say so in one line, so the decision is deliberate rather than made by
 default.
 
-### 0.1.0 — the first build
+### 0.2.0 — the first build
+
+0.1.0 was never tagged or released, so 0.2.0 is the first build anyone installs; the new launcher
+icon is not news to them, and the note stays "the first release".
 
 **English** — 18/500:
 
