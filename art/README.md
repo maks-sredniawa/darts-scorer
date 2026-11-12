@@ -7,14 +7,14 @@ the `VectorDrawable`s.
 | Asset | Source | State |
 | --- | --- | --- |
 | `mark.py`'s PARTS | sectors and circles drawn in code; no concept image | the Fan mark |
-| `drawable/ic_launcher_{background,foreground,monochrome}.xml`, `drawable/ic_notification.xml`, `mipmap-*`, `play-icon-512.png` | `mark.py` → `make-launcher-icon.py` | generated |
+| `drawable/ic_launcher_{background,foreground,monochrome}.xml`, `mipmap-*`, `play-icon-512.png` | `mark.py` → `make-launcher-icon.py` | generated |
 | `play-feature-graphic.png`, `play-feature-graphic-<tag>.png` (1024×500, one per translated listing; `COPY`) | `mark.py` + `theme/Color.kt` (+ `feature-background.png` if present) → `make-feature-graphic.py` | generated, but still the template's until Phase N regenerates it |
 | `play-screenshots/<n>_<scene>-<tag>.png` | `scripts/screenshots.py --build release --numbered` → `pad-screenshot.py` | — |
 
 ## The mark
 
 `mark.py` is the single definition, as **cubic subpaths in `PARTS`**, each a filled shape or a hole
-punched through what is under it. Both generators import it, so the launcher icon, the notification icon and the feature
+punched through what is under it. Both generators import it, so the launcher icon and the feature
 graphic cannot drift into being different marks.
 
 What ships is **the Fan mark**: eight of the board's segments, each split by the treble wire, round a
@@ -74,12 +74,9 @@ a circular launcher mask. It is a real constraint rather than a formality: a lau
 icon to a 66dp circle, so anything outside a 33dp radius from the centre is cut off. Shrink
 `ART_SIZE` until it says `inside`.
 
-Two sizes worth knowing, both already handled:
-
-- The **notification icon** is scaled up relative to the launcher icon. At the launcher's own art
-  size the mark would be a speck in a 24dp slot.
-- The **flat mipmaps** are cropped to the 72dp a launcher actually shows of the 108dp adaptive
-  canvas, so they match what the adaptive icon looks like rather than appearing to shrink.
+One size worth knowing, already handled: the **flat mipmaps** are cropped to the 72dp a launcher
+actually shows of the 108dp adaptive canvas, so they match what the adaptive icon looks like rather
+than appearing to shrink.
 
 ## The feature graphic and Play's crop
 
