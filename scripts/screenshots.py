@@ -12,16 +12,16 @@ inset arithmetic; this one's matrix is **theme x locale** and its deliverable is
 sequences are imported from it rather than copied: [SCENES] is the expensive asset in this repo and
 two drifting copies of it would both keep producing screenshots, just of the wrong screens.
 
-⚠ **[SCENES] describes the template's placeholder screens.** Rewrite it against your own the day the
-placeholder domain goes — until then a run walks to screens that do not exist, and the nightly
-edge-to-edge job reports a red that means nothing. That rewrite is the one edit that makes both
-scripts yours; everything else here is about the phone, not the app.
+**[SCENES] describes the shell** (phase 0): the Visit tab, still empty, Settings, Help and feedback
+and the licences. Nothing in it is worth a store listing yet. The board photo and the scored Visit
+are phase 1's screens, and they arrive in `edge-to-edge.py`'s table, which this script reads. Until
+then a run proves the walk and the two themes, not the listing.
 
     scripts/screenshots.py --out docs/screenshots/before
     scripts/screenshots.py --out docs/screenshots/after
     scripts/screenshots.py --out DIR --theme light          # one cell
-    scripts/screenshots.py --out DIR --scene items,settings # one screen, while iterating
-    scripts/screenshots.py --out DIR --scene items,settings --numbered   # 1_items-en.png, 2_settings-en.png
+    scripts/screenshots.py --out DIR --scene visit,settings # one screen, while iterating
+    scripts/screenshots.py --out DIR --scene visit,settings --numbered   # 1_visit-en.png, 2_settings-en.png
     scripts/screenshots.py --out DIR --build release --numbered --scene …  # the store set, see below
     scripts/screenshots.py --restore                        # hand the phone back
 
@@ -30,30 +30,30 @@ applicationId instead of `.debug`. The developer-only Settings section lives in 
 only the shipped build is free of it. That install is somebody's real app, so the flag also implies
 `--no-reseed` and the wipe refuses outright: the shots show whatever is really set up on it.
 
-Filenames carry the locale they were taken in — `items-pl.png`, not `items.png` — because a PNG loses
+Filenames carry the locale they were taken in — `visit-pl.png`, not `visit.png` — because a PNG loses
 the directory that used to carry its language the moment anyone moves it. See [locale_tag].
 
-`--numbered` additionally prefixes each file with its position in the `--scene` list — `1_items-pl.png`.
+`--numbered` additionally prefixes each file with its position in the `--scene` list — `1_visit-pl.png`.
 Play orders a listing's screenshots by the order they are uploaded, and a file manager sorts
 alphabetically, so without the prefix the set sorts by scene name rather than by intent. The number
 comes from the order **asked for**, not from [SCENES], which is why `--scene` preserves its argument
 order rather than the table's. Opt-in, because every other consumer of these filenames — the
 before/after comparisons, the manifest — refers to them without one.
 
-Each cell runs the suites in the one order that works: `full` against the seeded sample data, then
-`mismatch` (only when the app has a database), then `empty` — which wipes the install and is
-therefore last. Each cell then reseeds, so the next one starts from the same place and the phone is
-left usable rather than blank.
+Each cell runs the suites in the one order that works: `full`, then `mismatch` (only when the app has
+a database, which this one does not), then `empty`, which wipes the install as its first step and is
+therefore last. The app keeps no records, so there is nothing to seed: the `full` suite's fixture is
+a cleared install, put back at the start of every cell so light and dark start from the same place.
 
 **The phone's own state is borrowed and handed back**: rotation, navigation mode, per-app locale on
 both installs, Do Not Disturb, the status bar (SystemUI demo mode, so a listing does not ship your
 notification icons and battery level), and the dark-theme setting — read before the first cell and
 restored afterwards, never guessed.
 
-**It wipes the debug install** (`<applicationId>.debug`, from `project.py`), and with it anything
-armed there. Every cell reseeds, and reseeding is correct from the script's side, so nothing warns: the
-app this template was extracted from lost an alarm it had been waiting two weeks to read that way. **Check the
-debug install for armed state before running this**, or accept that it is gone.
+**It wipes the debug install** (`<applicationId>.debug`, from `project.py`) at the start of every
+cell, and with it everything stored there. The wipe is correct from the script's side, so nothing
+warns. Today that is only settings; **check the debug install before running this** once it holds
+anything you would miss, or accept that it is gone.
 """
 
 from __future__ import annotations
@@ -92,8 +92,8 @@ CONFIG = e2e.Config("portrait-gesture", 0, "gesture")
 # later — which is the redesign done twice.
 THEMES = {"light": "no", "dark": "yes"}
 
-# The order is the whole point. `empty` wipes, so it goes last or it takes the sample data the `full`
-# suite needs out from under it. `mismatch` corrupts the schema version and puts it back, which is
+# The order is the whole point. `empty` wipes, so it goes last: the day a seeder returns, a wipe
+# first would take its fixture out from under the `full` suite. `mismatch` corrupts the schema version and puts it back, which is
 # survivable in the middle; it is second because it is cheap and because running it after a wipe
 # would corrupt a database with nothing in it.
 # `mismatch` fakes a schema the build cannot open, which needs a database to fake it in — an app
@@ -239,11 +239,12 @@ def capture(scene, out_dir: Path, tag: str) -> dict:
 def run_cell(theme: str, locale: str | None, scenes: list, out: Path, reseed: bool) -> dict:
     """One theme, every suite, in [SUITES] order.
 
-    The reseed is at the *start* rather than the end, and that is the load-bearing detail of the
-    whole script. Anything the seed stages for one scene — a one-shot prompt, see
+    The reset is at the *start* rather than the end, and that is the load-bearing detail of the
+    whole script. Anything the fixture stages for one scene — a one-shot prompt, see
     `Scene.keeps_seeded_prompt` — is consumed by the first cell, so a second cell inheriting the
     first one's install finds it already gone and shoots an ordinary screen under the prompt's name.
-    Starting each cell from a fresh seed is what makes light and dark comparable at all, rather than
+    A setting changed in one cell would carry into the next the same way. Starting each cell from a
+    fresh fixture is what makes light and dark comparable at all, rather than
     a pair that quietly diverges after scene one.
     """
     out_dir = out / theme
@@ -340,7 +341,7 @@ def main() -> int:
     parser.add_argument(
         "--no-reseed",
         action="store_true",
-        help="skip the wipe-and-seed each cell starts with. For iterating on one screen, not for a full set",
+        help="skip the wipe each cell starts with, and any seed after it. For iterating on one screen, not for a full set",
     )
     args = parser.parse_args()
 
@@ -444,10 +445,11 @@ def main() -> int:
             print(f"\n=== {theme}")
             manifest["themes"].append(run_cell(theme, args.locale, scenes, args.out, not args.no_reseed))
 
-        # The `empty` suite ends with the install wiped, so without this the phone is handed back
-        # blank. Only owed when a wipe happened.
+        # The `empty` suite ends on a wiped install. With no seeder the fixture is a wiped install
+        # too, so today this costs one more `pm clear`; it is what hands the phone back seeded the
+        # day a seeder returns.
         if any(scene.suite == "empty" for scene in scenes) and not args.no_reseed:
-            print("\n-- reseeding, so the phone is left usable")
+            print("\n-- putting the full suite's fixture back")
             e2e.reset_to_seeded()
     finally:
         e2e.set_dnd(False)

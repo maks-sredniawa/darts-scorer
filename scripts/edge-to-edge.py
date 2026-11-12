@@ -50,7 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import project  # noqa: E402  — the path insert above has to come first
 
 # The debug install by default: it is the scratch copy, the one a wipe costs nothing, and the one
-# with the debug-only seeding surface. [select_build] is how a run says otherwise.
+# a debug seeder would live in. [select_build] is how a run says otherwise.
 PACKAGE = project.DEBUG_APPLICATION_ID
 ACTIVITY = project.MAIN_ACTIVITY
 
@@ -476,7 +476,7 @@ def set_locale(locale: str | None) -> None:
     **It does not survive `pm clear`**, so the chosen locale is remembered here and re-applied by
     [wipe] — the one place this driver clears the app. Doing it there rather than at the top of each
     suite is what keeps the `empty` suite honest: its scenes wipe as their *first step*, so a locale
-    applied only once per cell would shoot the setup wizard in English inside a Polish run.
+    applied only once per cell would shoot the first run in English inside a Polish run.
     """
     if locale is not None:
         require_bcp47(locale)
@@ -1166,10 +1166,10 @@ def type_text(value: str) -> None:
 
 
 def wipe() -> None:
-    """Back to a first run: no preferences, no database, so the setup wizard shows.
+    """Back to a first run: no preferences, and none of the files the app writes.
 
-    Destructive, and deliberately only reachable from the `empty` suite — the `full` suite runs
-    against seeded sample data and a wipe in the middle of it would quietly capture empty screens
+    Destructive, and reachable only from the `empty` suite and from [reset_to_seeded]. The day a
+    seeder returns, a wipe in the middle of the `full` suite would quietly capture empty screens
     under populated names.
     """
     # **The shipped install is not ours to clear.** Raising here rather than checking at every call
@@ -1253,9 +1253,10 @@ def invalidate_seed() -> None:
 def ensure_seed(variant: str) -> None:
     """Put the phone on the seed this scene asked for, reseeding only when it is not already there.
 
-    Reseeding costs a wipe, a wizard and the sample data — the better part of a minute — so scenes
-    are sorted by the seed they want and this is a no-op for every scene but the first of each
-    group. Variant scenes therefore cost one reseed each per cell rather than one per scene.
+    Reseeding costs a wipe and a relaunch, and a seeder would add its own time on top, so scenes are
+    sorted by the seed they want and this is a no-op for every scene but the first of each group.
+    Variant scenes therefore cost one reseed each per cell rather than one per scene. With no debug
+    seeder, the plain fixture is the wiped install and a variant fails by name.
     """
     if _SEEDED == variant:
         return
@@ -1337,10 +1338,10 @@ class Scene:
     family: str
     steps: list[tuple[str, str]] = field(default_factory=list)
     note: str = ""
-    # "full" runs against seeded sample data; "empty" runs against a wiped install, which is the
-    # only way to see the first-run wizard and the only honest way to see an empty list.
+    # "full" runs against the plain fixture, put back at the start of each cell; "empty" wipes as
+    # its first step, which is the only honest way to see a first run.
     suite: str = "full"
-    # For an app whose sample data stages a **one-shot prompt** — a dialog waiting on top of every
+    # For an app whose seeded fixture stages a **one-shot prompt** — a dialog waiting on top of every
     # launch until someone answers it, where answering is permanent. A scene that photographs the
     # prompt sets this: it runs first in each cell, is never backed out of or retried, and every
     # other scene dismisses the prompt with [PROMPT_DISMISS] before walking. The template stages none.
@@ -1462,9 +1463,9 @@ def load_strings(locale: str | None) -> dict[str, str]:
         return read(RES_DIR / f"values-{resource_qualifier(locale)}" / "strings.xml")
     # The debug overlay layered on top, because the debug build is the only one this driver runs and
     # `values/` alone no longer describes it: `9k` moved the debug section's strings to
-    # `src/debug/res` and out of the translation gate. Without this the two labels `seed()` and the
-    # `reminders-sheet` scenes tap would be unknown resources, and [resolve_needles] would fall to
-    # its substring case and pick whichever *other* string happened to contain the words.
+    # `src/debug/res` and out of the translation gate. Without this a debug-only label a scene taps
+    # would be an unknown resource, and [resolve_needles] would fall to its substring case and pick
+    # whichever *other* string happened to contain the words.
     return read(RES_DIR / "values" / "strings.xml") | read(DEBUG_RES_DIR / "values" / "strings.xml")
 
 
@@ -1493,8 +1494,8 @@ def resolve_needles(locale: str) -> None:
     - **the unique resource whose value *contains* the needle** → the locale's *whole* value, which
       still matches because `find` is a substring match against the node's label. That is what
       carries deliberate fragments like `"What you noticed"`;
-    - **no match at all** → the literal, unchanged. Sample data is identical in every locale, so
-      a row's own name wants exactly this. It is also where a typo lands, which is
+    - **no match at all** → the literal, unchanged. Text the app does not translate, such as a
+      name the user typed, wants exactly this. It is also where a typo lands, which is
       why they are listed rather than passed over.
 
     **Resolved up front rather than at tap time**, because a run is ~40 s per scene per cell: the
@@ -1632,8 +1633,8 @@ def reach_scene(scene: Scene) -> str | None:
             #
             # **`full` only, and that is a rule about which suites can be lost rather than a
             # shortcut.** Every `empty` scene opens with its own `wipe`, which clears saved state
-            # outright and lands on the wizard — where there is no tab bar and this would fail every
-            # scene in the suite. `mismatch` replaces the whole screen with a chrome-free one before
+            # outright and lands on a first run. Once that is a setup wizard it has no tab bar, and
+            # this would fail every scene in the suite. `mismatch` replaces the whole screen with a chrome-free one before
             # anything is captured. Both isolate themselves; only `full` inherits.
             if scene.suite == "full":
                 return_to_home()
@@ -1710,7 +1711,8 @@ def main() -> int:
         default="full",
         choices=["full", "empty", "mismatch"],
         help=(
-            "'full' needs the debug sample data seeded; 'empty' WIPES the app to reach the wizard; "
+            "'full' starts each cell from a wiped install, the plain fixture; 'empty' WIPES the app "
+            "to reach a first run; "
             "'mismatch' corrupts the database's version field and puts it back afterwards"
         ),
     )
@@ -1954,7 +1956,7 @@ def run_matrix(
         # stale screen however they are ordered. But the seed
         # starts with a `pm clear`, and a wipe costs the rotation (see [wipe]), so seeding after
         # `apply_config` silently unpins every landscape cell. `full` only: `empty` wipes on purpose
-        # to reach the wizard, and `mismatch` manages its own database surgery.
+        # to reach a first run, and `mismatch` manages its own database surgery.
         if suite == "full":
             # Invalidated rather than compared: a cell must reseed even when the last one left the
             # right variant on the phone, because answering a seeded prompt is permanent and only a
