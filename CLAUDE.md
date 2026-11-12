@@ -156,6 +156,3 @@ most time, and none of it is discoverable from the code. What belongs here:>
   ```
   and for a brand-new `applicationId`, `adb push` the APK to `/sdcard/Download/` and tap it in the
   file manager.
-- **Xiaomi does not start the process for a broadcast without autostart.** It has no appop, it is
-  a Settings toggle, and the grant **lapses on its own** — re-read it on the phone's autostart screen
-  before any run that depends on it.
