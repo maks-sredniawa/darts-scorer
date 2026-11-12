@@ -168,9 +168,9 @@ paragraph about it.
 Both are **include-only**, and both include the same two things:
 
 - `domain="file" path="datastore/"`: the preferences.
-- AppCompat's locale record, so the chosen language follows the user below Android 13. The
-  file's exact name under `filesDir` is read off a device at B, not guessed. If it lives outside
-  `filesDir`, its domain is whatever the reading shows.
+- AppCompat's locale record, so the chosen language follows the user below Android 13:
+  `domain="file" path="androidx.appcompat.app.AppCompatDelegate.application_locales_record_file"`,
+  read off a device at B (R2), not guessed.
 
 Everything else is left out by not being named: `photos/`, `thumbnails/`, `documents/`, and any
 directory a later phase adds. `<device-transfer>` carries the same includes as `<cloud-backup>`. A
@@ -290,17 +290,20 @@ leaves the phone.**
 
 ## Readings
 
-Taken on the emulators (`emulator-test`), on the cloud path at `pixel-api36` and the Android 8 to 11
-path at `small-api30`. Backup readings need the local transport: `adb shell bmgr enable true` and
-`adb shell bmgr transport com.android.localtransport/.LocalTransport`. Read the transport back with
-`bmgr list transports` before believing any round trip.
+Taken on the emulators (`emulator-test`), on the cloud path at an API 36 Google Play image and the
+Android 8 to 11 path at `small-api30`. Backup readings need the local transport: `adb shell bmgr
+enable true` and `adb shell bmgr transport com.android.localtransport/.LocalTransport`. Read the
+transport back with `bmgr list transports` before believing any round trip. Plant through one quoted
+shell, or `adb` splits the `sh -c` argument: `adb shell "run-as <pkg> sh -c 'mkdir -p files/photos &&
+echo x > files/photos/x.jpg'"`. Put the transport back to
+`com.google.android.gms/.backup.BackupTransportService` and D2D test mode to 0 afterwards.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | A's artifact declares no notification, boot or alarm permission | `./gradlew bundleRelease` then `python3 scripts/aab-permissions.py <aab>` | **Pass**: three permissions, `ACCESS_NETWORK_STATE`, `BILLING` and AndroidX's `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; `WAKE_LOCK` and `FOREGROUND_SERVICE` left with WorkManager *(2026-11-12)* |
-| R2 | AppCompat's locale record: its file name and domain, below Android 13 | set a language on `small-api30`, then `adb shell run-as <pkg> find . -newer <marker>` | |
-| R3 | Android 12 and later: a planted `files/photos/x.jpg` does not survive a round trip, a changed theme does | plant with `run-as`, `bmgr backupnow <pkg>`, `pm clear <pkg>`, `bmgr restore <token> <pkg>`, then `run-as ls files/photos` and the theme on screen | |
-| R4 | A reading to try. Android 12 and later, device transfer: a planted `files/photos/x.jpg` is not among the files a transfer carries. If the image lists no D2D transport, the result records that and `BackupRulesTest` stands in | on a Google Play image at API 36 (`pixel-api36` if it is one): `adb shell setprop log.tag.BackupXmlParserLogging VERBOSE`, `adb shell settings put secure backup_enable_d2d_test_mode 1`, `bmgr list transports`, `bmgr transport com.google.android.gms/.backup.migrate.service.D2dTransport`, plant with `run-as`, `bmgr backupnow <pkg>`, then the files taken as logcat lists them | |
-| R5 | R3 on Android 8 to 11 (`fullBackupContent`) | as R3, on `small-api30` | |
+| R2 | AppCompat's locale record: its file name and domain, below Android 13 | on a fresh install `files/` does not exist yet, so `run-as <pkg> mkdir -p files` and `touch files/r2-marker`, pick *Polski* in Settings on `small-api30`, then `adb shell run-as <pkg> find . -newer files/r2-marker` | **Read**: one new file, `files/androidx.appcompat.app.AppCompatDelegate.application_locales_record_file` (92 bytes, `<locales application_locales="pl" />`), so domain `file`. On API 36 the same pick writes no file: the platform holds the locale (`cmd locale get-app-locales <pkg>` reads `[pl]`) *(2026-11-12)* |
+| R3 | Android 12 and later: a planted `files/photos/x.jpg` does not survive a round trip, a changed theme does | plant with `run-as`, `bmgr backupnow <pkg>`, `pm clear <pkg>`, `bmgr restore <token> <pkg>` (the token from `bmgr list sets`, `1` for the local disk image), then `run-as ls files/photos` and the theme on screen | **Pass** on `tablet-api36` (API 36, Google Play; `pixel-api37` was busy with another session): Dark set and `x.jpg` planted in `photos/`, `thumbnails/` and `documents/`; the parser log read `data-extraction-rules`, includes `datastore` and the locale record, nothing excluded. After `pm clear` and the restore, `files/` held only `datastore/app_preferences.preferences_pb` (`theme_mode` `DARK`), `ls files/photos` found no such directory, and the app opened dark. The language did **not** come back: on API 33 and later it is the platform's, `pm clear` reset it to `[]`, and a package restore does not carry it. Whether a real new-phone setup does is not read here *(2026-11-12)* |
+| R4 | A reading to try. Android 12 and later, device transfer: a planted `files/photos/x.jpg` is not among the files a transfer carries. If the image lists no D2D transport, the result records that and `BackupRulesTest` stands in | on a Google Play image at API 36: `adb shell setprop log.tag.BackupXmlParserLogging VERBOSE`, `adb shell settings put secure backup_enable_d2d_test_mode 1`, `bmgr list transports`, `bmgr transport com.google.android.gms/.backup.migrate.service.D2dTransport`, plant with `run-as`, `bmgr backupnow <pkg>`, then the files taken as logcat's `FullBackup_native: measured [...]` lines list them. The parser log does not name the section it read, since both carry the same includes | **Pass** on `tablet-api36`: the D2D transport is listed, the backup succeeded, and the files taken were `files/datastore/app_preferences.preferences_pb` and the stage `_manifest`, with `photos/`, `thumbnails/` and `documents/` planted and absent. That this path reads `<device-transfer>` was proven with a throwaway build adding `photos/` to that section alone: D2D then took `photos/x.jpg`, the local transport did not. The transfer's restore is not read (*Known gaps*) *(2026-11-12)* |
+| R5 | R3 on Android 8 to 11 (`fullBackupContent`) | as R3, on `small-api30` | **Pass**: the parser log read `android:fullBackupContent`, includes `datastore` and the locale record, nothing excluded. Dark and *Polski* set and `x.jpg` planted in all three media directories; after `pm clear` and `bmgr restore 1 <pkg>`, `files/` held only the preferences (`theme_mode` `DARK`) and the locale record (`pl`), `ls files/photos` found no such directory, and the app opened dark and in Polish *(2026-11-12)* |
 | R6 | C's shell opens on the Visit tab on every emulator, edge to edge, with nothing clipped | `python3 scripts/edge-to-edge.py` | |
 | R7 | D: the four `aab-*.py` scripts pass on a local `bundleRelease` | each script against the AAB | |
