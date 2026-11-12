@@ -17,10 +17,10 @@ is the one with the widest reach.
 import sys
 from hct import TonalPalette, argb_from_hex, hex_from_argb, xyz_from_argb
 
-SEED_PRIMARY = "4C6FA5"    # Slate blue
-SEED_SECONDARY = "6B7A8F"  # Muted steel
-SEED_TERTIARY = "9A6BA5"   # Heather
-SEED_NEUTRAL = "DCDFE4"    # Cool grey
+SEED_PRIMARY = "8A6500"    # Brass
+SEED_SECONDARY = "6E6552"  # Khaki grey
+SEED_TERTIARY = "3F6E8C"   # Steel blue
+SEED_NEUTRAL = "E4E2DE"    # Near-grey
 
 PACKAGE = "app.dartsscorer"  # the Kotlin package root; bootstrap.py rewrites this
 

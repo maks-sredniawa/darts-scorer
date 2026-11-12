@@ -1,39 +1,18 @@
-"""The placeholder mark: the single definition of this app's identity.
+"""The mark: the board's alternating segments split by the treble wire round a holed bull, the single definition of this app's identity.
 
-**Replace this file.** It draws a rounded triangle with a hole punched through it — deliberately
-generic, deliberately obviously a placeholder. Both generators import it (`make-launcher-icon.py`
-emits it as `VectorDrawable` path data, `make-feature-graphic.py` rasterises it with PIL), so
-whatever you put here cannot drift into being two different marks.
+See `art/README.md` for why it is the single source and where it came from.
 
-The way to replace it: draw or generate a concept image, run `python3 art/trace-mark.py <image>`,
-and paste the curves it prints over MARK and HOLE below. Nothing else in the pipeline changes.
-**Commit the concept image beside this file** and record where it came from in `art/README.md`.
-
-**Use art you have the right to ship.** An icon traced from an emoji font, a stock icon or someone
-else's mark is a licence obligation at best and a rejected Play upload at worst. Art you generated
-from your own prompt, or drew, is clean.
-
-The geometry is two subpaths: the shape, and the hole punched out of it. Coordinates are in
-arbitrary units around an origin at the mark's centre; callers fit them to their own canvas with
-`fit()`. y grows downward, as it does in both SVG and PIL.
+Coordinates are in arbitrary units around an origin at the mark's centre, angles in degrees clockwise
+from twelve o'clock; callers fit them to their own canvas with `fit()`. y grows downward, as it does
+in both SVG and PIL.
 """
 
+import math
 import re
 from dataclasses import dataclass
 
-# The icon's two colours — take both from the app's generated scheme (`scripts/gen_scheme.py`) rather
-# than picking them for the icon, so the identity and the app agree. They are the *only* copy:
-# make-launcher-icon.py writes ic_launcher_background.xml from GROUND, so recolouring the identity is
-# an edit here and a re-run, never a second value somewhere else to keep in step. (It used to be
-# two — this file and a hand-written background drawable — and an app built from the template found
-# them disagreeing the first time its palette moved.)
-#
-# ⚠ **A dark tone of a warm hue is brown.** The first app built from this template tried its
-# `primary` darkened for contrast as the ground and it read as mud; then a gradient, whose middle is
-# the same mud at 44dp. What survived was a flat mid-tone role (`surfaceVariant`) under a light-ish
-# ink (`primary`). Judge the ground at launcher size on a real home screen, light and dark.
-GROUND = (0x2B, 0x4C, 0x7E)  # the icon's flat field — `primary`, darkened for contrast at icon sizes
-MARK_INK = (0xFF, 0xFB, 0xFF)  # the mark on that field — the light scheme's `surface`
+GROUND = (0x2A, 0x2A, 0x28)
+MARK_INK = (0xEF, 0xC0, 0x5D)
 
 
 @dataclass(frozen=True)
@@ -51,26 +30,52 @@ class Subpath:
     hole: bool = False
 
 
-# A rounded triangle pointing right. One outer contour.
-MARK = (
-    "M-27.48,-73.6"
-        "C-39.92,-80.78 -50,-74.96 -50,-60.6C-50,-20.2 -50,20.2 -50,60.6"
-        "C-50,74.96 -39.92,80.78 -27.48,73.6C7.51,53.4 42.49,33.2 77.48,13"
-        "C89.92,5.82 89.92,-5.82 77.48,-13C42.49,-33.2 7.51,-53.4 -27.48,-73.6"
-        "Z"
-)
+def _at(r, a):
+    t = math.radians(a)
+    return r * math.sin(t), -r * math.cos(t)
 
-# The hole punched through it.
-HOLE = (
-    "M20,0"
-        "C20,14.36 8.36,26 -6,26C-20.36,26 -32,14.36 -32,0"
-        "C-32,-14.36 -20.36,-26 -6,-26C8.36,-26 20,-14.36 20,0"
-        "Z"
-)
+
+def _arc(r, a0, a1):
+    """One cubic for an arc of at most 90°, from a0 to a1; returns its three trailing points."""
+    k = 4 / 3 * math.tan(math.radians(a1 - a0) / 4) * r
+    (x0, y0), (x3, y3) = _at(r, a0), _at(r, a1)
+    t0, t1 = math.radians(a0), math.radians(a1)
+    c1 = (x0 + k * math.cos(t0), y0 + k * math.sin(t0))
+    c2 = (x3 - k * math.cos(t1), y3 - k * math.sin(t1))
+    return c1, c2, (x3, y3)
+
+
+def _line(p, q):
+    return p, q, q
+
+
+def _d(start, segments):
+    f = lambda p: f"{p[0]:.2f},{p[1]:.2f}"
+    return f"M{f(start)}" + "".join("C" + " ".join(f(p) for p in seg) for seg in segments) + "Z"
+
+
+def sector(r0, r1, a0, a1):
+    return _d(
+        _at(r1, a0),
+        [_arc(r1, a0, a1), _line(_at(r1, a1), _at(r0, a1)), _arc(r0, a1, a0), _line(_at(r0, a0), _at(r1, a0))],
+    )
+
+
+def circle(r):
+    return _d(_at(r, 0), [_arc(r, a, a + 90) for a in (0, 90, 180, 270)])
+
+
+SEGMENT = 22.5
+TREBLE_GAP = (56, 65)
 
 PARTS = (
-    Subpath(MARK),
-    Subpath(HOLE, hole=True),
+    *(
+        Subpath(sector(r0, r1, a - SEGMENT / 2, a + SEGMENT / 2))
+        for a in range(0, 360, 45)
+        for r0, r1 in ((27, TREBLE_GAP[0]), (TREBLE_GAP[1], 100))
+    ),
+    Subpath(circle(17)),
+    Subpath(circle(7.5), hole=True),
 )
 
 _NUM = re.compile(r"-?\d*\.?\d+(?:e-?\d+)?")
