@@ -28,7 +28,8 @@ was extracted from and the first app built from it settled on exactly this split
 - [ ] **Phase P** — The pipeline: repository setup, upload key, Play entry, secrets, a green internal upload
 - [ ] **Phase 1** — The mechanism on the phone: one photo in, the darts drawn on the board with their
   score, offline, plus tapping the board to correct a dart, and the camera ask with its denial path.
-  Readings: real Visits on a real Board, in ordinary room light
+  Each dart's marker carries a white and black keyline: no brand colour reaches 3:1 on all four board
+  colours (black, cream, red, green). Readings: real Visits on a real Board, in ordinary room light
 - [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
   asking for another angle only when a dart is missing, unsure, or on a wire (ADR-0008)
 - [ ] **Phase 3** — *(safe to hand to a stranger)* ← **the door: closed testing opens here**. The
