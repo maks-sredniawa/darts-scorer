@@ -1260,7 +1260,7 @@ def ensure_seed(variant: str) -> None:
     """
     if _SEEDED == variant:
         return
-    print(f"  -- seeding{f' + {variant}' if variant else ''}")
+    print(f"  -- resetting to the fixture{f' + {variant}' if variant else ''}")
     if variant:
         raise StepFailed(f"scene asks for seed variant {variant!r}, and this app has no debug seeder")
     reset_to_seeded()
