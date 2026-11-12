@@ -26,9 +26,9 @@ then a run proves the walk and the two themes, not the listing.
     scripts/screenshots.py --restore                        # hand the phone back
 
 **A store set comes from the shipped build** — `--build release`, which drives the release
-applicationId instead of `.debug`. The developer-only Settings section lives in `app/src/debug/`, so
-only the shipped build is free of it. That install is somebody's real app, so the flag also implies
-`--no-reseed` and the wipe refuses outright: the shots show whatever is really set up on it.
+applicationId instead of `.debug`. Play has never heard of the `.debug` package, so the debug build
+shows no tip section in Help and feedback. That install is somebody's real app, so the flag also
+implies `--no-reseed` and the wipe refuses outright: the shots show whatever is really set up on it.
 
 Filenames carry the locale they were taken in — `visit-pl.png`, not `visit.png` — because a PNG loses
 the directory that used to carry its language the moment anyone moves it. See [locale_tag].
@@ -40,10 +40,10 @@ comes from the order **asked for**, not from [SCENES], which is why `--scene` pr
 order rather than the table's. Opt-in, because every other consumer of these filenames — the
 before/after comparisons, the manifest — refers to them without one.
 
-Each cell runs the suites in the one order that works: `full`, then `mismatch` (only when the app has
-a database, which this one does not), then `empty`, which wipes the install as its first step and is
-therefore last. The app keeps no records, so there is nothing to seed: the `full` suite's fixture is
-a cleared install, put back at the start of every cell so light and dark start from the same place.
+Each cell runs the suites in the one order that works: `full`, then `mismatch` (only when
+`project.HAS_DATABASE`), then `empty`, which wipes the install as its first step and is therefore
+last. The `full` suite's fixture is put back at the start of every cell, so light and dark start
+from the same place.
 
 **The phone's own state is borrowed and handed back**: rotation, navigation mode, per-app locale on
 both installs, Do Not Disturb, the status bar (SystemUI demo mode, so a listing does not ship your
@@ -92,10 +92,10 @@ CONFIG = e2e.Config("portrait-gesture", 0, "gesture")
 # later — which is the redesign done twice.
 THEMES = {"light": "no", "dark": "yes"}
 
-# The order is the whole point. `empty` wipes, so it goes last: the day a seeder returns, a wipe
-# first would take its fixture out from under the `full` suite. `mismatch` corrupts the schema version and puts it back, which is
-# survivable in the middle; it is second because it is cheap and because running it after a wipe
-# would corrupt a database with nothing in it.
+# The order is the whole point. `empty` wipes, so it goes last, after the `full` suite has shot its
+# fixture. `mismatch` corrupts the schema version and puts it back, which is survivable in the
+# middle; it is second because it is cheap and because running it after a wipe would corrupt a
+# database with nothing in it.
 # `mismatch` fakes a schema the build cannot open, which needs a database to fake it in — an app
 # that has deleted Room has neither the file nor the refusal screen (scripts/project.py).
 SUITES = ("full", "mismatch", "empty") if e2e.project.HAS_DATABASE else ("full", "empty")
@@ -327,7 +327,7 @@ def main() -> int:
         "--numbered",
         action="store_true",
         help=(
-            "prefix each file with its position in --scene, e.g. 1_home-pl.png, so a listing's "
+            "prefix each file with its position in --scene, e.g. 1_visit-pl.png, so a listing's "
             "screenshots sort into the order they should be uploaded in"
         ),
     )
@@ -445,9 +445,7 @@ def main() -> int:
             print(f"\n=== {theme}")
             manifest["themes"].append(run_cell(theme, args.locale, scenes, args.out, not args.no_reseed))
 
-        # The `empty` suite ends on a wiped install. With no seeder the fixture is a wiped install
-        # too, so today this costs one more `pm clear`; it is what hands the phone back seeded the
-        # day a seeder returns.
+        # The `empty` suite ends on a wiped install; the phone is handed back on the `full` fixture.
         if any(scene.suite == "empty" for scene in scenes) and not args.no_reseed:
             print("\n-- putting the full suite's fixture back")
             e2e.reset_to_seeded()
