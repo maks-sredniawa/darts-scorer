@@ -273,6 +273,7 @@ leaves the phone.**
 | ADR-0003 | dated amendment: nothing is scheduled; the module and its reasoning return together | A |
 | ADR-0005 | dated amendment: platform Auto Backup, include-only, preferences only; the custom agent's reasoning returns with a database | B |
 | ADR-0001 | dated amendment: no database in the first version; the schema gate is parked and returns with the first table | C |
+| ADR-0007 | dated amendment: the ask lives on the Visit screen and counts Visits scored (`visits_scored`, 10) | C |
 | ADR-0002 | dated amendment. B: the photo directories are outside every backup by the include-only rules. C: no database holds the paths yet | B, C |
 | `docs/privacy-policy.md` + `docs/play-app-content.md`, together | A: notifications and reminders. B: backup export, sharing, and what Android's backup now carries (settings only, never photos). C: anything naming stored records | A, B, C |
 | `CLAUDE.md` | Stack (Room and WorkManager rows), house rules (the schema rule parked, "media paths in the DB"), Layout (`AppBackupAgent.kt`, `data/backup/`, `work/`), the `connectedAndroidTest` comment | A, B, C |
