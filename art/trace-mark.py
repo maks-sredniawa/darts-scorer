@@ -13,7 +13,7 @@ sub-pixel shape information. So:
   5. Schneider least-squares cubic fitting between corners.
 
 Writes `path_outer.txt` and `path_hole.txt` next to the working directory and prints both.
-Paste them into `mark.py`'s MARK and HOLE. The paste is deliberate rather than automated:
+Paste them into `mark.py`'s PARTS, the hole with `hole=True`. The paste is deliberate rather than automated:
 `mark.py` is the single definition of the mark, and a definition a script rewrites on every
 run is one nobody can hand-correct.
 

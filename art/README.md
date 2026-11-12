@@ -6,19 +6,22 @@ the `VectorDrawable`s.
 
 | Asset | Source | State |
 | --- | --- | --- |
-| `mark.py`'s MARK and HOLE curves | your concept image → `trace-mark.py` | **placeholder — replace** |
-| `concept.png` | the image the mark was traced from — **commit it**, with its provenance below | — |
+| `mark.py`'s PARTS | sectors and circles drawn in code; no concept image | the Fan mark |
 | `drawable/ic_launcher_{background,foreground,monochrome}.xml`, `drawable/ic_notification.xml`, `mipmap-*`, `play-icon-512.png` | `mark.py` → `make-launcher-icon.py` | generated |
-| `play-feature-graphic.png`, `play-feature-graphic-<tag>.png` (1024×500, one per translated listing; `COPY`) | `mark.py` + `theme/Color.kt` (+ `feature-background.png` if present) → `make-feature-graphic.py` | generated |
+| `play-feature-graphic.png`, `play-feature-graphic-<tag>.png` (1024×500, one per translated listing; `COPY`) | `mark.py` + `theme/Color.kt` (+ `feature-background.png` if present) → `make-feature-graphic.py` | generated, but still the template's until Phase N regenerates it |
 | `play-screenshots/<n>_<scene>-<tag>.png` | `scripts/screenshots.py --build release --numbered` → `pad-screenshot.py` | — |
 
 ## The mark
 
-`mark.py` is the single definition, as **two cubic subpaths** — the silhouette and a hole punched
-out of it. Both generators import it, so the launcher icon, the notification icon and the feature
+`mark.py` is the single definition, as **cubic subpaths in `PARTS`**, each a filled shape or a hole
+punched through what is under it. Both generators import it, so the launcher icon, the notification icon and the feature
 graphic cannot drift into being different marks.
 
-What ships today is a rounded triangle: deliberately generic, deliberately obviously a placeholder.
+What ships is **the Fan mark**: eight of the board's segments, each split by the treble wire, round a
+bull with a real hole. Every part is a sector or a circle, so it is written in code rather than
+traced. Ground `2A2A28` is the dark scheme's `surfaceContainerHigh` and the ink `EFC05D` its
+`primary`, the board's black and a brass barrel. Chosen by the owner on 2026-11-12 from three
+options, on a Fable design pass.
 
 - **Recolouring is two values in `mark.py` and a re-run**: `GROUND` (the icon's field) and
   `MARK_INK` (the mark on it). `make-launcher-icon.py` writes every drawable from them, the
@@ -28,7 +31,8 @@ What ships today is a rounded triangle: deliberately generic, deliberately obvio
 - Take the colours from the app's generated scheme (`scripts/gen_scheme.py`) rather than picking
   them for the icon, so the identity and the app agree. **Judge the ground at 44dp on a real home
   screen, light and dark**: a dark tone of a warm hue is brown, and a gradient's middle is the same
-  brown at launcher size. A flat mid-tone role (`surfaceVariant`) under `primary` is what survived.
+  brown at launcher size. A flat ground with no gradient is what survives; here it is a near-neutral
+  charcoal, so the warmth is all in the brass ink.
 - The feature graphic **reads its colours out of `theme/Color.kt`**, so a regenerated palette
   reaches the listing by re-running the script. Pasted inks stay the old hue on a ground that moved.
 - **The hole must be a real hole in the path**, not a shape painted in the background colour. A
@@ -57,7 +61,8 @@ with Noto Sans on that basis and ships no glyph outlines.
 # 1. Draw or generate a concept image, and put it beside this file.
 python3 art/trace-mark.py concept.png   # prints cubic path data
 #    Set CROP and the concept's two tones at the top of trace-mark.py first — they describe the
-#    *image being traced*, not the app. Paste MARK and HOLE into art/mark.py, with your colours.
+#    *image being traced*, not the app. Paste the outer path and the hole into art/mark.py's PARTS
+#    as Subpath(...) and Subpath(..., hole=True), with your colours.
 
 # 2. Regenerate everything that derives from it.
 python3 art/make-launcher-icon.py       # icons, mipmaps, the 512² Play asset
@@ -91,5 +96,5 @@ it came from in the provenance table below, like the concept image.
 
 | File | Where it came from | Licence / terms |
 | --- | --- | --- |
-| `concept.png` | *(your drawing, or an image model and whose prompt)* | |
+| `mark.py` | drawn in code from sectors and circles, for this app | the repo's LICENSE |
 | `feature-background.png` | *(if used)* | |
