@@ -34,11 +34,12 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 ## Before the first upload
 
-- [ ] **Delete what the app does not need**, while deleting is free — [`optional-modules.md`](optional-modules.md)
-      lists each module's files and the five places around the code a strip reaches. Room, photos,
-      backup and reminders are each a data-loss or Data safety story you will otherwise defend forever.
-- [ ] **Decide `minSdk` deliberately, before launch.** The direction is asymmetric: raising it later
-      strands existing installs on the last build that fitted them, lowering it later is free. If the
+- [x] **Delete what the app does not need.** Phase 0: reminders, the custom backup and sharing, the
+      Items and Room are gone; platform Auto Backup carries the preferences only. The tip and the
+      photo plumbing stay. [`phase-0.md`](phase-0.md).
+- [ ] **Decide `minSdk` deliberately, before the door.** Phase 1 decides it, on the model runtime's
+      own floor and an inference time on a low-end emulator image ([`phase-0.md`](phase-0.md)).
+      The direction is asymmetric: raising it later strands existing installs on the last build that fitted them, lowering it later is free. If the
       only phone in the loop sits at the top of the range, every `SDK_INT` branch below it ships
       unvalidated — the first app built from this template raised 26 to 33 for exactly that reason. Move CI's floor legs with it,
       and write the reason beside `minSdk` in `app/build.gradle.kts`, where the next person to touch it reads it.
@@ -48,8 +49,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 - [ ] **Regenerate the feature graphic** with `make-feature-graphic.py` in Phase N: the template copy
       runs into the new mark, so `play-feature-graphic.png` is still the template's, and
       `play-metadata.py` uploads it.
-- [ ] **Replace the placeholder domain.** `data/ItemEntity.kt` and `ui/items/` — or delete them
-      (above).
+- [x] **Replace the placeholder domain.** Phase 0 (C) deleted the Items; the Visit screen is the
+      home tab, empty until phase 1.
 - [x] **Rewrite `scripts/edge-to-edge.py`'s SCENES** against your screens. Phase 0 (C): the shell,
       Visit, Settings, Help and feedback and the licences; `HOME_TAB` is *Visit*. Phase 1 adds its
       screens. R6 in [`phase-0.md`](phase-0.md).
@@ -57,6 +58,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       EXPECTED_ORIENTATION describe the template. Run all four `aab-*.py` scripts against a local
       `bundleRelease` **before the first tag** — the first app built from it found its stale table in the publish
       workflow, after the tag, with the version already spent.
+      Phase 0's R7 ran all four on a local `bundleRelease` and they pass, with EXPECTED as phase 0
+      left it; FORBIDDEN and EXPECTED_ORIENTATION are still the template's until reviewed for this app.
 - [x] **Choose the palette.** Brass `8A6500`, khaki grey `6E6552`, steel blue `3F6E8C`, near-grey
       `E4E2DE` in `scripts/gen_scheme.py`; every contrast check passes.
 - [ ] **Make the support address work both ways.** `bootstrap.py` compiled in
