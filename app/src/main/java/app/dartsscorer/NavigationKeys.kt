@@ -21,26 +21,9 @@ import kotlinx.serialization.Serializable
  * for a route with no arguments. A route that carries arguments is a `data class` instead, and
  * `@Serializable` is what lets Nav3 save the whole back stack across process death.
  */
-@Serializable data object Items : NavKey
+@Serializable data object Visit : NavKey
 
 @Serializable data object Settings : NavKey
-
-/**
- * The item detail screen, and the editor behind it.
- *
- * A nullable [itemId] means "adding" — one route for add and edit rather than two, because the two
- * screens differ by which fields start filled and by nothing else. Two routes would be two screens
- * to keep in step.
- */
-@Serializable
-data class ItemDetail(
-    val itemId: String,
-) : NavKey
-
-@Serializable
-data class ItemEditor(
-    val itemId: String? = null,
-) : NavKey
 
 /**
  * Help and feedback, and the licences below it — both pushed from Settings' *About* section
@@ -72,6 +55,6 @@ enum class TopLevelDestination(
     val selectedIcon: ImageVector,
     val icon: ImageVector,
 ) {
-    ItemsTab(Items, R.string.tab_items, Icons.Filled.Home, Icons.Outlined.Home),
+    VisitTab(Visit, R.string.tab_visit, Icons.Filled.Home, Icons.Outlined.Home),
     SettingsTab(Settings, R.string.tab_settings, Icons.Filled.Settings, Icons.Outlined.Settings),
 }

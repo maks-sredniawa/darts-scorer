@@ -53,6 +53,7 @@ class AppPreferencesTest {
                 setMaterialYou(true)
                 setOnboardingDone(true)
                 markTipAsked()
+                incrementVisitsScored()
 
                 restoreDefaults()
 
@@ -60,6 +61,18 @@ class AppPreferencesTest {
                 assertFalse(materialYou.first())
                 assertTrue(onboardingDone.first())
                 assertTrue(tipAsked.first())
+                assertEquals(1, visitsScored.first())
+            }
+        }
+
+    @Test
+    fun `visits scored starts at zero and counts up`() =
+        runBlocking {
+            with(preferences) {
+                assertEquals(0, visitsScored.first())
+                incrementVisitsScored()
+                incrementVisitsScored()
+                assertEquals(2, visitsScored.first())
             }
         }
 }

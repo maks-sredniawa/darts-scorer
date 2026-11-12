@@ -4,7 +4,11 @@ The **live checklist**. Keep it short: when an item closes, tick it, write the *
 long-form record you keep, and delete the detail from here. A session should be able to pick up the
 work by reading this file alone.
 
-## The standing schema gate — never ticked, checked at every bump
+## The standing schema gate — parked until the first table
+
+**Parked** (ADR-0001's 2026-11-12 amendment): the app has no database, so there is no
+`APP_SCHEMA_VERSION` to change, and `scripts/schema-gate.py` passes with nothing to gate. It comes
+back the day a feature adds a table, with the five points below as they stand.
 
 **An update must migrate an existing install without losing anything** (ADR-0001). This item does not
 close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release goes out:
@@ -46,8 +50,9 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       `play-metadata.py` uploads it.
 - [ ] **Replace the placeholder domain.** `data/ItemEntity.kt` and `ui/items/` — or delete them
       (above).
-- [ ] **Rewrite `scripts/edge-to-edge.py`'s SCENES** against your screens. Until then the nightly
-      walks screens that do not exist, and `screenshots.py` cannot shoot a listing.
+- [x] **Rewrite `scripts/edge-to-edge.py`'s SCENES** against your screens. Phase 0 (C): the shell,
+      Visit, Settings, Help and feedback and the licences; `HOME_TAB` is *Visit*. Phase 1 adds its
+      screens. R6 in [`phase-0.md`](phase-0.md).
 - [ ] **Make the artifact allowlists yours.** `aab-permissions.py`'s EXPECTED, FORBIDDEN and
       EXPECTED_ORIENTATION describe the template. Run all four `aab-*.py` scripts against a local
       `bundleRelease` **before the first tag** — the first app built from it found its stale table in the publish

@@ -20,10 +20,6 @@ kotlin = "2.3.20"
 # The licences screen's artifact list. The serialization *plugin* is already here for Nav3's @Serializable
 # route keys; this is the JSON format itself, which Nav3 does not pull in.
 kotlinxSerializationJson = "1.8.1"
-# KSP dropped the "<kotlin>-<ksp>" suffix scheme at 2.3.0. No build exists for Kotlin 2.3.20
-# yet; 2.3.10 is the latest and the version mismatch is tolerated (probed, compiles clean).
-ksp = "2.3.10"
-room = "2.8.4"
 spotless = "7.0.2"
 ktlint = "1.5.0"
 nav3Core = "1.0.1"
@@ -59,12 +55,6 @@ androidx-test-runner = { module = "androidx.test:runner", version.ref = "android
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
-androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
-# MigrationTestHelper. Instrumented only: it builds a database at an old version from the exported
-# schema JSON, which needs a real SQLite.
-androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 # Compose-native image loading. Only the local-file path is wired up — no network module, because
@@ -79,6 +69,5 @@ billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = 
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 licensee = { id = "app.cash.licensee", version.ref = "licensee" }

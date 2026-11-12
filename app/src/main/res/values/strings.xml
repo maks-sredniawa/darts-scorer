@@ -20,33 +20,18 @@
     <string name="app_name" translatable="false">Darts Scorer</string>
 
     <!-- Navigation -->
-    <string name="tab_items">Items</string>
+    <string name="tab_visit">Visit</string>
     <string name="tab_settings">Settings</string>
 
     <!-- Common actions -->
     <string name="action_back">Back</string>
-    <string name="action_save">Save</string>
-    <string name="action_edit">Edit</string>
-    <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
 
-    <!-- Items -->
-    <string name="item_add">Add an item</string>
-    <string name="item_detail_title">Item</string>
-    <string name="item_title_label">Title</string>
-    <string name="item_notes_label">Notes</string>
-    <string name="item_pick_image">Choose a picture</string>
-    <!-- Says what to do, not that there is nothing. -->
-    <string name="items_empty">Nothing here yet. Tap + to add your first item.</string>
-    <!-- The tip's one ask (ADR-0007): once per install, so a moved install asks again -->
-    <string name="items_tip_ask_title">This app is free, and stays free</string>
-    <string name="items_tip_ask_body">If it is useful to you, you can leave the developer a tip. It unlocks nothing, and the app will not ask again on this phone.</string>
-    <string name="items_tip_ask_accept">Leave a tip</string>
-    <string name="items_tip_ask_decline">No thanks</string>
-    <plurals name="items_count">
-        <item quantity="one">%d item</item>
-        <item quantity="other">%d items</item>
-    </plurals>
+    <!-- Visit. The tip's one ask (ADR-0007): asked once, and the answer follows the user to a new phone -->
+    <string name="visit_tip_ask_title">This app is free, and stays free</string>
+    <string name="visit_tip_ask_body">If it is useful to you, you can leave the developer a tip. It unlocks nothing, and the app will not ask again on this phone.</string>
+    <string name="visit_tip_ask_accept">Leave a tip</string>
+    <string name="visit_tip_ask_decline">No thanks</string>
 
     <!-- Settings -->
     <string name="settings_appearance">Appearance</string>
@@ -62,11 +47,11 @@
     <string name="settings_language_report">Something read wrong?</string>
     <string name="settings_language_report_hint">Tell me if a word looks wrong in your language. Opens your email app, with the language you are reading already filled in.</string>
     <string name="settings_data">Data</string>
-    <!-- Settings → Data: every setting, the app language included, back to how the app came, after a confirmation. Items and backups are untouched. -->
+    <!-- Settings → Data: every setting, the app language included, back to how the app came, after a confirmation. -->
     <string name="settings_restore">Restore default settings</string>
     <string name="settings_restore_hint">Theme, colours and language</string>
     <string name="settings_restore_confirm_title">Restore default settings?</string>
-    <string name="settings_restore_confirm_body">The theme, colours and language go back to how the app came. Your items and backups stay as they are. This cannot be undone.</string>
+    <string name="settings_restore_confirm_body">The theme, colours and language go back to how the app came. This cannot be undone.</string>
     <string name="settings_restore_confirm">Restore</string>
     <string name="settings_about">About</string>
     <string name="settings_support">Help and feedback</string>
@@ -100,9 +85,4 @@
 
     <!-- Licences -->
     <string name="licence_text_missing">The text of this licence is not bundled with the app.</string>
-
-    <!-- The schema gate's screen. Deliberately plain: someone reading it is already worried. -->
-    <string name="schema_mismatch_title">This data was saved by a different version</string>
-    <string name="schema_mismatch_body">The data on this phone was saved at version %1$d, and this build reads version %2$d.</string>
-    <string name="schema_mismatch_copy">A copy has been kept as %1$s. Nothing has been deleted.</string>
 </resources>

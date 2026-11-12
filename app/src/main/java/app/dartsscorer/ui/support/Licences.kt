@@ -37,7 +37,7 @@ data class LicensedArtifact(
     val spdxLicenses: List<SpdxLicence> = emptyList(),
     val unknownLicenses: List<UnknownLicence> = emptyList(),
 ) {
-    /** `androidx.room:room-runtime:2.8.4` — the identity a reader can actually look up. */
+    /** `androidx.datastore:datastore-preferences:1.2.1` — the identity a reader can actually look up. */
     val coordinates: String get() = "$groupId:$artifactId:$version"
 
     /** The POM's own name where there is one; the artifact id is a better fallback than nothing. */
