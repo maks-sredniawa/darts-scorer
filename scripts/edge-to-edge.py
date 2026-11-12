@@ -19,7 +19,7 @@ The screenshots are still the deliverable: this narrows which ones a human has t
 Usage:
     scripts/edge-to-edge.py --out /path/to/dir            # the whole matrix
     scripts/edge-to-edge.py --out DIR --config landscape-threebutton
-    scripts/edge-to-edge.py --out DIR --scene home,weight-chart
+    scripts/edge-to-edge.py --out DIR --scene visit,settings
     scripts/edge-to-edge.py --out DIR --locale pl         # the same walk, in Polish
     scripts/edge-to-edge.py --out DIR --assert-clean       # exit 1 on a defect, for CI
     scripts/edge-to-edge.py --out DIR --retry-unreached 2  # re-walk a scene the driver missed
@@ -1168,9 +1168,8 @@ def type_text(value: str) -> None:
 def wipe() -> None:
     """Back to a first run: no preferences, and none of the files the app writes.
 
-    Destructive, and reachable only from the `empty` suite and from [reset_to_seeded]. The day a
-    seeder returns, a wipe in the middle of the `full` suite would quietly capture empty screens
-    under populated names.
+    Destructive, and reachable only from the `empty` suite and from [reset_to_seeded]: a `full`
+    scene shoots the fixture its cell started on, never a wipe of its own.
     """
     # **The shipped install is not ours to clear.** Raising here rather than checking at every call
     # site is deliberate: `wipe` has several routes into it — the `empty` suite's own first step,
@@ -1178,7 +1177,7 @@ def wipe() -> None:
     if not WIPEABLE:
         raise StepFailed(
             f"refusing to `pm clear {PACKAGE}`: that is the shipped install, and this would wipe "
-            "data nothing here can restore. Run with --no-reseed, or point the driver at debug",
+            "data nothing here can restore. Drive the debug install instead (--build debug)",
         )
     global _SEEDED
     _SEEDED = None
@@ -1634,8 +1633,9 @@ def reach_scene(scene: Scene) -> str | None:
             # **`full` only, and that is a rule about which suites can be lost rather than a
             # shortcut.** Every `empty` scene opens with its own `wipe`, which clears saved state
             # outright and lands on a first run. Once that is a setup wizard it has no tab bar, and
-            # this would fail every scene in the suite. `mismatch` replaces the whole screen with a chrome-free one before
-            # anything is captured. Both isolate themselves; only `full` inherits.
+            # this would fail every scene in the suite. `mismatch` replaces the whole screen with a
+            # chrome-free one before anything is captured. Both isolate themselves; only `full`
+            # inherits.
             if scene.suite == "full":
                 return_to_home()
         # `keeps_seeded_prompt` scenes get neither step, deliberately. **Back can be a destructive
