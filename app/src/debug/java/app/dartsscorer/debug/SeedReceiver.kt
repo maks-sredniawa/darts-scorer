@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
  * ⚠️ On Xiaomi's HyperOS, **an explicit broadcast to a manifest receiver does not start the process
  * at all** unless *autostart* is granted for the app: `pidof` stays empty with `stopped=false`, and
  * the broadcast is simply never delivered. A run against an unknown autostart state proves nothing
- * either way — read it first with `scripts/device-gate.py`.
+ * either way — read it first on the phone's own autostart screen.
  */
 class SeedReceiver : BroadcastReceiver() {
     override fun onReceive(

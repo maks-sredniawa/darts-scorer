@@ -9,8 +9,7 @@ import android.content.Intent
  *
  * Every hand-off launches something it cannot be sure exists — a mail app, Play, an OEM settings
  * screen. One that is present but not exported to us throws `SecurityException`, which is the same
- * outcome from here as it not being there at all. Here rather than in `work/` so removing the
- * reminders leaves Support's hand-offs compiling.
+ * outcome from here as it not being there at all.
  */
 internal fun Context.startActivitySafely(intent: Intent): Boolean =
     try {

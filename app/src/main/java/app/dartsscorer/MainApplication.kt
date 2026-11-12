@@ -1,11 +1,9 @@
 package app.dartsscorer
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.work.Configuration
 import app.dartsscorer.data.APP_DATABASE_FILE
 import app.dartsscorer.data.APP_SCHEMA_VERSION
 import app.dartsscorer.data.AppPreferences
@@ -17,7 +15,6 @@ import app.dartsscorer.data.preserveBeforeWipe
 import app.dartsscorer.data.readUserVersion
 import app.dartsscorer.data.schemaGateDecision
 import app.dartsscorer.theme.applyThemeMode
-import app.dartsscorer.work.ensureSweepEnqueued
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,9 +61,7 @@ data class SchemaMismatch(
  * Kotlin note: `by lazy` computes on first read and caches — like a memoised getter, but here the
  * *first read* is the event that matters, which is why nothing may touch [container] before consent.
  */
-class MainApplication :
-    Application(),
-    Configuration.Provider {
+class MainApplication : Application() {
     /**
      * The scope for work that outlives any screen. `SupervisorJob` so one failed child does not
      * cancel its siblings — the closest JS analogue is `Promise.allSettled` semantics rather than
@@ -99,18 +94,6 @@ class MainApplication :
      * **Nothing may read this until [schemaMismatch] is null.** Forcing the lazy constructs Room.
      */
     val container: AppContainer by lazy { AppContainer(this, preferences, applicationScope) }
-
-    /**
-     * WorkManager builds itself the first time `getInstance` is called, rather than from an
-     * androidx.startup initializer inside a ContentProvider — which would run *before* this method,
-     * and so before the guard below. See the manifest for the other half.
-     */
-    override val workManagerConfiguration: Configuration
-        get() =
-            Configuration
-                .Builder()
-                .setMinimumLoggingLevel(if (BuildConfig.DEBUG) Log.DEBUG else Log.INFO)
-                .build()
 
     override fun onCreate() {
         super.onCreate()
@@ -165,9 +148,6 @@ class MainApplication :
      * the gate above is the only thing standing in front of all of it.
      */
     private fun onDatabaseUsable() {
-        applicationScope.launch {
-            ensureSweepEnqueued(this@MainApplication)
-        }
         settleTipsOnEveryForeground()
     }
 
@@ -175,7 +155,7 @@ class MainApplication :
      * Play refunds a purchase nobody acknowledged within three days, so a tip that cleared while the
      * app was closed — or was paid just before a process death — is consumed the next time the user
      * opens the app, whichever screen that is (ADR-0007). On *start*, not at process creation: a
-     * broadcast or the sweep starts the process too, and binding Play for those wakes it for nobody.
+     * broadcast starts the process too, and binding Play for those wakes it for nobody.
      * Behind the gate, because the container holds the tip jar.
      */
     private fun settleTipsOnEveryForeground() {
