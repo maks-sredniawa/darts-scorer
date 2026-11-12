@@ -17,11 +17,7 @@ import android.content.Context
  * still blocks on a file no migration covers, where opening would throw in a process with nobody to
  * show it to. What it does *not* block is the ordinary upgrade: a mismatch a registered migration
  * can walk is one the next database open performs anyway, so a worker that skipped it would be
- * sitting out a migration happening around it. Getting this distinction wrong is what leaves the
- * first reminder after an update unposted, and the chain stopped until someone opens the app.
- *
- * In `data/` rather than `work/` so it survives removing the reminders: any later background entry
- * point needs it, and it belongs to the database, not to WorkManager.
+ * sitting out a migration happening around it.
  */
 internal fun Context.schemaBlocksBackgroundWork(): Boolean =
     schemaGateDecision(

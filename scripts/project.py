@@ -63,7 +63,7 @@ def _debug_app_name() -> str:
 
     Parsed rather than derived, and the reason is a bug that cost an app built from this template a
     device session: the debug source set overrides `app_name` with "<name> debug", and
-    `device-gate.py` looked for `f"{APP_NAME} Debug"` — a capital D the app never had. Every OEM
+    its device gate looked for `f"{APP_NAME} Debug"` — a capital D the app never had. Every OEM
     settings screen lists an app under this string, so a scrape aimed at the wrong one finds no row,
     cannot set the toggle, and reports *not allowed* for an app that may well be allowed. A wrong
     answer that looks like a reading is worse than an error.

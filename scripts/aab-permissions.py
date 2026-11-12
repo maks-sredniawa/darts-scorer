@@ -39,9 +39,9 @@ and that is how an app built from this template tagged a release that never reac
 Play — it had grown a deliberate portrait lock and the gate still asserted it had none.
 
 `strings | grep` cannot do this job: it cannot tell a <uses-permission> from an
-android:permission guard on a service, and this artifact carries three of the
-latter (BIND_JOB_SERVICE, and DUMP twice) that are not requests at all. So the
-protobuf gets walked properly.
+android:permission guard on a service, and this artifact carries two of the
+latter (BIND_JOB_SERVICE and DUMP) that are not requests at all. So the protobuf
+gets walked properly.
 
 Exits non-zero if the artifact's <uses-permission> set differs from EXPECTED, if it
 declares a <uses-feature> not accounted for in EXPECTED_FEATURES, or if the screen
@@ -80,25 +80,11 @@ PRIM_INT_HEX = 7
 # being true the day you remove a module docs/optional-modules.md lists, and that
 # is the day to edit it.
 EXPECTED = {
-    # Declared in AndroidManifest.xml. Runtime on API 33+, asked for from a screen
-    # that explains it first (work/NotificationPermission.kt, ADR-0003).
-    "android.permission.POST_NOTIFICATIONS": "ours — reminder notifications, ADR-0003",
-    # Declared. Install-time and invisible; BootReceiver re-arms the sweep after a restart.
-    "android.permission.RECEIVE_BOOT_COMPLETED": "ours — work/BootReceiver.kt, ADR-0003",
-    # Declared, and deliberately not USE_EXACT_ALARM (the manifest comment says why).
-    # Delete the manifest line and this row together if nothing needs a precise moment.
-    "android.permission.SCHEDULE_EXACT_ALARM": "ours — work/ExactAlarms.kt, ADR-0003",
-    # The three WorkManager merges, none of them in our source. They leave with
-    # WorkManager — and an artifact that carries one again without it has a new
-    # dependency that wants a wake lock or network state, which is a Data safety
-    # question before it is a build one.
-    "android.permission.WAKE_LOCK": "WorkManager",
-    # The Play Billing Library's datatransport (the tip) merges it too, so it leaves
-    # only once both are gone.
+    # Merged by the Play Billing Library's datatransport (the tip), its only owner,
+    # so it leaves with the tip.
     "android.permission.ACCESS_NETWORK_STATE": (
-        "WorkManager and Play Billing's datatransport — read connectivity state, open nothing"
+        "Play Billing's datatransport, the tip — read connectivity state, open nothing"
     ),
-    "android.permission.FOREGROUND_SERVICE": "WorkManager — its SystemForegroundService, never started here",
     # The tip (ADR-0007), merged from the Play Billing Library. It lets the app talk to
     # the Play Store app's billing service; no dialog, and no data of the user's. Its
     # datatransport dependency also merges INTERNET, which the manifest removes.
@@ -113,8 +99,8 @@ EXPECTED = {
 # rest on, so it is asserted rather than assumed.
 FORBIDDEN = {
     "com.google.android.gms.permission.AD_ID": "Data safety says no advertising ID",
-    "android.permission.QUERY_ALL_PACKAGES": "the <queries> element names one package instead",
-    "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS": "Play restricts it; work/BatteryExemption.kt deep-links instead",
+    "android.permission.QUERY_ALL_PACKAGES": "the <queries> element names intents instead",
+    "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS": "Play restricts it, and nothing here runs in the background",
     # "No backend, no account" is a claim the Data safety form and the privacy policy
     # both make, and this is the only thing that checks it against the artifact: a
     # dependency that merges INTERNET makes the claim false without touching a line of
@@ -125,7 +111,7 @@ FORBIDDEN = {
     # intent *require* it to be granted, and changes the listing.
     "android.permission.CAMERA": "the camera intent needs none; declaring it changes the listing",
     # Play permits USE_EXACT_ALARM only for alarm clocks and calendars.
-    "android.permission.USE_EXACT_ALARM": "Play policy: alarm-clock and calendar apps only; SCHEDULE_EXACT_ALARM instead",
+    "android.permission.USE_EXACT_ALARM": "Play policy: alarm-clock and calendar apps only, and nothing here is scheduled",
 }
 
 # Every <uses-feature> the artifact is allowed to carry, with the required= value

@@ -430,9 +430,9 @@ def main() -> int:
         # on hue, where the before half is not a fixed target.
         "dynamic_color": "off — the app's own scheme (ADR-0006)",
     }
-    # Do Not Disturb for the length of the run, off again whatever happens — a seeded reminder can
-    # post a heads-up banner over the screen a minute after every reseed, and this script reseeds
-    # once per cell. See [e2e.set_dnd]; the `finally` is because it is a phone-wide setting.
+    # Do Not Disturb for the length of the run, off again whatever happens — any app's heads-up
+    # banner posts over the screen being captured. See [e2e.set_dnd]; the `finally` is because it is
+    # a phone-wide setting.
     # The theme is phone-wide too, so it is read before the first cell writes it and put back in the
     # same `finally`. So is the status bar, which demo mode empties of this phone's own icons — see
     # [e2e.set_demo_status_bar]; a status bar left in demo mode looks like a broken phone.

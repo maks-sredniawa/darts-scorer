@@ -127,8 +127,8 @@ class SchemaGateTest {
      * (`schemaBlocksBackgroundWork`), so the three answers are worth stating in those terms.
      *
      * `Open` is the interesting one. A worker that sat out *any* mismatch — including an upgrade the
-     * next database open was about to perform anyway — is what leaves the first reminder after an
-     * update unposted, and the chain stopped until someone opens the app.
+     * next database open was about to perform anyway — would do nothing after every update until
+     * someone opens the app.
      */
     @Test
     fun `background work is blocked by exactly the decisions that are not Open`() {

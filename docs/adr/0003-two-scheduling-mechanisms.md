@@ -61,3 +61,18 @@ the user's patience on nudges that do not need any of it. If everything is urgen
   user**. Creating a channel quiet is a decision with no second attempt.
 - Testing any of this on a vendor ROM requires reading the autostart state first. A run against an
   unknown one proves nothing either way — `scripts/device-gate.py` reads it.
+
+## Amendment — 2026-11-12: Darts Scorer schedules nothing
+
+Nothing in [`PLAN.md`](../PLAN.md) runs later or in the background: a Visit is scored while the user
+is looking at it. So both mechanisms are gone ([`phase-0.md`](../phase-0.md) § 1): the sweep, the
+boot and update receivers, exact alarms, WorkManager, the notification ask and its channel, and the
+two vendor hand-offs, battery optimisation and Xiaomi's autostart. The artifact no longer carries
+`POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `SCHEDULE_EXACT_ALARM`, `WAKE_LOCK` or
+`FOREGROUND_SERVICE`. `ACCESS_NETWORK_STATE` stays, merged by the tip's billing library alone
+(ADR-0007). `scripts/device-gate.py`, which read the autostart grant and the armed alarms, went with
+them.
+
+The module and this reasoning return together. A feature that wants something to happen later
+starts from the decision above and from the code at `8ae670b` (`work/` under the app's package,
+`scripts/device-gate.py`), rather than from a blank page or from either half alone.

@@ -8,8 +8,8 @@ memory a year from now is how a true answer turns false.
 <!--
     A template with real structure. Every section below is a page the Console will make you answer
     before a closed release, and the answers are pre-filled for the template *as shipped*: no
-    network, no account, no ads, reminders and photos on the device. Delete what your app does not
-    have, re-reason what it adds, and date every answer the day you give it in the Console.
+    network, no account, no ads, photos on the device. Delete what your app does not have,
+    re-reason what it adds, and date every answer the day you give it in the Console.
 
     The first app built from this template wrote this file in its fifth phase, after `DOD.md` had
     carried it as owed since before the first upload. Writing it while you fill in the Console is
@@ -34,26 +34,17 @@ Read at **versionCode _, versionName _** by `publish-play.yml`'s verify step on 
 
 | Permission | Whose | What it is for | Console consequence |
 | --- | --- | --- | --- |
-| `POST_NOTIFICATIONS` | ours | reminder notifications, asked from a screen that explains them | none |
-| `RECEIVE_BOOT_COMPLETED` | ours | `BootReceiver` re-arms the sweep after a restart | none: normal, install-time |
-| `SCHEDULE_EXACT_ALARM` | ours | a reminder that must land on its minute (ADR-0003) | **none today, but watch it**: Play restricts exact alarms, and `USE_EXACT_ALARM` is forbidden outright |
-| `WAKE_LOCK` | WorkManager | the worker's own wake lock | none |
-| `ACCESS_NETWORK_STATE` | WorkManager, and Play Billing's `datatransport` | WorkManager reads connectivity for job constraints, `datatransport` before its (blocked) log upload; neither opens anything | none, but a reviewer may ask why an app with no network reads it — this row is the answer |
-| `FOREGROUND_SERVICE` | WorkManager | its `SystemForegroundService`, never started by this app | none while nothing declares a foreground service *type* |
+| `ACCESS_NETWORK_STATE` | Play Billing's `datatransport` | read before its (blocked) log upload; it opens nothing | none, but a reviewer may ask why an app with no network reads it — this row is the answer |
 | `com.android.vending.BILLING` | Play Billing Library | the tip (ADR-0007): IPC to the Play app's billing service | none: not on Play's declaration list. The listing shows *Contains in-app purchases* once products exist |
 | `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AndroidX | its own non-exported receivers, signature-level | none: not user-visible |
 
 The billing library's `datatransport` dependency merges `INTERNET`; the manifest removes it with
 `tools:node="remove"`, and the gate is what proves it stayed out. It merges `ACCESS_NETWORK_STATE`
-too, so that row stays until both WorkManager and the tip are gone.
+too, the row's only owner, so that row goes with the tip.
 
 **Forbidden, and asserted absent**: `INTERNET`, `AD_ID`, `QUERY_ALL_PACKAGES`,
 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `CAMERA`, `USE_EXACT_ALARM`. The first two are what the Data
 safety and advertising-ID answers rest on.
-
-**Two asks are not permissions and appear on no Play list**: the battery-optimisation exemption and
-Xiaomi's autostart. Both are hand-offs to Settings. They need no declaration, and the privacy policy
-names them anyway, because a user sent to two Settings screens should find both explained.
 
 ---
 
@@ -166,10 +157,10 @@ forbids it. Answered _<date>_.
 
 ## Foreground service permissions
 
-**None declared** as shipped: WorkManager merges `FOREGROUND_SERVICE` but no foreground service
-*type*, and nothing here starts one. If the app gains a foreground service, this section records the
-type, the `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` text if it is `specialUse`, and the three answers the
-declaration asks for: what the user sees, why it cannot wait, and why no named type fits.
+**None declared**: the artifact carries no `FOREGROUND_SERVICE`, and nothing here starts one. If the
+app gains a foreground service, this section records the type, the `PROPERTY_SPECIAL_USE_FGS_SUBTYPE`
+text if it is `specialUse`, and the three answers the declaration asks for: what the user sees, why
+it cannot wait, and why no named type fits.
 
 The declaration also wants **a video** of the service doing its job. Record its link here, and keep
 it viewable by anyone with the link for as long as the declaration is on file. `adb screenrecord`

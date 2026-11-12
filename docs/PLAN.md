@@ -104,10 +104,10 @@ not. A re-read tells the app; **nothing tells the person holding the phone** unl
 row that makes no claim is the idiom for one it cannot.
 
 **Autostart is the case where even the re-read is out of reach.** It is not an appop and there is no
-API for it, so no code of yours can tell a granted state from a denied one — only
-`scripts/device-gate.py`, over `adb`, run by you. The clause survives it: the phase still owns the
-hand-off and still owns saying what a denial costs, without claiming to know the answer. What changes
-is only who can check.
+API for it, so no code of yours can tell a granted state from a denied one — only a reading of the
+vendor's own screen over `adb`, run by you (`8ae670b:scripts/device-gate.py`, removed with the
+reminders in phase 0). The clause survives it: the phase still owns the hand-off and still owns
+saying what a denial costs, without claiming to know the answer. What changes is only who can check.
 
 **The same logic applies to side effects, not only to permissions.** A feature that makes one of the
 phone's own controls go inert is a system control that appears broken, caused by you. The phase that
