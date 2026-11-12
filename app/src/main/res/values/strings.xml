@@ -62,7 +62,6 @@
     <string name="settings_language_report">Something read wrong?</string>
     <string name="settings_language_report_hint">Tell me if a word looks wrong in your language. Opens your email app, with the language you are reading already filled in.</string>
     <string name="settings_data">Data</string>
-    <string name="settings_backup">Backup and restore</string>
     <!-- Settings → Data: every setting, the app language included, back to how the app came, after a confirmation. Items and backups are untouched. -->
     <string name="settings_restore">Restore default settings</string>
     <string name="settings_restore_hint">Theme, colours and language</string>
@@ -98,23 +97,6 @@
     <string name="support_tip_hint">A one-off tip, paid through Google Play. It unlocks nothing, because nothing in this app is locked.</string>
     <string name="support_tip_thanks">Thank you. It means a lot.</string>
     <string name="support_tip_pending">Your payment is still being processed. Google Play will finish it.</string>
-
-    <!-- Backup -->
-    <string name="backup_explainer">Everything stays on this phone. A backup is a single file you keep wherever you like.</string>
-    <string name="backup_export_records">Export records</string>
-    <string name="backup_export_everything">Export everything</string>
-    <string name="backup_restore">Restore from a file…</string>
-    <!-- Android's own automatic backup to the user's Google account, as the app last saw it run. %1$s is a localised date and time. -->
-    <string name="backup_auto_last">Android last backed up the app on %1$s.</string>
-    <string name="backup_auto_none">Android has not backed up the app yet.</string>
-    <!-- %1$s is a localised date and time: when the last automatic backup before the refused one ran. -->
-    <string name="backup_auto_over_quota">Android\'s latest automatic backup was refused as too large. The one from %1$s is the last that went through. Export a backup yourself.</string>
-    <string name="backup_auto_over_quota_none_earlier">Android\'s latest automatic backup was refused as too large, and the app has no record of an earlier one that went through. Export a backup yourself.</string>
-    <!-- Follows backup_auto_last in the same paragraph. Thumbnails are the small copies of photos. -->
-    <plurals name="backup_auto_left_out">
-        <item quantity="one">%d older thumbnail did not fit and was left out.</item>
-        <item quantity="other">%d older thumbnails did not fit and were left out.</item>
-    </plurals>
 
     <!-- Licences -->
     <string name="licence_text_missing">The text of this licence is not bundled with the app.</string>

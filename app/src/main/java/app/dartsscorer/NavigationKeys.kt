@@ -42,8 +42,6 @@ data class ItemEditor(
     val itemId: String? = null,
 ) : NavKey
 
-@Serializable data object Backup : NavKey
-
 /**
  * Help and feedback, and the licences below it — both pushed from Settings' *About* section
  * rather than being roots of their own. Somewhere you go once, from the place you already go to

@@ -53,3 +53,11 @@ else — and "missing media renders as a placeholder" already covers the other d
 - The crop is blind: there is no crop-and-zoom UI, so re-picking is the user's only recourse. Keep
   the crop centred and predictable.
 - Nothing upscales. A 300 px source is stored at 300 px, not blown up with invented pixels.
+
+## Amendment — 2026-11-12: the photo directories are outside every backup
+
+`thumbnails/`, `photos/` and `documents/` are left out of the cloud backup, the device transfer and
+Android 8 to 11's full backup alike, because the backup rules are include-only and name none of them
+(ADR-0005's 2026-11-12 amendment). The directory no longer doubles as a backup export scope: there
+is no export. Stripping the metadata on re-encode stays as decided, for any route a later phase opens
+off the phone.

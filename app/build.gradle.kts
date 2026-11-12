@@ -317,9 +317,7 @@ dependencies {
     // Consumes a cleared tip whenever the app comes to the foreground — see MainApplication.
     implementation(libs.androidx.lifecycle.process)
 
-    // The export manifest inside a backup zip. JSON rather than a hand-rolled format, because the
-    // manifest is what a restore's promise is sourced from. Enums serialise by *name*, which is the
-    // same rule the database's converters follow.
+    // The licences screen reads licensee's artifact list.
     implementation(libs.kotlinx.serialization.json)
 
     // Reading the camera's orientation tag so it can be baked into the pixels. The androidx one,

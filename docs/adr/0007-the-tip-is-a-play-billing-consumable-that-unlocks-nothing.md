@@ -71,3 +71,9 @@ Billing, and it unlocks nothing.**
 - **One more dependency and one more permission**: the billing library, `lifecycle-process`, and
   `BILLING` in the artifact. The licences screen links Google's terms for the Play services artifacts
   billing brings in; their text is not ours to ship.
+
+## Amendment — 2026-11-12: the tip's answer reaches the next phone
+
+Auto Backup now carries every preference (ADR-0005's 2026-11-12 amendment), `tip_asked` among them,
+so a user who answered the ask is not asked again after moving phones. The month still restarts on
+the new phone, since `firstInstallTime` is not backed up, but the ask does not come back.

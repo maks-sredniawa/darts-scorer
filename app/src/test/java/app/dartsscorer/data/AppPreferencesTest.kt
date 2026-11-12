@@ -52,7 +52,6 @@ class AppPreferencesTest {
                 setThemeMode(ThemeMode.DARK)
                 setMaterialYou(true)
                 setOnboardingDone(true)
-                setBackupFolderUri("content://tree")
                 markTipAsked()
 
                 restoreDefaults()
@@ -60,7 +59,6 @@ class AppPreferencesTest {
                 assertEquals(ThemeMode.SYSTEM, themeMode.first())
                 assertFalse(materialYou.first())
                 assertTrue(onboardingDone.first())
-                assertEquals("content://tree", backupFolderUri.first())
                 assertTrue(tipAsked.first())
             }
         }

@@ -17,7 +17,7 @@ datastore = "1.2.1"
 exifinterface = "1.4.2"
 junit = "4.13.2"
 kotlin = "2.3.20"
-# The backup manifest only. The serialization *plugin* is already here for Nav3's @Serializable
+# The licences screen's artifact list. The serialization *plugin* is already here for Nav3's @Serializable
 # route keys; this is the JSON format itself, which Nav3 does not pull in.
 kotlinxSerializationJson = "1.8.1"
 # KSP dropped the "<kotlin>-<ksp>" suffix scheme at 2.3.0. No build exists for Kotlin 2.3.20
