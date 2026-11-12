@@ -38,10 +38,12 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       only phone in the loop sits at the top of the range, every `SDK_INT` branch below it ships
       unvalidated — the first app built from this template raised 26 to 33 for exactly that reason. Move CI's floor legs with it,
       and write the reason beside `minSdk` in `app/build.gradle.kts`, where the next person to touch it reads it.
-- [ ] **Replace the placeholder mark.** `art/mark.py`, then `python3 art/make-launcher-icon.py` and
-      `make-feature-graphic.py`. Commit the concept image and record its provenance in
-      `art/README.md` — where the art came from is the thing most likely to block a first upload, and
-      it is discovered late.
+- [x] **Replace the placeholder mark.** The Fan, drawn in code in `art/mark.py` (no concept image),
+      provenance in `art/README.md`; launcher, monochrome, notification and Play icons regenerated.
+      Chosen 2026-11-12 from three Fable options.
+- [ ] **Regenerate the feature graphic** with `make-feature-graphic.py` in Phase N: the template copy
+      runs into the new mark, so `play-feature-graphic.png` is still the template's, and
+      `play-metadata.py` uploads it.
 - [ ] **Replace the placeholder domain.** `data/ItemEntity.kt` and `ui/items/` — or delete them
       (above).
 - [ ] **Rewrite `scripts/edge-to-edge.py`'s SCENES** against your screens. Until then the nightly
@@ -50,8 +52,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       EXPECTED_ORIENTATION describe the template. Run all four `aab-*.py` scripts against a local
       `bundleRelease` **before the first tag** — the first app built from it found its stale table in the publish
       workflow, after the tag, with the version already spent.
-- [ ] **Choose the palette.** Four seeds in `scripts/gen_scheme.py`, regenerate `theme/Color.kt`,
-      read the contrast report it prints on stderr.
+- [x] **Choose the palette.** Brass `8A6500`, khaki grey `6E6552`, steel blue `3F6E8C`, near-grey
+      `E4E2DE` in `scripts/gen_scheme.py`; every contrast check passes.
 - [ ] **Make the support address work both ways.** `bootstrap.py` compiled in
       `<repo>.support@maksforge.com` (or `--support`) and wrote it into the site, the privacy policy
       and the Play docs. Mail to it arrives through the domain's catch-all; replying from it needs the
@@ -62,7 +64,7 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       The Console's *Review* step then asks for the AI-generated assets declaration: the owner's to make.
 - [ ] **Capture the screenshots** with `scripts/screenshots.py` from a release-shaped build, in every
       listing language, into `art/play-screenshots/`. Play wants at least two before the first review.
-- [ ] **Put the app on maksforge.com.** Its icon goes at `assets/icons/<repo>.webp` in
+- [x] **Put the app on maksforge.com.** Its icon goes at `assets/icons/<repo>.webp` in
       maks-sredniawa/maks-sredniawa.github.io, which the app's own site loads, and the app goes on that home
       page. Replace `description` in `docs/_config.yml` too: it is the tagline under the app's name.
 - [ ] **Write the privacy policy** and confirm `maksforge.com/<repo>/privacy-policy`
