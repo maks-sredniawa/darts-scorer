@@ -297,7 +297,7 @@ path at `small-api30`. Backup readings need the local transport: `adb shell bmgr
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | A's artifact declares no notification, boot or alarm permission | `./gradlew bundleRelease` then `python3 scripts/aab-permissions.py <aab>` | |
+| R1 | A's artifact declares no notification, boot or alarm permission | `./gradlew bundleRelease` then `python3 scripts/aab-permissions.py <aab>` | **Pass**: three permissions, `ACCESS_NETWORK_STATE`, `BILLING` and AndroidX's `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; `WAKE_LOCK` and `FOREGROUND_SERVICE` left with WorkManager *(2026-11-12)* |
 | R2 | AppCompat's locale record: its file name and domain, below Android 13 | set a language on `small-api30`, then `adb shell run-as <pkg> find . -newer <marker>` | |
 | R3 | Android 12 and later: a planted `files/photos/x.jpg` does not survive a round trip, a changed theme does | plant with `run-as`, `bmgr backupnow <pkg>`, `pm clear <pkg>`, `bmgr restore <token> <pkg>`, then `run-as ls files/photos` and the theme on screen | |
 | R4 | A reading to try. Android 12 and later, device transfer: a planted `files/photos/x.jpg` is not among the files a transfer carries. If the image lists no D2D transport, the result records that and `BackupRulesTest` stands in | on a Google Play image at API 36 (`pixel-api36` if it is one): `adb shell setprop log.tag.BackupXmlParserLogging VERBOSE`, `adb shell settings put secure backup_enable_d2d_test_mode 1`, `bmgr list transports`, `bmgr transport com.google.android.gms/.backup.migrate.service.D2dTransport`, plant with `run-as`, `bmgr backupnow <pkg>`, then the files taken as logcat lists them | |
