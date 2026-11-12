@@ -20,7 +20,9 @@ setting comes back**, on both backup paths (Android 12 and later, and Android 8 
 **`PLAN.md`'s paragraph is off in two places, said here first.**
 
 - "The system camera and Photo Picker kept" holds for the plumbing only: `media/MediaFiles.kt`, the
-  `FileProvider` and `file_paths.xml`, Coil and `exifinterface`. The two launchers that fire the
+  `FileProvider` and `file_paths.xml`, Coil and `exifinterface`. `file_paths.xml` keeps `camera/`
+  alone: its `exports/` entry leaves at B with the backup zip and `preserved/` at C with Room, each
+  with its paragraph in the file's comment. The two launchers that fire the
   camera and the picker live in the items editor, and leave with it. Phase 1 writes its own on the
   Visit screen, because the first tap on *Take a photo* is phase 1's ask (*Asks* in `PLAN.md`). The
   editor at `e376428:app/src/main/java/app/dartsscorer/ui/items/ItemEditorScreen.kt` is the
@@ -39,14 +41,16 @@ setting comes back**, on both backup paths (Android 12 and later, and Android 8 
 - **The tip stays.** ADR-0008 assumes it ("the app is on Play with a tip purchase") and `CONTEXT.md`
   defines it. Its one ask, though, lives on the Items screen and counts Items as its measure of use
   (`tip/TipAsk.kt`, `TIP_ASK_AFTER_ITEMS`). Both go with the Items, so the ask needs a new home and a
-  new measure (§4).
+  new measure (§3).
 - **The photo directories are already split by kind** (`photos/`, `thumbnails/`, `documents/` under
   `filesDir`). The capture `TakePicture` writes into lives in `cacheDir`, which no backup ever takes.
   The custom agent takes all three media directories today.
-- **The asymmetry that shapes the phase: what reaches a backup can be read off an emulator, but what
-  reaches a device-to-device transfer cannot.** `bmgr` drives the cloud-backup path and its restore;
-  nothing on an emulator drives Android 12's device transfer. The transfer half is therefore held by
-  a test that the two rule sets agree (§3, *Tests*), not by a reading.
+- **The asymmetry that shapes the phase: a cloud backup can be read off an emulator end to end, a
+  device-to-device transfer only halfway.** `bmgr` drives the cloud-backup path and its restore. With
+  D2D test mode it can also run Android 12's transfer backup on a Google Play image, which shows the
+  files a transfer would carry, but nothing on an emulator restores one. The transfer half is
+  therefore held by a test that each rule set is exactly the expected one (*Tests*), with a reading
+  (R4) to try beside it.
 
 ## What is in, and what is deliberately not
 
@@ -93,8 +97,8 @@ later is excluded until someone includes it on purpose.
 | --- | --- | --- | --- |
 | **A** | **Reminders out**: `work/`, the Settings section and its ask, four permissions | `refactor:` | — |
 | **B** | **Backup out, Auto Backup in**: the custom agent, export and restore, sharing; include-only rules | `refactor:` | A |
-| **C** | **Items and Room out, the Visit screen in**: the placeholder domain, the database and schema gate, the tip ask moved | `refactor:` | B |
-| **D** | **The surroundings**: `edge-to-edge.py`'s scenes, the four `aab-*.py` scripts against a local `bundleRelease`, `DOD.md` and `PLAN.md` | `docs:` / `chore:` | C |
+| **C** | **Items and Room out, the Visit screen in**: the placeholder domain, the database and schema gate, the tip ask moved, `edge-to-edge.py` walking the shell | `refactor:` | B |
+| **D** | **The surroundings**: `screenshots.py`, the four `aab-*.py` scripts against a local `bundleRelease`, `DOD.md` and `PLAN.md` | `docs:` / `chore:` | C |
 
 One PR per checkpoint, each through the local review loop. Each leaves the app building, its tests
 green and every shipped language complete.
@@ -111,13 +115,18 @@ Items.
 tab does not open. The screen arrives in the same commit as the deletion, so the app never stops
 working.
 
+**Why C carries `edge-to-edge.py`.** C deletes the screens the script walks (`HOME_TAB = "Items"`,
+`SEED_WALK`), so left until D it fails on every emulator and the nightly stays red between the two
+checkpoints. Rewriting it in the commit that deletes them keeps the nightly green and lets R6 pass
+at C.
+
 **No checkpoint cuts a release.** None of A to D is user-visible in a way worth a version: there
 are no users. `refactor:`, `docs:` and `chore:` bump nothing, and the open release PR #3 (0.2.0)
 stays as it is. Whether that PR is merged before Phase P is the owner's question, asked separately.
 
 **No gate.** Nothing in this phase can veto it: every piece is a deletion the template has already
 done once, written down in `optional-modules.md`. The one property that could fail silently is the
-backup exclusion, and that is a reading at B (R3, R4), not a gate.
+backup exclusion, and that is a reading at B (R3, R4, R5), not a gate.
 
 ---
 
@@ -144,7 +153,8 @@ backup exclusion, and that is a reading at B (R3, R4), not a gate.
 `optional-modules.md`, *Backup export/restore*, all of it. Sharing goes too: nothing in phases 0 to 3
 shares a file. That covers `Share.kt`, `ShareBook.kt`, the `ShareChosenReceiver`, the two `SEND`
 `<queries>` entries and `revokeUnpickedShare()`. `ManifestWiringTest.kt` goes with its last case.
-`BACKUP_FOLDER_URI` leaves `AppPreferences`.
+`BACKUP_FOLDER_URI` leaves `AppPreferences`. `file_paths.xml` loses `exports/` and the comment's
+paragraph about it.
 
 ### The rules
 
@@ -188,6 +198,14 @@ settings to a new phone, and never their photos.
 
 `optional-modules.md`, *Room database and the schema gate* and *The placeholder domain*, all of it.
 `DOD.md`'s standing schema gate is marked **parked**, its five points kept verbatim.
+`file_paths.xml` loses `preserved/` and the comment's paragraph about it, leaving `camera/` as its
+only path.
+
+### `edge-to-edge.py`
+
+SCENES, `TAB_BAR`, `HOME_TAB` (`"Visit"`) and `SEED_WALK` (gone) are rewritten against the shell in
+this checkpoint, so the nightly walks screens that exist. `DOD.md`'s *Rewrite
+`scripts/edge-to-edge.py`'s SCENES* is ticked here.
 
 ### The Visit screen
 
@@ -215,14 +233,15 @@ screens, and the schema-mismatch screen are gone.
 
 ## 4. D — The surroundings
 
-- `edge-to-edge.py`: SCENES, `TAB_BAR`, `HOME_TAB` (`"Visit"`) and `SEED_WALK` (gone) rewritten
-  against the shell, so the nightly walks screens that exist. `screenshots.py` likewise, as far as
-  it can before there is anything to screenshot.
+- `screenshots.py` rewritten against the shell, as far as it can before there is anything to
+  screenshot.
 - `aab-permissions.py` EXPECTED, as A to C left it, proven against a local `bundleRelease` together
-  with the other three `aab-*.py` scripts (`DOD.md`'s *Make the artifact allowlists yours*).
-- `DOD.md`: tick *Delete what the app does not need*, *Replace the placeholder domain* and *Rewrite
-  `scripts/edge-to-edge.py`'s SCENES*. Reword the `minSdk` item to "before the door". `PLAN.md`:
-  tick Phase 0.
+  with the other three `aab-*.py` scripts.
+- `DOD.md`'s *Make the artifact allowlists yours* stays open: R7 proves the AAB matches the lists,
+  not that FORBIDDEN and EXPECTED_ORIENTATION are right for this app, and it is ticked once both are
+  reviewed too.
+- `DOD.md`: tick *Delete what the app does not need* and *Replace the placeholder domain*. Reword the
+  `minSdk` item to "before the door". `PLAN.md`: tick Phase 0.
 
 ---
 
@@ -233,10 +252,11 @@ leaves the phone.**
 
 - **`BackupRulesTest`** (JVM, new, at B) parses both rule files from `res/xml/`. It asserts that
   each is include-only (no `<exclude>`, so nothing is "everything but"). It asserts that
-  `<cloud-backup>`, `<device-transfer>` and `backup_rules.xml` name the same set. And it asserts
-  that no include names `photos/`, `thumbnails/`, `documents/`, or the domain root. It fails
-  towards the leak: a widened include, or the two files drifting apart, turns it red. It is the only
-  thing standing in for the device-transfer path no emulator drives.
+  `<cloud-backup>`, `<device-transfer>` and `backup_rules.xml` each equal the exact expected include
+  set: `file:datastore/` plus the AppCompat locale record R2 reads. As a second line of defence it
+  asserts that no include names `photos/`, `thumbnails/`, `documents/`, or the domain root. It fails
+  towards the leak: any include added to any of the three, such as `domain="database"` or a new
+  media kind, turns it red. It is what holds the device-transfer restore no emulator drives.
 - **`TipAskTest`** (changed, at C): the same boundaries, with Visits in place of Items.
 - **`AppPreferencesTest`** (changed): the reminder lines leave at A and the backup-folder lines at
   B. At C, `visits_scored` starts at 0, increments, and survives *Restore defaults* because it is in
@@ -253,17 +273,18 @@ leaves the phone.**
 | ADR-0003 | dated amendment: nothing is scheduled; the module and its reasoning return together | A |
 | ADR-0005 | dated amendment: platform Auto Backup, include-only, preferences only; the custom agent's reasoning returns with a database | B |
 | ADR-0001 | dated amendment: no database in the first version; the schema gate is parked and returns with the first table | C |
-| ADR-0002 | dated amendment: no database holds the paths yet; the photo directories are outside every backup by the include-only rules | B |
+| ADR-0002 | dated amendment. B: the photo directories are outside every backup by the include-only rules. C: no database holds the paths yet | B, C |
 | `docs/privacy-policy.md` + `docs/play-app-content.md`, together | A: notifications and reminders. B: backup export, sharing, and what Android's backup now carries (settings only, never photos). C: anything naming stored records | A, B, C |
 | `CLAUDE.md` | Stack (Room and WorkManager rows), house rules (the schema rule parked, "media paths in the DB"), Layout (`AppBackupAgent.kt`, `data/backup/`, `work/`), the `connectedAndroidTest` comment | A, B, C |
 | `docs/RELEASING.md` | its two mentions of backup or schema, reread and corrected | B, C |
-| `docs/DOD.md`, `docs/PLAN.md` | as §4 | C, D |
+| `docs/DOD.md`, `docs/PLAN.md` | as §3 and §4 | C, D |
 
 ## Known gaps, deliberately
 
-- **Device-to-device transfer is not read on a device.** No emulator drives it. `BackupRulesTest`
-  proves its rules are the cloud rules, and the cloud rules are read (R3). Closing it costs two
-  physical phones and a transfer.
+- **A device-to-device restore is not read on a device.** R4 reads which files a transfer would
+  carry, if the image has the transport, but no emulator restores one. `BackupRulesTest` proves the
+  transfer rules are exactly the expected set, and the cloud round trip is read (R3). Closing it
+  costs two physical phones and a transfer.
 - **The tip ask cannot be seen in this phase.** The count is 0 until phase 1 writes it, so phase 1
   takes the reading of the card on the Visit screen.
 
@@ -279,6 +300,7 @@ path at `small-api30`. Backup readings need the local transport: `adb shell bmgr
 | R1 | A's artifact declares no notification, boot or alarm permission | `./gradlew bundleRelease` then `python3 scripts/aab-permissions.py <aab>` | |
 | R2 | AppCompat's locale record: its file name and domain, below Android 13 | set a language on `small-api30`, then `adb shell run-as <pkg> find . -newer <marker>` | |
 | R3 | Android 12 and later: a planted `files/photos/x.jpg` does not survive a round trip, a changed theme does | plant with `run-as`, `bmgr backupnow <pkg>`, `pm clear <pkg>`, `bmgr restore <token> <pkg>`, then `run-as ls files/photos` and the theme on screen | |
-| R4 | R3 on Android 8 to 11 (`fullBackupContent`) | as R3, on `small-api30` | |
-| R5 | C's shell opens on the Visit tab on every emulator, edge to edge, with nothing clipped | `python3 scripts/edge-to-edge.py` | |
-| R6 | D: the four `aab-*.py` scripts pass on a local `bundleRelease` | each script against the AAB | |
+| R4 | A reading to try. Android 12 and later, device transfer: a planted `files/photos/x.jpg` is not among the files a transfer carries. If the image lists no D2D transport, the result records that and `BackupRulesTest` stands in | on a Google Play image at API 36 (`pixel-api36` if it is one): `adb shell setprop log.tag.BackupXmlParserLogging VERBOSE`, `adb shell settings put secure backup_enable_d2d_test_mode 1`, `bmgr list transports`, `bmgr transport com.google.android.gms/.backup.migrate.service.D2dTransport`, plant with `run-as`, `bmgr backupnow <pkg>`, then the files taken as logcat lists them | |
+| R5 | R3 on Android 8 to 11 (`fullBackupContent`) | as R3, on `small-api30` | |
+| R6 | C's shell opens on the Visit tab on every emulator, edge to edge, with nothing clipped | `python3 scripts/edge-to-edge.py` | |
+| R7 | D: the four `aab-*.py` scripts pass on a local `bundleRelease` | each script against the AAB | |
