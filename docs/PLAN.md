@@ -16,7 +16,7 @@ was extracted from and the first app built from it settled on exactly this split
 
 ## Status
 
-- [ ] **Phase 0** — Skeleton: the placeholder Items and reminders gone, Room and the custom backup
+- [x] **Phase 0** — Skeleton: the placeholder Items and reminders gone, Room and the custom backup
   gone because the first version stores no visit history, the system camera and Photo Picker kept
   for the board photo, Darts Scorer's palette and mark
 - [ ] **Phase M1** — The data, off the phone (ADR-0008): the `ml/` folder (code only), the DeepDarts
