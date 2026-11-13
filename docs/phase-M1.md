@@ -16,8 +16,8 @@ A third of the owner's Capture sessions are frozen as the Held-out set, by a has
 The bar for opening phase 1 is written below and computed by code that has been tested on perfect
 and on broken predictions. No model exists yet. The difference a reader can check: **`darts-ml
 verify-held-out` passes against the committed manifest, and `darts-ml evaluate --predictions
-labels` reads 100% found and 0 mm on the Held-out set, with B2 short of 100% only by the Visits
-whose sheet records an open mismatch**, so the bar is a command before it is a result.
+labels` reads 100% found and 0 mm on the Held-out set, with B2 short of 100% only by the counted
+Visits whose sheet records an open mismatch on p1**, so the bar is a command before it is a result.
 
 **`PLAN.md`'s paragraph holds, with one addition said here first.** It names the bar but not where
 the truth comes from. A label is the owner's reading of a Photo, and DeepDarts' own labels disagreed
@@ -37,7 +37,7 @@ asks for a subscription (§4). B2's rule is why D3 now has 18 Capture sessions r
 | --- | --- | --- |
 | **D1** | **The bar for opening phase 1** (§7) | **Board:** found in ≥ 98% of held-out Photos. At the treble wires and at the double wires separately, the error has a median ≤ 0.5 mm and a 95th percentile ≤ 1.0 mm. **Visits:** ≥ 80% of the held-out Visits whose Darts are all visible in their front Photo are scored exactly right from it alone, over at least 60 such Visits. A Visit with a Dart hidden in p1 is left out of the bar and counted in a figure of its own, which is phase 2's input |
 | **D2** | **Which phones** | Two phones of different makes: your own and one other, such as an old phone or one borrowed for a few Capture sessions. If the second falls through, the model has only ever seen one lens and one image pipeline; that becomes a *Known gap* |
-| **D3** | **How much to capture**: your hours | 18 Capture sessions of 15 Visits, about 810 Photos: 12 training and 6 held-out. The two held-out sessions beyond the 16 first proposed follow from D1's B2 rule (§6). That is about 9 hours at the Board and about 31 at the labelling tool (*The owner's hours*). The floor is 8 training Capture sessions, and §3 says which go first. The pilot (B) measures the real minutes per Photo before the rest is taken |
+| **D3** | **How much to capture**: your hours | 18 Capture sessions of 15 Visits, about 810 Photos: 12 training and 6 held-out. The two held-out Capture sessions beyond the 16 first proposed follow from D1's B2 rule (§6). That is about 9 hours at the Board and about 31 at the labelling tool (*The owner's hours*). The floor is 8 training Capture sessions, and §3 says which go first. The pilot (B) measures the real minutes per Photo before the rest is taken |
 | **D4** | **Where the data lives, and its backup** | `~/darts-scorer-data` on this machine (`DARTS_DATA`), backed up to an external disk. **No cloud drive**, and no phone's cloud backup either (§3): the Photos show your home, and the labels are hours of work you cannot buy back |
 | **D5** | **Where DeepDarts comes from** | IEEE DataPort, with a free account, because the licence is stated there (§4). If DataPort asks for a paid subscription, the author is asked in writing for the labels under CC BY 4.0. With no grant three weeks after the ask, M1 goes on with the owner's Photos alone (§4 says what that costs). Record the source's SHA-256 in R2 |
 | **D6** | **A second Board** | Not now. If one Capture session on someone else's Board comes for free (a friend's, a club's), take it and put it in the Held-out set. Its Photos then show someone else's home, so ask first. Otherwise it stays a *Known gap* |
@@ -138,7 +138,7 @@ session's 45 Photos; B measures the real figure.
 | --- | --- | --- |
 | B | s01 taken; rounds a and b; round c on 10 Photos at about 5 minutes each; QA | about 4 |
 | D | the other 17 Capture sessions taken | about 8.5 |
-| E | round a on 17 × 45 Photos (19 h); the second review of the 270 held-out Photos, about a minute each (4.5 h); QA, overlays and sheets, about 15 minutes a Capture session (4 h) | about 28 |
+| E | round a on 17 × 45 Photos (19 h); the second review of the 270 held-out Photos, about a minute each (4.5 h), and a further review of each one the second changes, allowed for at one in ten (0.5 h); QA, overlays and sheets, about 15 minutes a Capture session (4 h) | about 28 |
 | | **In all**: about 9 at the Board and 31 at the labelling tool | **about 40** |
 
 A further held-out Capture session costs about 2.5 hours: the Board, a round, a second review and
@@ -321,10 +321,10 @@ ingest and lists the files. Ingest never guesses which Photo belongs to which Vi
 own JPEG: what the model is fed is M2's decision, and a second encode adds a second generation of
 artefacts at the scale of a wire. Ingest rotates and strips with `jpegtran -copy none`
 (libjpeg-turbo, BSD-style and IJG licences, a system tool that `darts-ml paths` checks for and CI
-installs). A quarter-turn on a size that is not a whole number of 16-pixel blocks uses `-trim`,
-which drops the partial edge blocks (under 16 pixels at the frame's edge) rather than re-encode
-them. An upright Photo is only stripped. A file that is not a JPEG is refused (§3 sets the camera
-to JPEG).
+installs). Every rotation passes `-trim`, a 180° turn as much as a quarter-turn: on a size that is
+not a whole number of 16-pixel blocks, it drops the partial edge blocks (under 16 pixels at the
+frame's edge) rather than re-encode them. An upright Photo is only stripped. A file that is not a
+JPEG is refused (§3 sets the camera to JPEG).
 
 ### Board geometry, as code
 
@@ -429,29 +429,29 @@ lights:
 
 | Capture session | Phone | Light | Set |
 | --- | --- | --- | --- |
-| s01 | A | day | training: the pilot (B) |
-| s02 | A | evening | training |
-| s03 | B | day | training |
-| **s04** | A | flash | **held-out** |
-| s05 | B | evening | training |
-| s06 | A | harsh | training |
-| **s07** | B | day | **held-out** |
-| s08 | B | flash | training |
-| s09 | A | day | training |
-| **s10** | A | evening | **held-out** |
-| s11 | B | harsh | training |
-| **s12** | B | flash | **held-out** |
-| s13 | A | flash | training |
-| s14 | B | evening | training |
-| **s15** | A | harsh | **held-out** |
-| s16 | A | day | training |
-| **s17** | B | harsh | **held-out** |
-| s18 | B | day | training |
+| s01 | phone 1 | day | training: the pilot (B) |
+| s02 | phone 1 | evening | training |
+| s03 | phone 2 | day | training |
+| **s04** | phone 1 | flash | **held-out** |
+| s05 | phone 2 | evening | training |
+| s06 | phone 1 | harsh | training |
+| **s07** | phone 2 | day | **held-out** |
+| s08 | phone 2 | flash | training |
+| s09 | phone 1 | day | training |
+| **s10** | phone 1 | evening | **held-out** |
+| s11 | phone 2 | harsh | training |
+| **s12** | phone 2 | flash | **held-out** |
+| s13 | phone 1 | flash | training |
+| s14 | phone 2 | evening | training |
+| **s15** | phone 1 | harsh | **held-out** |
+| s16 | phone 1 | day | training |
+| **s17** | phone 2 | harsh | **held-out** |
+| s18 | phone 2 | day | training |
 
 That is 12 training Capture sessions, six per phone with all four lights on each, and 6 held-out,
 three per phone, taken in this order. In held-out Capture sessions every Dart is thrown and none is
 placed. They still carry their share of grouped and on-a-wire Visits, and those are what the bar is
-about. With one phone (D2), phone B's rows become phone A, and *Known gaps* says so.
+about. With one phone (D2), phone 2's rows become phone 1, and *Known gaps* says so.
 
 **If hours run short**, training rows are dropped from the bottom of the table up, skipping any
 whose loss would leave a phone without training in one of the four lights. Held-out rows are never
@@ -655,8 +655,11 @@ passes*).
 writes unknown keys back unchanged, and with its default `auto_save` a Photo whose crossings were
 all right is never saved at all. So a Photo is reviewed when the manifest holds a review whose
 SHA-256 matches its label as it is now. Any later edit makes it unreviewed again, and `check` says
-so. The manifest, `labels/<capture-session>/review.toml`, also holds each Photo's Hand points as
-pre-fill read them and the seconds its windows were open in passes 1 and 3.
+so. A held-out Photo is reviewed twice when two reviews on different days both match its label as it
+is now. So if its second review moves or deletes anything, the first no longer matches, and the
+Photo needs one more review on a later day, repeated until two match. The manifest,
+`labels/<capture-session>/review.toml`, also holds each Photo's Hand points as pre-fill read them
+and the seconds its windows were open in passes 1 and 3.
 
 **A labelling round** is passes 1–3 over a Capture session, and round a is the label of record. Only
 the gate repeats one. `--round b` on `label`, `prefill`, `review` and `check` starts from empty
@@ -671,12 +674,12 @@ minutes for passes 1 and 3 together; pass 2 is the machine's.
 
 `darts-ml check <capture-session>` must come back clean. Every finding is fixed, in the label or in
 the sheet. One that cannot be fixed, such as a Dart that fell out between the Photo and the reading,
-is recorded in the sheet as an **open mismatch** with its reason:
+is recorded in the sheet as an **open mismatch**, with the Photo it is on and its reason:
 
 1. **Lint.** Every label name is from the list, with no duplicates. There are at least 4 Calibration
    points. The image data is empty, and the image size matches the Photo. Entry points number no
    more than the Darts recorded in the Board. Every Photo is reviewed, as above, and a held-out one
-   twice on different days.
+   by two reviews on different days that both match its label as it is now.
 2. **Fit.** The label homography is fitted to all Calibration points by least squares. Any point
    whose residual exceeds 1.0 mm is listed: either a misclick, or lens distortion a plane cannot
    absorb (*Known gaps*).
@@ -706,14 +709,15 @@ is recorded in the sheet as an **open mismatch** with its reason:
   hide, and the framing Visits can leave a Dart out of p1's frame. Four Capture sessions would give
   60 Visits before any is left out. Six leave 60 counted even if a third of the 90 are hidden in p1.
 - **If E counts fewer than 60** (`darts-ml summary --held-out`), another held-out Capture session is
-  taken, with the phone and light the six have least of, and labelled before G freezes. Its row is
-  added to §3's table in a `docs:` commit before it is taken.
+  taken, with the phone and light the held-out ones have least of, and labelled before G freezes.
+  Its row is added to §3's table in a `docs:` commit before it is taken. This repeats, one Capture
+  session at a time, until `summary --held-out` counts at least 60.
 - **Chosen** so that it covers both phones and all four lights, with only thrown Darts. Its Capture
   sessions are taken interleaved with training ones, not last, so it is not all from the owner's
   best-practised evenings.
 - **Reviewed twice.** Every held-out Photo goes through `review` at 300% a second time, on a
-  different day. `check` must be clean. This is the truth the bar is read against, so it gets the
-  hours.
+  different day. A Photo that review changes gets a further one on a later day (§5). `check` must be
+  clean. This is the truth the bar is read against, so it gets the hours.
 - **Frozen** at G by `ml/splits/held-out.toml`, committed. For every held-out Photo it records the
   file name, the SHA-256 of the Photo and of its label, and the SHA-256 of each sheet and review
   manifest. The files stay in `DARTS_DATA`. The names say only Capture session, Visit and Angle, and
@@ -816,7 +820,8 @@ leak a Photo:
 
   It fails towards a bar that reads better than the model is.
 - **`ReviewTest`** checks that a label edited after its review is unreviewed again, so `check`
-  fails and its crossings are not `checked`, and that a held-out Photo reviewed once fails `check`.
+  fails and its crossings are not `checked`, and that a held-out Photo fails `check` when reviewed
+  once, or when its second review changed it and no later review followed.
   It fails towards unchecked labels counting as truth.
 - **`HeldOutTest`** checks that the builder, given a held-out Photo by name, by hash or by Capture
   session, refuses it, and that `verify-held-out` fails on one changed byte. It fails towards a
@@ -882,5 +887,5 @@ paths` first: it prints the directory it resolved, refuses one inside the repo, 
 | R4 | What was captured: Capture sessions, Photos, Visits, and each hard case counted from the sheets | `darts-ml summary` | *(D)* |
 | R5 | Label QA: `check` clean on every Capture session; Score mismatches found and how each was resolved, and every open one; the 95th percentile of cross-Angle Entry point agreement | `darts-ml check --all` | *(E)* |
 | R6 | The Held-out set is frozen and enforced, with at least 60 Visits not hidden in p1 | `darts-ml summary --held-out`; `darts-ml verify-held-out`; `darts-ml build` and its count of refused Photos | *(G)* |
-| R7 | The harness reads perfect as perfect | `darts-ml evaluate --predictions labels` → found 100%, 0 mm on both wire rows, and B2 at 100% less the counted Visits with an open mismatch in their sheet | *(G)* |
+| R7 | The harness reads perfect as perfect | `darts-ml evaluate --predictions labels` → found 100%, 0 mm on both wire rows, and B2 at 100% less the counted Visits with an open mismatch on p1. One on p2 or p3 alone does not lower B2, which reads p1 only | *(G)* |
 | R8 | Nothing private is tracked | `git ls-files ml` lists only code and the manifest; `git status --ignored --short ml` has no `??` line, and its only `!!` lines are `ml/.venv/` and `__pycache__/` folders | *(H)* |
