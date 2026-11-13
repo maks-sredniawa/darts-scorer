@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections import Counter
 from dataclasses import dataclass, field
 from fractions import Fraction
@@ -99,6 +100,9 @@ def load_predictions(path: Path) -> dict[str, Prediction]:
                 PredictedEntry(float(e["x"]), float(e["y"]), bool(e.get("low_confidence", False)))
                 for e in photo.get("entries", [])
             )
+            positions = [*calibration.values(), *((e.x, e.y) for e in entries)]
+            if not all(math.isfinite(v) for xy in positions for v in xy):
+                raise PredictionsError(f"{path}: {name} holds a position that is not a finite number")
             predictions[name] = Prediction(calibration, entries)
         return predictions
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
@@ -284,17 +288,20 @@ def report(result: Evaluation, bar: Bar = BAR) -> list[str]:
             return f"  {name:24} no Board found"
         return f"  {name:24} median {value.median_mm:.3f} mm, 95th {value.p95_mm:.3f} mm over {value.count} crossings"
 
+    board = board_met(result.found, result.treble, result.double, bar)
+    visits = visits_met(result.b2, bar)
+
     lines = [
         f"Held-out set: {result.capture_sessions} Capture sessions, {result.found.total} Photos, "
         f"{result.b2.total + result.hidden} Visits, verified against the frozen manifest",
         "",
-        f"B1, the Board: {verdict(result.board_met)}  "
+        f"B1, the Board: {verdict(board)}  "
         f"(found ≥ {float(bar.board_found):.0%}; each wire row median ≤ {bar.wire_median_mm} mm, 95th ≤ {bar.wire_p95_mm} mm)",
         f"  {'Board found':24} {result.found}",
         spread("treble wires (ti, to)", result.treble),
         spread("double wires (di, do)", result.double),
         "",
-        f"B2, the Visits: {verdict(result.visits_met)}  "
+        f"B2, the Visits: {verdict(visits)}  "
         f"(≥ {float(bar.visits_exact):.0%} exactly right from p1, over ≥ {bar.visits_counted} Visits not hidden in p1)",
         f"  {'exactly right from p1':24} {result.b2}",
         f"  {'open mismatch on p1':24} {result.b2_open_p1_mismatches} of the counted Visits",
@@ -310,5 +317,5 @@ def report(result: Evaluation, bar: Bar = BAR) -> list[str]:
     ]
     if result.ignored_predictions:
         lines.append(f"  {result.ignored_predictions} predicted Photos are not in the Held-out set and were ignored")
-    lines += ["", f"The bar for opening phase 1: {verdict(result.met)}"]
+    lines += ["", f"The bar for opening phase 1: {verdict(board and visits)}"]
     return lines

@@ -116,6 +116,10 @@ def verify(data: DataDir, held: HeldOutSet) -> list[str]:
     for name, frozen in sorted(held.capture_sessions.items()):
         compare(data.sheet(name), frozen.sheet, f"{name} sheet")
         compare(data.labels(name) / REVIEW_FILE, frozen.review, f"{name} review manifest")
+        if data.sheet(name).exists() and file_sha256(data.sheet(name)) == frozen.sheet:
+            for photo in map(str, load_sheet(data.sheet(name)).photo_names()):
+                if photo not in held.photos:
+                    problems.append(f"{photo}: in the {name} sheet, and the manifest does not freeze it")
     for photo in held.photo_names():
         frozen = held.photos[str(photo)]
         compare(data.photo(photo.capture_session, str(photo)), frozen.photo, f"{photo} Photo")

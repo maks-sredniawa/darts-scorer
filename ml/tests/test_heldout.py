@@ -5,6 +5,7 @@ import shutil
 import unittest
 from unittest import mock
 
+from darts_ml.board import HAND_POINTS
 from darts_ml.cli import main
 from darts_ml.heldout import HeldOutError, HeldOutSet, freeze, verify
 from darts_ml.labelme import read_label, write_label
@@ -77,6 +78,23 @@ class HeldOutTest(unittest.TestCase):
         reviewed_session(self.td, "s07", [["S1", "S1", "S1"]], held_out=True)
         self.assertEqual(verify(self.data, self.held), ["s07: its sheet says held-out, and the manifest does not freeze it"])
 
+    def without(self, *photos):
+        return HeldOutSet(self.held.capture_sessions, {n: p for n, p in self.held.photos.items() if n not in photos})
+
+    def test_verify_fails_on_a_manifest_missing_a_photo_its_frozen_sheet_lists(self):
+        for removed in (["s04-v02-p2"], [f"s04-v01-p{a}" for a in (1, 2, 3)]):
+            with self.subTest(removed=removed):
+                self.assertEqual(
+                    verify(self.data, self.without(*removed)),
+                    [f"{photo}: in the s04 sheet, and the manifest does not freeze it" for photo in removed],
+                )
+
+    def test_load_refuses_a_photo_of_a_capture_session_the_manifest_does_not_freeze(self):
+        stray = {**self.held.photos, "s01-v01-p1": self.held.photos["s04-v01-p1"]}
+        HeldOutSet(self.held.capture_sessions, stray).save(self.manifest)
+        with self.assertRaisesRegex(HeldOutError, "Photos of Capture sessions the manifest does not freeze: s01-v01-p1$"):
+            HeldOutSet.load(self.manifest)
+
     def test_the_builder_writes_training_photos_and_refuses_a_held_out_capture_session(self):
         built = build(self.data, self.held)
         self.assertEqual(built.records, 6)
@@ -87,6 +105,19 @@ class HeldOutTest(unittest.TestCase):
         self.assertEqual(records[0]["photo"], "photos/s01/s01-v01-p1.jpg")
         self.assertEqual(records[0]["scores"], ["T20", "T20", "S1"])
         self.assertEqual(len(records[0]["calibration"]), len(read_label(self.data.labels("s01") / "s01-v01-p1.json").calibration))
+
+    def test_a_record_marks_its_hand_points_hand_and_every_other_crossing_checked(self):
+        manifest = ReviewManifest.load(self.data.labels("s01"))
+        label = read_label(self.data.labels("s01") / "s01-v01-p1.json")
+        manifest.record("s01-v01-p1").hand_points = {name: label.calibration[name] for name in HAND_POINTS}
+        manifest.save()
+        build(self.data, self.held)
+        records = {r["photo"]: r for r in map(json.loads, (self.data.build() / RECORDS).read_text().splitlines())}
+        sources = {c["name"]: c["source"] for c in records["photos/s01/s01-v01-p1.jpg"]["calibration"]}
+        self.assertEqual({name for name, source in sources.items() if source == "hand"}, set(HAND_POINTS))
+        self.assertEqual(set(sources.values()), {"hand", "checked"})
+        hand_throughout = records["photos/s01/s01-v01-p2.jpg"]["calibration"]
+        self.assertEqual({c["source"] for c in hand_throughout}, {"hand"})
 
     def test_the_builder_refuses_a_frozen_capture_session_by_name_even_when_its_sheet_says_training(self):
         self.data.sheet("s04").write_text(sheet_text(HELD_OUT, held_out=False), encoding="utf-8")
@@ -138,6 +169,30 @@ class HeldOutTest(unittest.TestCase):
         code, out = self.run_cli("verify-held-out")
         self.assertEqual(code, 1)
         self.assertIn("s04-v01-p1 Photo: changed since the freeze", out)
+
+    def test_freeze_held_out_replaces_a_manifest_only_when_told_to(self):
+        self.manifest.write_text("# stale\n", encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(self.run_cli("freeze-held-out")[0], 2)
+        self.assertIn("--replace", err.getvalue())
+        self.assertEqual(self.manifest.read_text(encoding="utf-8"), "# stale\n")
+        self.assertEqual(self.run_cli("freeze-held-out", "--replace")[0], 0)
+        self.assertEqual(HeldOutSet.load(self.manifest), self.held)
+
+    def test_replace_does_not_get_round_the_clean_check(self):
+        before = self.manifest.read_bytes()
+        path = self.data.labels("s04") / "s04-v01-p1.json"
+        label = read_label(path)
+        write_label(path, label.photo_path(), SIZE[0], SIZE[1], label.shapes[1:])
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(self.run_cli("freeze-held-out", "--replace")[0], 2)
+        self.assertIn("not clean on s04", err.getvalue())
+        self.assertEqual(self.manifest.read_bytes(), before)
+
+    def test_freeze_held_out_writes_a_first_manifest_without_replace(self):
+        self.manifest.unlink()
+        self.assertEqual(self.run_cli("freeze-held-out")[0], 0)
+        self.assertEqual(HeldOutSet.load(self.manifest), self.held)
 
     def test_build_and_verify_refuse_to_run_without_a_frozen_manifest(self):
         self.manifest.unlink()

@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import io
 import json
 import unittest
@@ -10,11 +11,27 @@ import numpy as np
 
 from darts_ml.board import CALIBRATION_POINTS, INNER_DOUBLE, SEGMENTS, Score, board_point, boundary_degrees
 from darts_ml.cli import main
-from darts_ml.evaluate import BAR, Bar, PredictionsError, Share, board_met, evaluate, visits_met
+from darts_ml.capture_sessions import load_sheet
+from darts_ml.evaluate import (
+    BAR,
+    Bar,
+    Predicted,
+    PredictionsError,
+    Share,
+    board_met,
+    evaluate,
+    merged_scores,
+    report,
+    triggers,
+    visits_met,
+)
+from darts_ml.heldout import HeldOutSet
 from darts_ml.heldout import HeldOutError, freeze
 from darts_ml.homography import project
 from darts_ml.repeatability import Spread
 from synthetic import TemporaryData, dart_mm, reviewed_session, without_last_entry_in
+
+ALL_OUT = ["out", "out", "out"]
 
 VISITS = [["T20", "T20", "S1"], ["S5", "T5", "S20"], ["D3", "S19", "out"], ["25", "T19", "S7 hidden"]]
 HIDDEN_IN_P1 = "s04-v04-p1"
@@ -73,7 +90,7 @@ class EvaluateTest(unittest.TestCase):
     def tearDown(self):
         self.td.cleanup()
 
-    def freeze(self, short=(), **kwargs):
+    def freeze(self, short=(), visits=VISITS, **kwargs):
         edits = [without_last_entry_in(photo) for photo in (HIDDEN_IN_P1, *short)]
 
         def edit(photo, to_image, shapes):
@@ -81,7 +98,7 @@ class EvaluateTest(unittest.TestCase):
                 shapes = each(photo, to_image, shapes)
             return shapes
 
-        self.truths = reviewed_session(self.td, "s04", VISITS, held_out=True, edit=edit, **kwargs)
+        self.truths = reviewed_session(self.td, "s04", visits, held_out=True, edit=edit, **kwargs)
         freeze(self.data).save(self.manifest)
 
     def predictions(self, changes=None, drop=()):
@@ -159,6 +176,21 @@ class EvaluateTest(unittest.TestCase):
         })
         self.assertEqual(result.hidden_merged, Share(1, 1))
 
+    def test_entry_points_merge_within_2_mm_and_no_further(self):
+        def photo(mm):
+            return Predicted(np.eye(3), np.array([mm]), (False,))
+
+        at = np.array(dart_mm("S20"))
+        for apart, darts in ((1.99, 1), (2.01, 2)):
+            with self.subTest(apart=apart):
+                self.assertEqual(sum(merged_scores([photo(at), photo(at + (apart, 0.0))]).values()), darts)
+
+    def test_a_visit_of_only_out_darts_is_not_right_from_photos_where_the_board_is_not_found(self):
+        self.freeze(visits=[*VISITS, ALL_OUT])
+        self.assertEqual(evaluate(self.data, "labels", self.manifest).b2, Share(4, 4))
+        result = self.predictions(drop={f"s04-v05-p{a}" for a in (1, 2, 3)})
+        self.assertEqual((result.b2, result.b2_p2, result.b2_p3, result.b2_merged), (Share(3, 4),) * 4)
+
     def test_a_board_not_found_counts_against_found_and_is_left_out_of_the_wire_rows(self):
         self.freeze()
         three_points = lambda darts: (darts, {"calibration": {"do-5-20", "do-17-3", "do-8-11"}})
@@ -193,12 +225,52 @@ class EvaluateTest(unittest.TestCase):
         unsure = dict(changes, **{"s04-v02-p1": lambda darts: ([darts[0], darts[1], dart_mm("S5")], {"low_confidence": (2,)})})
         self.assertEqual(self.predictions(unsure).wrong_flagged, Share(3, 3))
 
+    def test_an_entry_point_triggers_within_2_mm_of_a_wire_and_not_beyond(self):
+        visit = load_sheet(self.td.write_sheet("s09", [["S3"]])).visit(1)
+        for gap, raised in ((1.99, ["an Entry point within 2 mm of a wire"]), (2.01, [])):
+            entry = board_point(INNER_DOUBLE.centre_mm - gap, boundary_degrees(SEGMENTS.index(3)) - 9.0)
+            with self.subTest(gap=gap):
+                self.assertEqual(triggers(visit, Predicted(np.eye(3), np.array([entry]), (False,))), raised)
+
     def test_it_reads_only_a_held_out_set_that_matches_its_manifest(self):
         self.freeze()
         path = self.data.photo("s04", "s04-v01-p1")
         path.write_bytes(path.read_bytes() + b"\0")
         with self.assertRaisesRegex(HeldOutError, "s04-v01-p1 Photo: changed"):
             evaluate(self.data, "labels", self.manifest)
+
+    def test_it_refuses_a_manifest_missing_a_photo_of_a_frozen_sheet_rather_than_skip_or_crash(self):
+        self.freeze()
+        held = HeldOutSet.load(self.manifest)
+        for removed in ({"s04-v02-p2"}, {f"s04-v03-p{a}" for a in (1, 2, 3)}):
+            with self.subTest(removed=removed):
+                HeldOutSet(held.capture_sessions, {n: p for n, p in held.photos.items() if n not in removed}).save(self.manifest)
+                with self.assertRaisesRegex(HeldOutError, "the manifest does not freeze it"):
+                    evaluate(self.data, "labels", self.manifest)
+
+    def test_a_prediction_holding_a_position_that_is_not_a_finite_number_is_refused(self):
+        self.freeze()
+        to_image, darts = self.truths["s04-v01-p1"]
+        path = self.data.root / "predictions.json"
+        for where in ("calibration", "entries"):
+            for value in (float("nan"), float("inf")):
+                photo = photo_prediction(to_image, darts)
+                if where == "calibration":
+                    photo["calibration"][next(iter(photo["calibration"]))][0] = value
+                else:
+                    photo["entries"][0]["x"] = value
+                path.write_text(json.dumps({"photos": {"s04-v01-p1": photo}}), encoding="utf-8")
+                with self.subTest(where=where, value=value), self.assertRaisesRegex(PredictionsError, "s04-v01-p1 holds a position that is not a finite number"):
+                    evaluate(self.data, path, self.manifest)
+
+    def test_the_report_judges_against_the_bar_it_is_given(self):
+        self.freeze()
+        result = evaluate(self.data, "labels", self.manifest)
+        lenient = "\n".join(report(result, dataclasses.replace(BAR, visits_counted=3)))
+        self.assertIn("B2, the Visits: met", lenient)
+        self.assertIn("over ≥ 3 Visits", lenient)
+        self.assertIn("The bar for opening phase 1: met", lenient)
+        self.assertIn("The bar for opening phase 1: NOT met", "\n".join(report(result)))
 
     def test_a_prediction_naming_no_calibration_point_is_refused(self):
         self.freeze()

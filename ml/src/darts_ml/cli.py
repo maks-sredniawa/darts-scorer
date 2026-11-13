@@ -7,7 +7,7 @@ from pathlib import Path
 from . import DartsMlError, labelme
 from .check import check
 from .evaluate import LABELS, evaluate, report
-from .heldout import MANIFEST, HeldOutSet, freeze, verify
+from .heldout import MANIFEST, HeldOutError, HeldOutSet, freeze, verify
 from .ingest import ingest, jpegtran_version
 from .overlay import overlay
 from .paths import DataDir, Round, repo_roots
@@ -55,6 +55,8 @@ def _parser() -> argparse.ArgumentParser:
     frozen = step("freeze-held-out", _freeze, "hash every held-out Photo, label, sheet and review manifest into the manifest",
                   capture_session=False)
     frozen.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    frozen.add_argument("--replace", action="store_true",
+                        help="overwrite an existing manifest; its commit says why (phase-M1.md §6)")
     verifier = step("verify-held-out", _verify, "fail on any held-out file missing or changed since the freeze",
                     capture_session=False)
     verifier.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
@@ -153,6 +155,8 @@ def _repeatability(args) -> int:
 
 
 def _freeze(args) -> int:
+    if args.manifest.exists() and not args.replace:
+        raise HeldOutError(f"{args.manifest} already freezes a Held-out set; pass --replace to overwrite it on purpose")
     held = freeze(DataDir.from_environment())
     held.save(args.manifest)
     print(f"{len(held.photos)} Photos of {', '.join(sorted(held.capture_sessions))} frozen into {args.manifest}")

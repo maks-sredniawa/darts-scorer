@@ -88,9 +88,11 @@ uv run --directory ml darts-ml evaluate --predictions predictions.json # a model
 - **`freeze-held-out`** freezes every Capture session whose sheet says `set = "held-out"`, and only
   once `check` is clean on each. The manifest holds the SHA-256 of each held-out Photo and label, and
   of each held-out sheet and review manifest; it is committed, and a later change to it says why in
-  its commit body.
-- **`verify-held-out`** fails on a frozen file that is missing or changed, and on a held-out sheet the
-  manifest does not freeze. `evaluate` runs the same check first and reads nothing that fails it.
+  its commit body. It refuses to overwrite an existing manifest unless given `--replace`, which
+  states the intent and skips none of the checks.
+- **`verify-held-out`** fails on a frozen file that is missing or changed, on a Photo a frozen sheet
+  lists and the manifest leaves out, and on a held-out sheet the manifest does not freeze. `evaluate`
+  runs the same check first and reads nothing that fails it.
 - **`build`** writes one record per reviewed training Photo (phase-M1.md §4, *The common record*). It
   refuses a Photo whose sheet says held-out, one of a Capture session the manifest freezes, and one
   whose Photo or label has the bytes of a held-out one. It needs the frozen manifest to run.
@@ -114,7 +116,8 @@ JSON, pixel positions on the held-out Photo as ingested:
 
 - `calibration` names crossings from `board.py`'s list. *Ĥ* is the least-squares homography through
   every point given, so a model that fits with RANSAC passes its inliers only. Fewer than four points,
-  or a degenerate set, is a Board not found.
+  or a degenerate set, is a Board not found. A position that is not a finite number, here or in
+  `entries`, is refused: the file is broken, not the Board unseen.
 - `entries` are Entry points. `low_confidence`, optional, is the model's own flag; it feeds only the
   trigger figure below.
 
