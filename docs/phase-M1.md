@@ -63,8 +63,8 @@ asks for a subscription (§4). B2's rule is why D3 now has 18 Capture sessions r
   `.tflite` are ignored. So photos, labelme's JSON labels, DeepDarts' pickle and any weights cannot
   be committed by accident, and this phase needs no change to the file.
 - **The repo's Python is stdlib-only scripts run with `python3`**, with tests by `python3 -m
-  unittest discover -s scripts` in CI. `ml/` cannot be stdlib-only: it needs NumPy, OpenCV and
-  Pillow, and later a training framework. That is why it gets a locked environment of its own (§2),
+  unittest discover -s scripts` in CI. `ml/` cannot be stdlib-only: it needs NumPy and Pillow,
+  and later a training framework. That is why it gets a locked environment of its own (§2),
   not a change to how `scripts/` runs.
 - **The asymmetry that shapes the phase: code is cheap and can go ahead, while the owner's hours
   cannot be got back.** A capture protocol that turns out unlabellable at 1 mm, found after 18
@@ -249,8 +249,9 @@ for four reasons:
 3.12 is a conservative pin with wheels for every dependency A needs. M2 may move it when it picks
 a framework.
 
-Every dependency is permissive (§0): NumPy (BSD-3), OpenCV as `opencv-python-headless`
-(Apache-2.0) and Pillow (MIT-CMU). C adds pandas (BSD-3) for one job: `labels.pkl` is a pickled
+Every dependency is permissive (§0): NumPy (BSD-3), Pillow (MIT-CMU) and tomli-w (MIT), which
+writes the review manifest. OpenCV was planned here and left out at A: nothing in the loop needs it,
+and `opencv-python-headless`'s wheels bundle FFmpeg under the LGPL-2.1. C adds pandas (BSD-3) for one job: `labels.pkl` is a pickled
 pandas DataFrame and cannot be rebuilt without it. It is still loaded only through the restricted
 unpickler (§4), never with `pd.read_pickle`. `ml/README.md` keeps a table of each dependency and its
 licence, re-read when one is added, because M2 adds to this lockfile. The labelling tool is GPL-3.0
@@ -267,11 +268,13 @@ ml/
   src/darts_ml/
     paths.py              DARTS_DATA, and the refusal of any data path inside the repo; `paths`
     board.py              ADR-0008's geometry: the 80 Calibration points in board mm, and scoring
+    homography.py         least-squares fit, projection, and the error at the 80 crossings in mm
     ingest.py             phone files → named, losslessly rotated, metadata-stripped Photos
     capture_sessions.py   the sheet: phone, light, Visits and their recorded Scores
     labelme.py            the label list; `label`, the pinned labelme launcher, one Photo at a time
     prefill.py            Hand points → all Calibration points; Entry points across a Visit's Photos
-    review.py             `review`, pass 3's confirmation, and the review manifest (§5)
+    manifest.py           the review manifest's file (§5), shared by `label`, `prefill` and `review`
+    review.py             `review`, pass 3's confirmation, and what counts as reviewed
     check.py              label QA (§5)
     overlay.py            QA renders, written into DARTS_DATA
     repeatability.py      the gate's figures (§1)
@@ -280,6 +283,7 @@ ml/
     records.py            the common record both sources become; `build`
     heldout.py            freeze and verify (§6)
     evaluate.py           the bar's numbers (§7), F
+    cli.py                `darts-ml <step>`
   splits/held-out.toml    the frozen manifest, G
   tests/                  unittest, as in scripts/; scoring-cases.toml is shared with phase 1
 ```
@@ -619,7 +623,13 @@ labelme takes a validated label list (`--labels`, `--validate-label exact`) and 
 labels/<capture-session>/`, `--validate-label exact` and the flag `inferred` on `entry`. Running it
 through `uvx` keeps GPL code out of `ml/`'s lockfile, out of anything that trains, and out of the
 app. What labelme writes is the owner's data, not labelme's. The pin is the newest release at least
-two weeks old on the day A merges, and it is recorded in `ml/README.md`. One window per Photo costs
+two weeks old on the day A merges, and it is recorded in `ml/README.md`. At A that is **7.9.1,
+resolved as of 2026-10-26** (`uvx --exclude-newer`): labelme's own dependencies are unbounded, and on
+2026-11-13 a fresh `uvx labelme==7.9.1` pulled osam 0.11.3, released that day, which crashes 7.9.1 at
+start-up. `label` also passes `with_image_data: false` through `--config`, so a `~/.labelmerc`
+cannot turn it on. 7.9.1 has no setting that switches the AI tools off; their download runs only on
+a click, and the windows run with uv offline and every proxy pointed at an unreachable address, so a
+click by mistake fails. One window per Photo costs
 a few seconds of start-up each, and buys a measured time and a confirmation per Photo (*The
 passes*).
 

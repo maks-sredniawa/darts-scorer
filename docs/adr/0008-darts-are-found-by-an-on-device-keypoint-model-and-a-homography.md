@@ -70,7 +70,8 @@ and the app is on Play with a tip purchase:
   - a dart's confidence is low;
   - the photos disagree on a dart's segment;
   - an entry point sits within about 2 mm of a wire.
-- **The model is trained off the phone, with Apache or MIT code only**, in this repo's `ml/` folder.
+- **The model is trained off the phone, with permissively licensed code only** (amended
+  2026-11-13, below), in this repo's `ml/` folder.
   `ml/` holds code only: the datasets, the labels and the training weights are git-ignored and never
   published, because the owner's photos show their home. The one thing that leaves `ml/` is the
   exported model file that ships inside the app, so scoring needs no network, and Play services
@@ -113,3 +114,33 @@ and the app is on Play with a tip purchase:
 - The app ships the model, which adds roughly 5–20 MB.
 - CC BY 4.0 requires attribution. The DeepDarts dataset's credit belongs on the licences screen from
   the first build that ships a model trained on it.
+
+## Amendment — 2026-11-13: the Calibration points, DeepDarts' labels and the licence rule
+
+Phase M1 ([`phase-M1.md`](../phase-M1.md)) writes the geometry above as code (`ml/src/darts_ml/board.py`)
+and settles three things this ADR left open.
+
+- **A Calibration point is the centre of a crossing**: where the centre line of the radial wire
+  between two segments meets the centre line of one of the four ring wires. That is 20 × 4 = **80
+  points**. Each radial wire lies on a segment boundary, at 9° plus a multiple of 18° clockwise from
+  the top, and each ring wire's centre radius follows from the bands above with *w* = 1.5 mm:
+
+  | Ring wire | Name | Centre radius (mm) |
+  | --- | --- | --- |
+  | Outer double | `do` | 169.25 |
+  | Inner double | `di` | 159.75 |
+  | Outer treble | `to` | 106.65 |
+  | Inner treble | `ti` | 97.15 |
+
+  A point is named `<ring>-<a>-<b>`, with `a` and `b` the segments either side in clockwise order,
+  such as `do-20-1` and `ti-5-20`. The centre of a crossing is what the eye finds on a Photo; a wire's
+  edge is not.
+- **DeepDarts' labels come from IEEE DataPort's `labels_pkl.zip`**, which is CC BY 4.0, and not from
+  the `dataset/labels.pkl` in `wmcnally/deep-darts`, which carries that repository's no-licence status.
+  DataPort's **`models.zip` is not used**: those weights were trained with the unlicensed code, and M2
+  starts from its own permissively licensed initialisation.
+- **The licence rule is permissive licences only** (Apache, MIT, BSD and the like) for everything in
+  `ml/`'s lockfile, everything that trains, and everything that ships. Copyleft code (GPL, AGPL) stays
+  out of all three. The earlier wording, "Apache or MIT code only", contradicted this ADR's own table,
+  which counts BSD-3 ncnn as usable. labelme, which is GPL-3.0, runs beside `ml/` through `uvx` to
+  label Photos and never enters the lockfile, training or the app.

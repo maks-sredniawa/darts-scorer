@@ -19,6 +19,9 @@ user-facing word genuinely differ, both are written here with the difference sta
 | **Angle** | the direction a Photo is taken from. *Another angle* is what the app asks for when it is unsure | view, side |
 | **Entry point** | where a Dart's shaft enters the Board; the only point that is scored | tip, hit point |
 | **Calibration point** | a point on the Board's wires whose position is known, used to map a Photo onto the Board | keypoint, anchor, marker |
+| **Capture session** | one phone, one kind of light, one day: the Photos taken together at the Board, and the unit the Held-out set is drawn in (`s01`, `s02`, …) | session alone, which a game may want later |
+| **Held-out set** | the Capture sessions never trained or tuned on, against which the bar for phase 1 is read | test set |
+| **Hand point** | one of the four Calibration points clicked by hand on a Photo, from which pre-fill projects the rest | anchor, which *Calibration point* already rules out |
 | **Score** | a Dart's value (e.g. *treble 20*, 60) or a Visit's total | points, result |
 | **Tip** | a one-off payment to the developer through Google Play that **unlocks nothing** (ADR-0007). The Visit screen mentions it once, and the answer follows the user to a new phone; Help and feedback offers it for good | donation, support the project, premium, supporter |
 
