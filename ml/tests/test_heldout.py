@@ -1,13 +1,16 @@
 import contextlib
 import io
 import json
+import dataclasses
+import os
 import shutil
+import subprocess
 import unittest
 from unittest import mock
 
 from darts_ml.board import HAND_POINTS
 from darts_ml.cli import main
-from darts_ml.heldout import HeldOutError, HeldOutSet, freeze, verify
+from darts_ml.heldout import FrozenSession, HeldOutError, HeldOutSet, file_sha256, freeze, verify
 from darts_ml.labelme import read_label, write_label
 from darts_ml.manifest import Review, ReviewManifest
 from darts_ml.records import RECORDS, build
@@ -77,6 +80,24 @@ class HeldOutTest(unittest.TestCase):
     def test_verify_fails_on_a_held_out_sheet_the_manifest_does_not_freeze(self):
         reviewed_session(self.td, "s07", [["S1", "S1", "S1"]], held_out=True)
         self.assertEqual(verify(self.data, self.held), ["s07: its sheet says held-out, and the manifest does not freeze it"])
+
+    def test_verify_fails_on_a_frozen_photo_its_frozen_sheet_does_not_list(self):
+        sheet = self.td.write_sheet("s04", HELD_OUT[:1], held_out=True)
+        sessions = {"s04": dataclasses.replace(self.held.capture_sessions["s04"], sheet=file_sha256(sheet))}
+        self.assertEqual(
+            verify(self.data, HeldOutSet(sessions, self.held.photos)),
+            [f"s04-v02-p{a}: frozen, and the s04 sheet does not list it" for a in (1, 2, 3)],
+        )
+
+    def test_verify_reports_a_sheet_it_cannot_read_rather_than_raise(self):
+        broken = 'set = "neither"\n'
+        self.data.sheet("s04").write_text(broken, encoding="utf-8")
+        sessions = {"s04": dataclasses.replace(self.held.capture_sessions["s04"], sheet=file_sha256(self.data.sheet("s04")))}
+        problems = verify(self.data, HeldOutSet(sessions, self.held.photos))
+        self.assertEqual(len(problems), 1)
+        self.assertTrue(problems[0].startswith("s04 sheet: "))
+        self.data.sheet("s01").write_text(broken, encoding="utf-8")
+        self.assertTrue(verify(self.data, HeldOutSet(sessions, self.held.photos))[1].startswith("s01 sheet: "))
 
     def without(self, *photos):
         return HeldOutSet(self.held.capture_sessions, {n: p for n, p in self.held.photos.items() if n not in photos})
@@ -171,13 +192,64 @@ class HeldOutTest(unittest.TestCase):
         self.assertIn("s04-v01-p1 Photo: changed since the freeze", out)
 
     def test_freeze_held_out_replaces_a_manifest_only_when_told_to(self):
-        self.manifest.write_text("# stale\n", encoding="utf-8")
+        stale = dict(self.held.photos, **{"s04-v01-p1": dataclasses.replace(self.held.photos["s04-v01-p1"], label="0" * 64)})
+        HeldOutSet(self.held.capture_sessions, stale).save(self.manifest)
+        before = self.manifest.read_bytes()
         with contextlib.redirect_stderr(io.StringIO()) as err:
             self.assertEqual(self.run_cli("freeze-held-out")[0], 2)
         self.assertIn("--replace", err.getvalue())
-        self.assertEqual(self.manifest.read_text(encoding="utf-8"), "# stale\n")
+        self.assertEqual(self.manifest.read_bytes(), before)
         self.assertEqual(self.run_cli("freeze-held-out", "--replace")[0], 0)
         self.assertEqual(HeldOutSet.load(self.manifest), self.held)
+
+    def test_replace_refuses_a_manifest_it_cannot_read(self):
+        self.manifest.write_text("# stale\n", encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(self.run_cli("freeze-held-out", "--replace")[0], 2)
+        self.assertIn("not a held-out manifest", err.getvalue())
+        self.assertEqual(self.manifest.read_text(encoding="utf-8"), "# stale\n")
+
+    def switch_s04_to_training_and_hold_out_s07(self):
+        self.data.sheet("s04").write_text(sheet_text(HELD_OUT, held_out=False), encoding="utf-8")
+        reviewed_session(self.td, "s07", [["S1", "S1", "S1"]], held_out=True)
+
+    def test_replace_refuses_to_drop_a_frozen_capture_session_whose_sheet_now_says_training(self):
+        self.switch_s04_to_training_and_hold_out_s07()
+        before = self.manifest.read_bytes()
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(self.run_cli("freeze-held-out", "--replace")[0], 2)
+        self.assertIn("has frozen s04, and this freeze would drop it", err.getvalue())
+        self.assertEqual(self.manifest.read_bytes(), before)
+        self.assertEqual(self.refused()["s04-v01-p1"], "s04 is a held-out Capture session")
+
+    def test_replace_adds_a_capture_session_to_the_frozen_ones(self):
+        reviewed_session(self.td, "s07", [["S1", "S1", "S1"]], held_out=True)
+        self.assertEqual(self.run_cli("freeze-held-out", "--replace")[0], 0)
+        self.assertEqual(set(HeldOutSet.load(self.manifest).capture_sessions), {"s04", "s07"})
+
+    def commit_the_manifest(self):
+        env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+        identity = ["-c", "user.name=test", "-c", "user.email=test@example.invalid"]
+        for argv in (["init", "-q"], ["add", "splits/held-out.toml"], [*identity, "commit", "-qm", "freeze"]):
+            subprocess.run(["git", "-C", str(self.data.root), *argv], check=True, capture_output=True, env=env)
+
+    def test_freeze_refuses_to_drop_a_capture_session_a_committed_manifest_froze_after_a_delete(self):
+        self.commit_the_manifest()
+        self.manifest.unlink()
+        self.switch_s04_to_training_and_hold_out_s07()
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(self.run_cli("freeze-held-out")[0], 2)
+        self.assertIn("has frozen s04", err.getvalue())
+        self.assertFalse(self.manifest.exists())
+
+    def test_build_and_verify_hold_to_a_capture_session_a_committed_manifest_froze_after_a_hand_edit(self):
+        self.commit_the_manifest()
+        self.switch_s04_to_training_and_hold_out_s07()
+        freeze(self.data).save(self.manifest)
+        held = HeldOutSet.load(self.manifest)
+        self.assertEqual(set(held.capture_sessions), {"s07"})
+        self.assertEqual(self.refused()["s04-v01-p1"], "s04 was frozen by an earlier commit of the manifest")
+        self.assertIn("s04: an earlier commit of the manifest froze it, and this one does not", verify(self.data, held))
 
     def test_replace_does_not_get_round_the_clean_check(self):
         before = self.manifest.read_bytes()

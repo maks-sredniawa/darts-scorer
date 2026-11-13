@@ -25,8 +25,7 @@ from darts_ml.evaluate import (
     triggers,
     visits_met,
 )
-from darts_ml.heldout import HeldOutSet
-from darts_ml.heldout import HeldOutError, freeze
+from darts_ml.heldout import HeldOutError, HeldOutSet, file_sha256, freeze
 from darts_ml.homography import project
 from darts_ml.repeatability import Spread
 from synthetic import TemporaryData, dart_mm, reviewed_session, without_last_entry_in
@@ -237,6 +236,15 @@ class EvaluateTest(unittest.TestCase):
         path = self.data.photo("s04", "s04-v01-p1")
         path.write_bytes(path.read_bytes() + b"\0")
         with self.assertRaisesRegex(HeldOutError, "s04-v01-p1 Photo: changed"):
+            evaluate(self.data, "labels", self.manifest)
+
+    def test_it_refuses_a_manifest_freezing_a_visit_its_frozen_sheet_does_not_list_rather_than_crash(self):
+        self.freeze()
+        held = HeldOutSet.load(self.manifest)
+        sheet = self.td.write_sheet("s04", VISITS[:2], held_out=True)
+        sessions = {"s04": dataclasses.replace(held.capture_sessions["s04"], sheet=file_sha256(sheet))}
+        HeldOutSet(sessions, held.photos).save(self.manifest)
+        with self.assertRaisesRegex(HeldOutError, "s04-v03-p1: frozen, and the s04 sheet does not list it"):
             evaluate(self.data, "labels", self.manifest)
 
     def test_it_refuses_a_manifest_missing_a_photo_of_a_frozen_sheet_rather_than_skip_or_crash(self):

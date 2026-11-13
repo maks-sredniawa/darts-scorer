@@ -89,13 +89,18 @@ uv run --directory ml darts-ml evaluate --predictions predictions.json # a model
   once `check` is clean on each. The manifest holds the SHA-256 of each held-out Photo and label, and
   of each held-out sheet and review manifest; it is committed, and a later change to it says why in
   its commit body. It refuses to overwrite an existing manifest unless given `--replace`, which
-  states the intent and skips none of the checks.
+  states the intent and skips none of the checks. A frozen Capture session is only ever added to:
+  it refuses any freeze that would leave out one the manifest, or any commit of it, froze, even
+  once its sheet says training or the manifest is deleted.
 - **`verify-held-out`** fails on a frozen file that is missing or changed, on a Photo a frozen sheet
-  lists and the manifest leaves out, and on a held-out sheet the manifest does not freeze. `evaluate`
-  runs the same check first and reads nothing that fails it.
+  lists and the manifest leaves out, on a frozen Photo its frozen sheet does not list, on a sheet it
+  cannot read, on a Capture session an earlier commit of the manifest froze and this one leaves out,
+  and on a held-out sheet the manifest does not freeze. `evaluate` runs the same check first and
+  reads nothing that fails it.
 - **`build`** writes one record per reviewed training Photo (phase-M1.md §4, *The common record*). It
-  refuses a Photo whose sheet says held-out, one of a Capture session the manifest freezes, and one
-  whose Photo or label has the bytes of a held-out one. It needs the frozen manifest to run.
+  refuses a Photo whose sheet says held-out, one of a Capture session the manifest or any earlier
+  commit of it freezes, and one whose Photo or label has the bytes of a held-out one. It needs the
+  frozen manifest to run.
 - **`evaluate`** counts Photos and Visits from the manifest, never from the predictions: a Photo the
   predictions leave out is a Board not found. It exits 0 when the bar is met and 1 when it is not.
 

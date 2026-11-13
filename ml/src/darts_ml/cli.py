@@ -7,7 +7,7 @@ from pathlib import Path
 from . import DartsMlError, labelme
 from .check import check
 from .evaluate import LABELS, evaluate, report
-from .heldout import MANIFEST, HeldOutError, HeldOutSet, freeze, verify
+from .heldout import MANIFEST, HeldOutError, HeldOutSet, freeze, frozen_before, verify
 from .ingest import ingest, jpegtran_version
 from .overlay import overlay
 from .paths import DataDir, Round, repo_roots
@@ -158,6 +158,10 @@ def _freeze(args) -> int:
     if args.manifest.exists() and not args.replace:
         raise HeldOutError(f"{args.manifest} already freezes a Held-out set; pass --replace to overwrite it on purpose")
     held = freeze(DataDir.from_environment())
+    dropped = sorted(frozen_before(args.manifest) - set(held.capture_sessions))
+    if dropped:
+        raise HeldOutError(f"{args.manifest} has frozen {', '.join(dropped)}, and this freeze would drop it; "
+                           "a frozen Capture session is only ever added to (phase-M1.md §6)")
     held.save(args.manifest)
     print(f"{len(held.photos)} Photos of {', '.join(sorted(held.capture_sessions))} frozen into {args.manifest}")
     print("Commit it; a later change to it gives its reason in the commit body (phase-M1.md §6)")

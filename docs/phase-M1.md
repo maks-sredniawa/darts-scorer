@@ -747,9 +747,12 @@ is recorded in the sheet as an **open mismatch**, with the Photo it is on and it
 - **Enforced in code** (F). `darts-ml verify-held-out` fails on any missing or changed file, and on
   a held-out sheet the manifest does not freeze. `evaluate` runs the same check before it reads.
   `records.py`'s builder refuses to put a held-out Photo into any training or validation record, by
-  Capture session and by hash, and its test proves it (*Tests*).
+  Capture session and by hash, and its test proves it (*Tests*). It also refuses every Capture
+  session an earlier commit of the manifest froze.
 - **Changed only on purpose.** A label error found later in a held-out Photo is fixed in a commit
-  that updates the manifest and gives the reason in its body. It is never fixed silently. M2 tunes
+  that updates the manifest and gives the reason in its body. It is never fixed silently. A frozen
+  Capture session is only ever added to, never removed: `freeze-held-out` refuses a freeze that
+  would leave one out, whether its sheet now says training or the manifest was deleted. M2 tunes
   on a validation split from training Capture sessions and reads the Held-out set only to take the
   bar's reading. Each reading is logged in `phase-M2.md`, so a bar met on the fifth look says so.
 

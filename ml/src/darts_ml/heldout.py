@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import tomli_w
 
 from . import DartsMlError
-from .capture_sessions import PhotoName, load_sheet
+from .capture_sessions import PhotoName, SheetError, load_sheet
 from .check import check
 from .labelme import label_path
 from .manifest import FILE_NAME as REVIEW_FILE
@@ -41,6 +42,7 @@ class FrozenPhoto:
 class HeldOutSet:
     capture_sessions: dict[str, FrozenSession]
     photos: dict[str, FrozenPhoto]
+    ever_frozen: frozenset[str] = field(default=frozenset(), compare=False)
 
     @classmethod
     def load(cls, path: Path = MANIFEST) -> HeldOutSet:
@@ -52,7 +54,7 @@ class HeldOutSet:
             photos = {n: FrozenPhoto(e["photo"], e["label"]) for n, e in raw["photos"].items()}
         except (tomllib.TOMLDecodeError, KeyError, TypeError) as error:
             raise HeldOutError(f"{path}: not a held-out manifest this code can read ({error})") from None
-        held = cls(sessions, photos)
+        held = cls(sessions, photos, committed_sessions(path))
         strays = sorted(n for n in photos if PhotoName.parse(n).capture_session not in sessions)
         if strays:
             raise HeldOutError(f"{path}: Photos of Capture sessions the manifest does not freeze: {', '.join(strays)}")
@@ -76,11 +78,41 @@ class HeldOutSet:
             return f"its sheet says {photo.capture_session} is held-out"
         if photo.capture_session in self.capture_sessions:
             return f"{photo.capture_session} is a held-out Capture session"
+        if photo.capture_session in self.ever_frozen:
+            return f"{photo.capture_session} was frozen by an earlier commit of the manifest"
         if photo_sha is not None and photo_sha in {p.photo for p in self.photos.values()}:
             return "its bytes are a held-out Photo's"
         if label_sha is not None and label_sha in {p.label for p in self.photos.values()}:
             return "its label's bytes are a held-out Photo's label"
         return None
+
+
+def committed_sessions(path: Path) -> frozenset[str]:
+    anchor = next(p for p in path.absolute().parents if p.exists())
+
+    def git(*argv: str) -> str:
+        return subprocess.run(["git", "-C", str(anchor), *argv], capture_output=True, text=True, check=True).stdout
+
+    try:
+        top = Path(git("rev-parse", "--show-toplevel").strip()).resolve()
+        relative = path.resolve().relative_to(top).as_posix()
+        commits = git("log", "--full-history", "--format=%H", "--", f":/{relative}").split()
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return frozenset()
+    sessions: set[str] = set()
+    for commit in commits:
+        try:
+            sessions.update(tomllib.loads(git("show", f"{commit}:{relative}"))["capture_sessions"])
+        except (subprocess.CalledProcessError, tomllib.TOMLDecodeError, KeyError, TypeError):
+            continue
+    return frozenset(sessions)
+
+
+def frozen_before(path: Path) -> frozenset[str]:
+    if not path.exists():
+        return committed_sessions(path)
+    held = HeldOutSet.load(path)
+    return held.ever_frozen | set(held.capture_sessions)
 
 
 def freeze(data: DataDir) -> HeldOutSet:
@@ -117,15 +149,30 @@ def verify(data: DataDir, held: HeldOutSet) -> list[str]:
         compare(data.sheet(name), frozen.sheet, f"{name} sheet")
         compare(data.labels(name) / REVIEW_FILE, frozen.review, f"{name} review manifest")
         if data.sheet(name).exists() and file_sha256(data.sheet(name)) == frozen.sheet:
-            for photo in map(str, load_sheet(data.sheet(name)).photo_names()):
-                if photo not in held.photos:
-                    problems.append(f"{photo}: in the {name} sheet, and the manifest does not freeze it")
+            try:
+                listed = list(map(str, load_sheet(data.sheet(name)).photo_names()))
+            except SheetError as error:
+                problems.append(f"{name} sheet: {error}")
+                continue
+            problems += [f"{photo}: in the {name} sheet, and the manifest does not freeze it"
+                         for photo in listed if photo not in held.photos]
+            problems += [f"{photo}: frozen, and the {name} sheet does not list it"
+                         for photo in held.photo_names() if photo.capture_session == name and str(photo) not in listed]
+    for name in sorted(held.ever_frozen - set(held.capture_sessions)):
+        problems.append(f"{name}: an earlier commit of the manifest froze it, and this one does not")
     for photo in held.photo_names():
         frozen = held.photos[str(photo)]
         compare(data.photo(photo.capture_session, str(photo)), frozen.photo, f"{photo} Photo")
         compare(label_path(data.labels(photo.capture_session), str(photo)), frozen.label, f"{photo} label")
     for path in sorted(data.sheets().glob("*.toml")) if data.sheets().exists() else []:
-        if path.stem not in held.capture_sessions and load_sheet(path).held_out:
+        if path.stem in held.capture_sessions:
+            continue
+        try:
+            held_out = load_sheet(path).held_out
+        except SheetError as error:
+            problems.append(f"{path.stem} sheet: {error}")
+            continue
+        if held_out:
             problems.append(f"{path.stem}: its sheet says held-out, and the manifest does not freeze it")
     return problems
 
