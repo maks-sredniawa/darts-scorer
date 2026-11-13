@@ -56,8 +56,9 @@ uv run --directory ml darts-ml overlay s01         # QA renders into overlays/s0
 ```
 
 `ingest` keeps the phone's files in `inbox/<capture-session>/`: delete them, GPS and all, once the
-Photos look right. It never guesses: a count that is not three Photos per Visit stops it and lists
-the files in capture order.
+Photos look right. It never guesses: a count that is not three Photos per Visit stops it, and so do
+capture times that do not fall three to a Visit (a gap inside a Visit as long as one between two);
+either way it lists the files in capture order.
 
 **The gate** (phase-M1.md §1) repeats the labelling in its own directories and compares the rounds:
 

@@ -119,6 +119,7 @@ def ingest(data: DataDir, name: str, jpegtran: str = "jpegtran") -> list[PhotoNa
             f"{name}: the sheet has {len(sheet.visits)} Visits, so {len(names)} Photos, "
             f"but the inbox holds {len(shots)}. Nothing was ingested. In capture order:\n{listing}"
         )
+    _check_three_per_visit(name, shots, names)
     staging = target.with_name(f".{name}.ingesting")
     shutil.rmtree(staging, ignore_errors=True)
     staging.mkdir(parents=True)
@@ -135,6 +136,23 @@ def ingest(data: DataDir, name: str, jpegtran: str = "jpegtran") -> list[PhotoNa
     staging.rename(target)
     _record_in_sheet(data.sheet(name), shots, names)
     return names
+
+
+def _check_three_per_visit(name: str, shots: list[Shot], names: list[PhotoName]) -> None:
+    gaps = [0.0, *((shot.taken - before.taken).total_seconds() for before, shot in zip(shots, shots[1:]))]
+    inside = [gap for gap, photo in zip(gaps, names, strict=True) if photo.angle != 1]
+    between = [gap for gap, photo in zip(gaps, names, strict=True) if photo.angle == 1][1:]
+    if not between or max(inside) < min(between):
+        return
+    listing = "\n".join(
+        f"  {shot.taken:%Y-%m-%d %H:%M:%S.%f}  {shot.path.name}  would be {photo}, {gap:.0f} s after the one before"
+        for shot, photo, gap in zip(shots, names, gaps, strict=True)
+    )
+    raise IngestError(
+        f"{name}: the Photos add up to three per Visit but their capture times do not group that way: "
+        f"a gap inside a Visit ({max(inside):.0f} s) is as long as one between Visits ({min(between):.0f} s). "
+        f"Nothing was ingested. In capture order:\n{listing}"
+    )
 
 
 def _ordered_shots(inbox: Path) -> list[Shot]:

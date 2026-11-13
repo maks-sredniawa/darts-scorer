@@ -320,7 +320,9 @@ test idiom.
 Visit, and names them `<capture-session>-v<NN>-p<1|2|3>.jpg`. Like `media/MediaFiles.kt` in the
 app, it bakes in the EXIF rotation and strips all metadata, GPS included. Before stripping, it
 copies the phone model and the capture time into the sheet. A count that does not add up stops the
-ingest and lists the files. Ingest never guesses which Photo belongs to which Visit.
+ingest and lists the files, and so does a right count whose capture times do not fall three to a
+Visit: every gap between two Visits must be longer than every gap inside one. Ingest never guesses
+which Photo belongs to which Visit.
 
 **Unlike `MediaFiles.kt`, it does not re-encode.** Photos keep their full resolution and the phone's
 own JPEG: what the model is fed is M2's decision, and a second encode adds a second generation of
@@ -843,8 +845,9 @@ leak a Photo:
 - **`DeepDartsTest`** checks that the restricted unpickler loads a DataFrame built in the test and
   refuses a pickle that names any other class. It fails towards running code from a download.
 - **`IngestTest`** checks that a test JPEG with GPS and an orientation tag comes out upright with no
-  EXIF and its pixels not re-encoded, and that a Visit with two Photos stops the ingest. It fails
-  towards a location leaving in a file, or a label on the wrong Photo.
+  EXIF and its pixels not re-encoded, and that a Visit with two Photos stops the ingest, even when
+  the next Visit's four make the total right. It fails towards a location leaving in a file, or a
+  label on the wrong Photo.
 
 ## Documents this phase amends
 
