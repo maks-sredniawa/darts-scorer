@@ -41,8 +41,9 @@ reason = "the S5 fell out before p3 was taken"
 
 Scores are `S1`–`S20`, `D1`–`D20`, `T1`–`T20`, `25`, `50`, and `miss` for a Dart in the Board
 outside the double. `out` is a Dart that is not in the Board. Marks are `wire`, `hidden` (not visible
-in p1) and `placed` (pushed in by hand; never in a held-out Capture session). `ingest` appends an
-`[ingest]` table with each Photo's camera and capture time.
+in p1), `hidden-p2` and `hidden-p3` (not visible in that Photo), and `placed` (pushed in by hand;
+never in a held-out Capture session). `ingest` appends an `[ingest]` table with each Photo's camera
+and capture time.
 
 ## The loop, one Capture session at a time
 

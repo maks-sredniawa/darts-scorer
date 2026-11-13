@@ -29,7 +29,12 @@ class Light(Enum):
 class Mark(Enum):
     WIRE = "wire"
     HIDDEN = "hidden"
+    HIDDEN_P2 = "hidden-p2"
+    HIDDEN_P3 = "hidden-p3"
     PLACED = "placed"
+
+
+HIDDEN_IN = {1: Mark.HIDDEN, 2: Mark.HIDDEN_P2, 3: Mark.HIDDEN_P3}
 
 
 OUT = "out"
@@ -68,9 +73,8 @@ class Visit:
     def scores_in_board(self) -> list[Score]:
         return [dart.score for dart in self.darts if dart.score is not None]
 
-    @property
-    def hidden_marks(self) -> int:
-        return sum(Mark.HIDDEN in dart.marks for dart in self.darts)
+    def hidden_in(self, angle: int) -> int:
+        return sum(HIDDEN_IN[angle] in dart.marks for dart in self.darts if dart.in_board)
 
 
 @dataclass(frozen=True, order=True)
