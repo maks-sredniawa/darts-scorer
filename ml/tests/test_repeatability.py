@@ -13,6 +13,7 @@ from darts_ml.review import label_sha256
 from synthetic import SIZE, TemporaryData, session
 
 DAY = dt.date(2026, 11, 14)
+TAIL = {"s01-v01-p2", "s01-v02-p3"}
 
 
 class RepeatabilityTest(unittest.TestCase):
@@ -72,6 +73,28 @@ class RepeatabilityTest(unittest.TestCase):
         self.write_round(Round.B)
         self.write_round(Round.C, offset_mm=(0.0, 0.8), hand=False)
         self.assertEqual(repeatability(self.data, "s01").verdict, 3)
+
+    def test_a_long_tail_in_a_b_alone_fails_verdict_1(self):
+        self.write_round(Round.A)
+        self.write_round(Round.B)
+        self.write_round(Round.B, offset_mm=(0.0, 0.8), photos=TAIL)
+        self.write_round(Round.C, hand=False)
+        reading = repeatability(self.data, "s01")
+        ab = reading.spreads["a–b, all crossings"]
+        self.assertLessEqual(ab.median_mm, 0.25)
+        self.assertGreater(ab.p95_mm, 0.5)
+        self.assertEqual(reading.verdict, 2)
+
+    def test_a_long_tail_in_a_c_alone_fails_verdict_1(self):
+        self.write_round(Round.A)
+        self.write_round(Round.B)
+        self.write_round(Round.C, hand=False)
+        self.write_round(Round.C, offset_mm=(0.0, 0.8), hand=False, photos=TAIL)
+        reading = repeatability(self.data, "s01")
+        ac = reading.spreads["a–c, all crossings"]
+        self.assertLessEqual(ac.median_mm, 0.25)
+        self.assertGreater(ac.p95_mm, 0.5)
+        self.assertEqual(reading.verdict, 2)
 
     def test_without_round_c_there_is_no_verdict(self):
         self.write_round(Round.A)
