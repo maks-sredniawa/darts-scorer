@@ -9,7 +9,7 @@ from PIL import Image
 
 from . import DartsMlError
 from .board import CALIBRATION_BY_NAME, Score, score
-from .capture_sessions import ANGLES, Mark, PhotoName, Sheet, load_sheet
+from .capture_sessions import ANGLES, Mark, PhotoName, Sheet, Visit, load_sheet
 from .homography import MIN_POINTS, fit, project, residuals_mm
 from .labelme import ENTRY, INFERRED, LABELS, Label, LabelError, label_path, read_label
 from .manifest import ReviewManifest
@@ -146,18 +146,32 @@ def _fit(photo: PhotoName, label: Label, report: Report) -> np.ndarray | None:
 
 
 def _score(photo: PhotoName, fitted: Fitted, sheet: Sheet, report: Report) -> None:
-    recorded = Counter(sheet.visit(photo.visit).scores_in_board)
-    found = Counter(fitted.scores())
-    extra = found - recorded
-    if not extra:
-        return
     if sheet.open_mismatch(photo):
         return
-    report.add(
-        photo,
-        "score",
-        f"labels score {_tokens(found)}, the sheet records {_tokens(recorded)}: {_tokens(extra)} not recorded",
-    )
+    visit = sheet.visit(photo.visit)
+    recorded = Counter(visit.scores_in_board)
+    found = Counter(fitted.scores())
+    extra = found - recorded
+    if extra:
+        report.add(
+            photo,
+            "score",
+            f"labels score {_tokens(found)}, the sheet records {_tokens(recorded)}: {_tokens(extra)} not recorded",
+        )
+    if photo.angle != 1:
+        _missing_beyond_hidden(photo, fitted, visit, report)
+
+
+def _missing_beyond_hidden(photo: PhotoName, fitted: Fitted, visit: Visit, report: Report) -> None:
+    in_board = len(visit.scores_in_board)
+    labelled = len(fitted.label.entries)
+    hidden = visit.hidden_in(photo.angle)
+    if in_board - labelled > hidden:
+        report.add(
+            photo,
+            "score",
+            f"{labelled} Entry points for the {in_board} Darts in the Board, and the sheet marks {hidden} hidden in p{photo.angle}",
+        )
 
 
 def _hidden_in_p1(sheet: Sheet, visit_number: int, fitted, report: Report) -> None:
@@ -166,11 +180,11 @@ def _hidden_in_p1(sheet: Sheet, visit_number: int, fitted, report: Report) -> No
         return
     visit = sheet.visit(visit_number)
     missing = len(visit.scores_in_board) - len(fitted[p1].label.entries)
-    if missing != visit.hidden_marks and not sheet.open_mismatch(p1):
+    if missing != visit.hidden_in(1) and not sheet.open_mismatch(p1):
         report.add(
             p1,
             "hidden",
-            f"p1's label is missing {missing} of the Darts in the Board, the sheet marks {visit.hidden_marks} hidden",
+            f"p1's label is missing {missing} of the Darts in the Board, the sheet marks {visit.hidden_in(1)} hidden",
         )
 
 

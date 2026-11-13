@@ -406,7 +406,8 @@ tests build their Photos and labels synthetically from `board.py`.
    - **p3, right:** 30–60° to the right, 1–2 m away.
 3. **Before touching a Dart**, read each one up close and write its Score into the sheet, for
    example `T20 T20 S1`. A Dart that fell out is `out`. Mark `wire` beside any Dart whose Entry
-   point is within about 2 mm of a wire. Mark `hidden` beside any Dart you cannot see in p1.
+   point is within about 2 mm of a wire. Mark `hidden` beside any Dart you cannot see in p1, and
+   `hidden-p2` or `hidden-p3` beside one you cannot see in that Photo.
 4. Pull the Darts.
 
 That is about 75 seconds per Visit, and 15 Visits make a Capture session of about 25 minutes, about
@@ -648,7 +649,8 @@ passes*).
   - **Visible:** the point is clicked.
   - **Hidden, with the Dart's line visible:** the point is placed where the shaft meets the Board
     and flagged `inferred`.
-  - **Not visible at all:** no point. The sheet's `hidden` explains the missing one.
+  - **Not visible at all:** no point. The sheet's `hidden`, `hidden-p2` or `hidden-p3` explains the
+    missing one.
 
 ### The passes
 
@@ -700,14 +702,17 @@ is recorded in the sheet as an **open mismatch**, with the Photo it is on and it
    whose residual exceeds 1.0 mm is listed: either a misclick, or lens distortion a plane cannot
    absorb (*Known gaps*).
 3. **Score.** Every Entry point is scored through its label homography. The Scores in each Photo
-   must match the Scores recorded at the Board, as multisets, with `hidden` Darts allowed to be
-   missing. Every mismatch is opened and looked at. DeepDarts' 2.4% says some will be the label and
+   must match the Scores recorded at the Board, as multisets, with hidden Darts allowed to be
+   missing. A p2 or p3 label with fewer Entry points than the Darts in the Board is a finding unless
+   the sheet marks the missing ones `hidden-p2` or `hidden-p3` for that Photo, or an open mismatch
+   names it; a missing Dart in p1 is step 4's. Every mismatch is opened and looked at. DeepDarts' 2.4% says some will be the label and
    some the note.
 4. **Hidden in p1, from the labels.** A Visit is **hidden in p1** when p1's label has fewer Entry
    points than the Visit has Darts in the Board: its recorded Scores, less any `out`. An `inferred`
    Entry point counts as visible, because its Dart is. This rule, not the sheet, decides which
-   Visits B2 counts (§7), so the split is never a judgement call. The sheet's `hidden` marks must
-   agree with it, and a disagreement is a finding.
+   Visits B2 counts (§7), so the split is never a judgement call. The sheet's `hidden` marks, which
+   are p1's alone, must agree with it, and a disagreement is a finding. `hidden-p2` and `hidden-p3`
+   play no part in B2.
 5. **Across Angles.** In each Visit, every Dart's Entry points from p1, p2 and p3 must land within
    2 mm of each other in board millimetres. Otherwise either a label or a calibration is wrong.
 6. **Overlay.** `darts-ml overlay <capture-session>` draws the rings and all 80 crossings from the

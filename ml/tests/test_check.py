@@ -11,6 +11,15 @@ from synthetic import SIZE, TemporaryData, crossings, entries, session
 VISITS = [["T20", "T20", "S1"], ["D3", "S19 wire", "out"], ["S5", "T5", "S20"]]
 
 
+def drop_an_entry_in(target):
+    def edit(photo, to_image, shapes):
+        if photo != target:
+            return shapes
+        return [s for s in shapes if s.label != ENTRY] + [s for s in shapes if s.label == ENTRY][:-1]
+
+    return edit
+
+
 class CheckTest(unittest.TestCase):
     def setUp(self):
         self.td = TemporaryData()
@@ -44,15 +53,24 @@ class CheckTest(unittest.TestCase):
         self.assertLess(max(report.across_angles_mm), 1e-6)
 
     def test_a_dart_hidden_in_p1_must_be_marked_hidden(self):
-        def hide(photo, to_image, shapes):
-            if photo == "s01-v03-p1":
-                return [s for s in shapes if s.label != ENTRY] + [s for s in shapes if s.label == ENTRY][:2]
-            return shapes
-
         marked = [*VISITS[:2], ["S5", "T5", "S20 hidden"]]
-        self.assertEqual(self.build(edit=hide, recorded=marked).findings, [])
-        report = self.build(edit=hide)
+        self.assertEqual(self.build(edit=drop_an_entry_in("s01-v03-p1"), recorded=marked).findings, [])
+        report = self.build(edit=drop_an_entry_in("s01-v03-p1"))
         self.assertEqual(self.steps(report), [("s01-v03-p1", "hidden")])
+
+    def test_a_dart_missed_in_p2_is_found_unless_marked_hidden_there_or_excused(self):
+        report = self.build(edit=drop_an_entry_in("s01-v03-p2"))
+        self.assertEqual(self.steps(report), [("s01-v03-p2", "score")])
+        self.assertIn("2 Entry points for the 3 Darts", report.findings[0].message)
+        marked = [*VISITS[:2], ["S5", "T5", "S20 hidden-p2"]]
+        self.assertEqual(self.build(edit=drop_an_entry_in("s01-v03-p2"), recorded=marked).findings, [])
+        excused = self.build(edit=drop_an_entry_in("s01-v03-p2"), mismatches=[("s01-v03-p2", "the S20 was knocked out before p2")])
+        self.assertEqual(excused.findings, [])
+
+    def test_a_hidden_mark_for_another_angle_does_not_excuse_p2(self):
+        marked = [*VISITS[:2], ["S5", "T5", "S20 hidden-p3"]]
+        report = self.build(edit=drop_an_entry_in("s01-v03-p2"), recorded=marked)
+        self.assertEqual(self.steps(report), [("s01-v03-p2", "score")])
 
     def test_a_wrong_score_is_found_and_an_open_mismatch_excuses_it(self):
         recorded = [["T20", "T20", "S5"], *VISITS[1:]]
