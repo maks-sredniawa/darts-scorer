@@ -32,6 +32,17 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 `scripts/schema-gate.py` enforces 1–3 mechanically in CI. Items 4 and 5 are yours.
 
+## Phase M1 — the data
+
+[`phase-M1.md`](phase-M1.md). Runs alongside phase P; phase 1 waits for M2, which waits for this.
+
+- [ ] **Answer the six decisions** at the top of `phase-M1.md`, the bar (D1) first: it is set before
+      any training, never after a result.
+- [ ] **The pilot is the gate.** Session s01 captured and labelled twice; R1's verdict written in
+      before any other session is taken.
+- [ ] **Capture and label the other 15 sessions**, each through `darts-ml check`; the four held-out
+      sessions frozen by `ml/splits/held-out.toml`.
+
 ## Before the first upload
 
 - [x] **Delete what the app does not need.** Phase 0: reminders, the custom backup and sharing, the
