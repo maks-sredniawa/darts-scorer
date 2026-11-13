@@ -114,6 +114,9 @@ app/src/main/java/<namespace>/
   tip/         the tip through Play Billing, held by AppContainer so a purchase finishes after its
                screen is gone, and the rule for its one ask on the home screen (ADR-0007)
   ui/          Compose screens + ViewModels, one package per area; ui/visit/ is the home tab
+  ui/support/  Help and feedback, Credits and Settings' About rows — shared by every app. Only
+               SupportConfig.kt is this app's; the rest, and each strings.xml's shared:support block,
+               arrive from android-starter's scripts/sync-support.py, so change them there
 
 app/src/debug/    the developer-only build: Settings' debug section (empty for now) and the debug
                   app name
