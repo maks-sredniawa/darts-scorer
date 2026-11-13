@@ -22,7 +22,7 @@ was extracted from and the first app built from it settled on exactly this split
 - [ ] **Phase M1** — The data, off the phone (ADR-0008): the `ml/` folder (code only), the DeepDarts
   dataset, the owner's own handheld photos taken and labelled, a held-out set put aside, and the bar
   for opening phase 1 written down. **It runs alongside phases 0 and P**
-- [ ] **Phase M2** — The model, off the phone (ADR-0008): a detector trained with Apache or MIT code,
+- [ ] **Phase M2** — The model, off the phone (ADR-0008): a detector trained with permissively licensed code,
   the board first and the darts second, its accuracy measured on the held-out handheld photos.
   **Phase 1 waits for it**
 - [ ] **Phase P** — The pipeline: repository setup, upload key, Play entry, secrets, a green internal upload

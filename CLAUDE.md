@@ -48,6 +48,7 @@ let us do otherwise".">
 | Coil 3 images | Compose-native, local files only |
 | Play Billing (`tip/`), for the tip only | Unlocks nothing; adds `BILLING`, and its merged `INTERNET` is removed — ADR-0007 |
 | On-device storage only | No backend. Auto Backup, include-only: the preferences, never a photo — ADR-0005 |
+| `ml/`: uv, Python 3.12, code only | The data tools, off the phone; Photos, labels and weights live in `DARTS_DATA`, never in git — ADR-0008, `docs/phase-M1.md` |
 
 ## House rules
 
@@ -99,6 +100,10 @@ python3 scripts/translation-gate.py origin/main # the gate itself — would this
 python3 scripts/schema-gate.py origin/main    # passes with no database; gates again with the first table
 python3 scripts/notes-gate.py
 adb devices                                     # confirm the phone is attached
+
+uv run --directory ml darts-ml paths            # where DARTS_DATA is; refuses one inside the repo
+uv run --directory ml darts-ml <step> s01       # ingest, label, prefill, review, check, overlay, repeatability
+uv run --directory ml python -m unittest discover -s tests   # ml/'s tests (need jpegtran)
 ```
 
 ## Layout
@@ -122,6 +127,8 @@ app/src/debug/    the developer-only build: Settings' debug section (empty for n
                   app name
 app/src/release/  only the no-op half of each seam, so main/ can call it unconditionally
 scripts/          the Python toolchain. project.py is the one place the app's identity lives
+ml/               the data tools for ADR-0008's model, a uv project with its own lockfile; code
+                  only, the data stays in DARTS_DATA. ml/README.md says how to run each step
 art/             mark.py is the identity; both generators derive from it
 ```
 
