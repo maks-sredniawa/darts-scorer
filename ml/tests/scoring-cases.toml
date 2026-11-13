@@ -1,0 +1,521 @@
+[[case]]
+x = 0.000000
+y = 0.000000
+score = "50"
+why = "the bull's centre, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 6.350000
+score = "50"
+why = "bull ring wire, inner edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 7.090000
+score = "50"
+why = "bull ring wire, just inside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 7.110000
+score = "25"
+why = "bull ring wire, just outside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 7.850000
+score = "25"
+why = "bull ring wire, outer edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 15.900000
+score = "25"
+why = "25 ring wire, inner edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 16.640000
+score = "25"
+why = "25 ring wire, just inside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 16.660000
+score = "S20"
+why = "25 ring wire, just outside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 17.400000
+score = "S20"
+why = "25 ring wire, outer edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 96.400000
+score = "S20"
+why = "inner treble wire, inner edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 97.140000
+score = "S20"
+why = "inner treble wire, just inside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 97.160000
+score = "T20"
+why = "inner treble wire, just outside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 97.900000
+score = "T20"
+why = "inner treble wire, outer edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 105.900000
+score = "T20"
+why = "outer treble wire, inner edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 106.640000
+score = "T20"
+why = "outer treble wire, just inside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 106.660000
+score = "S20"
+why = "outer treble wire, just outside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 107.400000
+score = "S20"
+why = "outer treble wire, outer edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 159.000000
+score = "S20"
+why = "inner double wire, inner edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 159.740000
+score = "S20"
+why = "inner double wire, just inside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 159.760000
+score = "D20"
+why = "inner double wire, just outside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 160.500000
+score = "D20"
+why = "inner double wire, outer edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 168.500000
+score = "D20"
+why = "outer double wire, inner edge, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 169.240000
+score = "D20"
+why = "outer double wire, just inside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 169.260000
+score = "miss"
+why = "outer double wire, just outside its centre line, straight up through 20"
+
+[[case]]
+x = 0.000000
+y = 170.000000
+score = "miss"
+why = "outer double wire, outer edge, straight up through 20"
+
+[[case]]
+x = 20.269248
+y = 128.410115
+score = "S20"
+why = "radial wire 20|1 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 20.403707
+y = 128.388819
+score = "S1"
+why = "radial wire 20|1 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 15.903564
+y = 100.752552
+score = "T20"
+why = "radial wire 20|1 at 102 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 16.009063
+y = 100.735842
+score = "T1"
+why = "radial wire 20|1 at 102 mm, just clockwise of its centre line"
+
+[[case]]
+x = 25.726353
+y = 162.982069
+score = "D20"
+why = "radial wire 20|1 at 165 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 25.897013
+y = 162.955039
+score = "D1"
+why = "radial wire 20|1 at 165 mm, just clockwise of its centre line"
+
+[[case]]
+x = 58.958108
+y = 115.861734
+score = "S1"
+why = "radial wire 1|18 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 59.079406
+y = 115.799930
+score = "S18"
+why = "radial wire 1|18 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 91.875738
+y = 91.972000
+score = "S18"
+why = "radial wire 18|4 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 91.972000
+y = 91.875738
+score = "S4"
+why = "radial wire 18|4 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 115.799930
+y = 59.079406
+score = "S4"
+why = "radial wire 4|13 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 115.861734
+y = 58.958108
+score = "S13"
+why = "radial wire 4|13 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 128.388819
+y = 20.403707
+score = "S13"
+why = "radial wire 13|6 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 128.410115
+y = 20.269248
+score = "S6"
+why = "radial wire 13|6 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 128.410115
+y = -20.269248
+score = "S6"
+why = "radial wire 6|10 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 128.388819
+y = -20.403707
+score = "S10"
+why = "radial wire 6|10 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 100.752552
+y = -15.903564
+score = "T6"
+why = "radial wire 6|10 at 102 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 100.735842
+y = -16.009063
+score = "T10"
+why = "radial wire 6|10 at 102 mm, just clockwise of its centre line"
+
+[[case]]
+x = 162.982069
+y = -25.726353
+score = "D6"
+why = "radial wire 6|10 at 165 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 162.955039
+y = -25.897013
+score = "D10"
+why = "radial wire 6|10 at 165 mm, just clockwise of its centre line"
+
+[[case]]
+x = 115.861734
+y = -58.958108
+score = "S10"
+why = "radial wire 10|15 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 115.799930
+y = -59.079406
+score = "S15"
+why = "radial wire 10|15 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 91.972000
+y = -91.875738
+score = "S15"
+why = "radial wire 15|2 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 91.875738
+y = -91.972000
+score = "S2"
+why = "radial wire 15|2 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 59.079406
+y = -115.799930
+score = "S2"
+why = "radial wire 2|17 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 58.958108
+y = -115.861734
+score = "S17"
+why = "radial wire 2|17 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 20.403707
+y = -128.388819
+score = "S17"
+why = "radial wire 17|3 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = 20.269248
+y = -128.410115
+score = "S3"
+why = "radial wire 17|3 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -20.269248
+y = -128.410115
+score = "S3"
+why = "radial wire 3|19 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -20.403707
+y = -128.388819
+score = "S19"
+why = "radial wire 3|19 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -15.903564
+y = -100.752552
+score = "T3"
+why = "radial wire 3|19 at 102 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -16.009063
+y = -100.735842
+score = "T19"
+why = "radial wire 3|19 at 102 mm, just clockwise of its centre line"
+
+[[case]]
+x = -25.726353
+y = -162.982069
+score = "D3"
+why = "radial wire 3|19 at 165 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -25.897013
+y = -162.955039
+score = "D19"
+why = "radial wire 3|19 at 165 mm, just clockwise of its centre line"
+
+[[case]]
+x = -58.958108
+y = -115.861734
+score = "S19"
+why = "radial wire 19|7 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -59.079406
+y = -115.799930
+score = "S7"
+why = "radial wire 19|7 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -91.875738
+y = -91.972000
+score = "S7"
+why = "radial wire 7|16 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -91.972000
+y = -91.875738
+score = "S16"
+why = "radial wire 7|16 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -115.799930
+y = -59.079406
+score = "S16"
+why = "radial wire 16|8 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -115.861734
+y = -58.958108
+score = "S8"
+why = "radial wire 16|8 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -128.388819
+y = -20.403707
+score = "S8"
+why = "radial wire 8|11 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -128.410115
+y = -20.269248
+score = "S11"
+why = "radial wire 8|11 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -128.410115
+y = 20.269248
+score = "S11"
+why = "radial wire 11|14 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -128.388819
+y = 20.403707
+score = "S14"
+why = "radial wire 11|14 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -100.752552
+y = 15.903564
+score = "T11"
+why = "radial wire 11|14 at 102 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -100.735842
+y = 16.009063
+score = "T14"
+why = "radial wire 11|14 at 102 mm, just clockwise of its centre line"
+
+[[case]]
+x = -162.982069
+y = 25.726353
+score = "D11"
+why = "radial wire 11|14 at 165 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -162.955039
+y = 25.897013
+score = "D14"
+why = "radial wire 11|14 at 165 mm, just clockwise of its centre line"
+
+[[case]]
+x = -115.861734
+y = 58.958108
+score = "S14"
+why = "radial wire 14|9 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -115.799930
+y = 59.079406
+score = "S9"
+why = "radial wire 14|9 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -91.972000
+y = 91.875738
+score = "S9"
+why = "radial wire 9|12 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -91.875738
+y = 91.972000
+score = "S12"
+why = "radial wire 9|12 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -59.079406
+y = 115.799930
+score = "S12"
+why = "radial wire 12|5 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -58.958108
+y = 115.861734
+score = "S5"
+why = "radial wire 12|5 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = -20.403707
+y = 128.388819
+score = "S5"
+why = "radial wire 5|20 at 130 mm, just anticlockwise of its centre line"
+
+[[case]]
+x = -20.269248
+y = 128.410115
+score = "S20"
+why = "radial wire 5|20 at 130 mm, just clockwise of its centre line"
+
+[[case]]
+x = 0.000000
+y = -130.000000
+score = "S3"
+why = "straight down"
+
+[[case]]
+x = 130.000000
+y = 0.000000
+score = "S6"
+why = "straight right"
+
+[[case]]
+x = -130.000000
+y = 0.000000
+score = "S11"
+why = "straight left"
+
+[[case]]
+x = 0.000000
+y = -165.000000
+score = "D3"
+why = "double, straight down"
+
+[[case]]
+x = 102.000000
+y = 0.000000
+score = "T6"
+why = "treble, straight right"
+
+[[case]]
+x = 0.000000
+y = 200.000000
+score = "miss"
+why = "outside the double, on the surround"
