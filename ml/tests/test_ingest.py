@@ -93,6 +93,23 @@ class IngestTest(unittest.TestCase):
             self.assertIn(f"IMG_{seconds}.jpg", message)
         self.assertFalse(self.data.photos("s01").exists())
 
+    def test_two_photos_in_one_visit_and_four_in_the_next_stop_the_ingest(self):
+        self.td.write_sheet("s01", [["T20", "T20", "S1"], ["S5", "S5", "out"]])
+        for index, seconds in enumerate((0, 5, 60, 65, 70, 75)):
+            self.put(f"IMG_{index}.jpg", upright_photo(index), 1, seconds)
+        with self.assertRaises(IngestError) as caught:
+            ingest(self.data, "s01")
+        message = str(caught.exception)
+        self.assertIn("do not group that way", message)
+        self.assertIn("IMG_2.jpg  would be s01-v01-p3, 55 s after", message)
+        self.assertFalse(self.data.photos("s01").exists())
+
+    def test_visits_apart_in_time_are_ingested(self):
+        self.td.write_sheet("s01", [["T20", "T20", "S1"], ["S5", "S5", "out"]])
+        for index, seconds in enumerate((0, 5, 12, 60, 65, 70)):
+            self.put(f"IMG_{index}.jpg", upright_photo(index), 1, seconds)
+        self.assertEqual(len(ingest(self.data, "s01")), 6)
+
     def test_a_file_that_is_not_a_jpeg_is_refused(self):
         self.td.write_sheet("s01", [["T20", "T20", "S1"]])
         for seconds in range(2):
