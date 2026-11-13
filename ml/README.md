@@ -116,7 +116,9 @@ They need `jpegtran` and no data: the Photos and labels are built from `board.py
 ## Dependencies and their licences
 
 Re-read this table whenever the lockfile gains a package. The rule is ADR-0008's: permissive licences
-only, nothing copyleft in the lockfile, in training, or in the app.
+only for the code we adapt, train with, or ship. A runtime library bundled inside a wheel under a
+runtime exception or the LGPL is allowed, because `ml/` never ships and the app ships only weights,
+and is listed in the last column: today NumPy's libgfortran and libquadmath.
 
 | Package | Licence | Bundled in the Linux wheel |
 | --- | --- | --- |
@@ -126,4 +128,4 @@ only, nothing copyleft in the lockfile, in training, or in the app.
 
 Outside the lockfile: **labelme** (GPL-3.0) runs beside it through `uvx` and never ships;
 **jpegtran** (libjpeg-turbo, IJG and BSD-style) is a system tool. **OpenCV is not used**: nothing in
-the loop needs it, and `opencv-python-headless`'s wheels bundle FFmpeg under the LGPL-2.1.
+the loop needs it.
