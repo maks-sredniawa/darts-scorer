@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.resume
 
-internal const val TAG = "DartsScorerTip"
+internal const val TAG = "StarterTip"
 
 /** A purchase as [TipJar] needs it; [purchaseState] is one of `Purchase.PurchaseState`. */
 internal class OwnedTip(
