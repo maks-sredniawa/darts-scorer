@@ -26,6 +26,7 @@ import app.dartsscorer.ui.settings.SettingsScreen
 import app.dartsscorer.ui.support.LicenceTextScreen
 import app.dartsscorer.ui.support.LicencesScreen
 import app.dartsscorer.ui.support.SupportScreen
+import app.dartsscorer.ui.support.TipSection
 import app.dartsscorer.ui.visit.VisitScreen
 
 /**
@@ -119,7 +120,11 @@ fun MainNavigation(modifier: Modifier = Modifier) {
                         )
                     }
                     entry<Support> {
-                        SupportScreen(onBack = { backStack.removeLastOrNull() })
+                        SupportScreen(
+                            onBack = { backStack.removeLastOrNull() },
+                            onOpenCredits = { backStack.add(Licences) },
+                            tip = { TipSection() },
+                        )
                     }
                     entry<Licences> {
                         LicencesScreen(
