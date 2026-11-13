@@ -79,6 +79,8 @@ of this lockfile and out of anything that trains or ships. The pin lives in `lab
   and on 2026-11-13 a fresh `uvx labelme==7.9.1` pulled osam 0.11.3, released that day, which crashes
   7.9.1 at start-up (`module 'osam' has no attribute 'apis'`). Resolving as of the release date gives
   the environment 7.9.1 shipped against.
+- **`--python`, the version in `.python-version`**, so the interpreter labelme runs on does not
+  depend on the machine.
 - **`--config '{with_image_data: false, auto_save: true}'`**, so a stray `~/.labelmerc` cannot embed
   the Photo in a label: given `--config`, labelme does not read `~/.labelmerc`.
 - **Offline.** The only network code in 7.9.1 is its AI tools' model download, which runs only when a

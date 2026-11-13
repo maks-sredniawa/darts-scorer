@@ -14,6 +14,7 @@ from .manifest import ReviewManifest
 from .paths import DataDir, Round
 
 PINNED = "7.9.1"
+PYTHON = "3.12"
 RESOLVED_AS_OF = "2026-10-26T00:00:00Z"
 ENTRY = "entry"
 INFERRED = "inferred"
@@ -122,7 +123,7 @@ def label_path(labels: Path, photo: str) -> Path:
 
 
 def labelme_command(*arguments: str) -> list[str]:
-    return ["uvx", "--exclude-newer", RESOLVED_AS_OF, "--from", f"labelme=={PINNED}", "labelme", *arguments]
+    return ["uvx", "--python", PYTHON, "--exclude-newer", RESOLVED_AS_OF, "--from", f"labelme=={PINNED}", "labelme", *arguments]
 
 
 def window_command(photo: Path, output: Path) -> list[str]:
