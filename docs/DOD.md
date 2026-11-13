@@ -36,12 +36,14 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 [`phase-M1.md`](phase-M1.md). Runs alongside phase P; phase 1 waits for M2, which waits for this.
 
-- [ ] **Answer the six decisions** at the top of `phase-M1.md`, the bar (D1) first: it is set before
-      any training, never after a result.
-- [ ] **The pilot is the gate.** Session s01 captured and labelled twice; R1's verdict written in
-      before any other session is taken.
-- [ ] **Capture and label the other 15 sessions**, each through `darts-ml check`; the four held-out
-      sessions frozen by `ml/splits/held-out.toml`.
+- [x] **Answer the six decisions** at the top of `phase-M1.md`, the bar (D1) first: it is set before
+      any training, never after a result. All six taken as recommended on 2026-11-13.
+- [ ] **The pilot is the gate.** Capture session s01 taken and labelled in rounds a, b and c; R1's
+      verdict written in before any other Capture session is taken.
+- [ ] **Capture and label the other 17 Capture sessions**, each through `darts-ml check`; the six
+      held-out ones frozen by `ml/splits/held-out.toml`, with at least 60 Visits B2 counts.
+- [ ] **DeepDarts in, or out** (D5): from DataPort, or from the author's written grant; with no
+      grant three weeks after the ask, M1 goes on without it.
 
 ## Before the first upload
 
