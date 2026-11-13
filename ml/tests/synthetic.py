@@ -10,7 +10,9 @@ from PIL import Image, ImageDraw
 from darts_ml.board import CALIBRATION_POINTS, OUTER_DOUBLE, SEGMENTS, WIRES, board_point, boundary_degrees
 from darts_ml.homography import project
 from darts_ml.labelme import ENTRY, INFERRED, Shape, write_label
+from darts_ml.manifest import Review, ReviewManifest
 from darts_ml.paths import DataDir
+from darts_ml.review import label_sha256
 
 SIZE = (640, 480)
 ANGLE_YAW = {1: 0.0, 2: -40.0, 3: 40.0}
@@ -191,3 +193,32 @@ def idle_window(seconds: float = 30.0):
 def full_labels(td: TemporaryData, name: str, truths: dict, labels: Path | None = None) -> None:
     for photo, (to_image, in_board) in truths.items():
         td.write_label(name, photo, crossings(to_image) + entries(to_image, in_board), labels)
+
+
+REVIEW_DAYS = (dt.date(2026, 11, 14), dt.date(2026, 11, 15))
+
+
+def reviewed_session(td: TemporaryData, name: str, visits, held_out: bool = False, mismatches=(),
+                     recorded=None, edit=None) -> dict:
+    truths = session(td, name, visits, held_out=held_out, mismatches=mismatches)
+    if recorded is not None:
+        td.write_sheet(name, recorded, held_out=held_out, mismatches=mismatches)
+    manifest = ReviewManifest.load(td.data.labels(name))
+    for photo, (to_image, in_board) in truths.items():
+        shapes = crossings(to_image) + entries(to_image, in_board)
+        if edit:
+            shapes = edit(photo, to_image, shapes)
+        path = td.write_label(name, photo, shapes)
+        manifest.record(photo).reviews = [Review(day, label_sha256(path)) for day in REVIEW_DAYS]
+    manifest.save()
+    return truths
+
+
+def without_last_entry_in(target):
+    def edit(photo, to_image, shapes):
+        if photo != target:
+            return shapes
+        kept = [s for s in shapes if s.label == ENTRY][:-1]
+        return [s for s in shapes if s.label != ENTRY] + kept
+
+    return edit

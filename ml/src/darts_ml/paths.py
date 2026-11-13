@@ -104,6 +104,9 @@ class DataDir:
         base = self.root / "overlays" / capture_session(name)
         return self._fenced(base if round_ is Round.A else base / round_.value)
 
+    def build(self) -> Path:
+        return self._fenced(self.root / "build")
+
     def _fenced(self, path: Path) -> Path:
         refuse_inside_repo(path, self.roots, f"{path.relative_to(self.root)} under DARTS_DATA")
         return path

@@ -33,6 +33,8 @@ WIRES = (BULL_RING, OUTER_BULL_RING, INNER_TREBLE, OUTER_TREBLE, INNER_DOUBLE, O
 CALIBRATION_WIRES = (OUTER_DOUBLE, INNER_DOUBLE, OUTER_TREBLE, INNER_TREBLE)
 TREBLE_WIRES = (INNER_TREBLE, OUTER_TREBLE)
 DOUBLE_WIRES = (INNER_DOUBLE, OUTER_DOUBLE)
+RADIAL_WIRE_MM = (OUTER_BULL_RING.centre_mm, OUTER_DOUBLE.centre_mm)
+WIRE_MARGIN_MM = 2.0
 
 
 def boundary_degrees(index: int) -> float:
@@ -134,3 +136,16 @@ def score(x_mm: float, y_mm: float) -> Score:
     if radius < INNER_DOUBLE.centre_mm:
         return Score(Ring.SINGLE, number)
     return Score(Ring.DOUBLE, number)
+
+
+def wire_distance_mm(x_mm: float, y_mm: float) -> float:
+    radius = math.hypot(x_mm, y_mm)
+    to_ring = min(abs(radius - wire.centre_mm) for wire in WIRES)
+    to_radial = min(_to_radial_wire(x_mm, y_mm, boundary_degrees(i)) for i in range(len(SEGMENTS)))
+    return min(to_ring, to_radial)
+
+
+def _to_radial_wire(x_mm: float, y_mm: float, degrees: float) -> float:
+    ux, uy = board_point(1.0, degrees)
+    along = min(max(x_mm * ux + y_mm * uy, RADIAL_WIRE_MM[0]), RADIAL_WIRE_MM[1])
+    return math.hypot(x_mm - along * ux, y_mm - along * uy)

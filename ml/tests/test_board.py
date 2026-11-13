@@ -1,8 +1,20 @@
+import math
 import tomllib
 import unittest
 from pathlib import Path
 
-from darts_ml.board import CALIBRATION_BY_NAME, CALIBRATION_POINTS, HAND_POINTS, Ring, Score, score
+from darts_ml.board import (
+    CALIBRATION_BY_NAME,
+    CALIBRATION_POINTS,
+    HAND_POINTS,
+    SEGMENTS,
+    Ring,
+    Score,
+    board_point,
+    boundary_degrees,
+    score,
+    wire_distance_mm,
+)
 
 CASES = Path(__file__).with_name("scoring-cases.toml")
 CLOCKWISE_FROM_20 = (20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5)
@@ -53,6 +65,17 @@ class BoardTest(unittest.TestCase):
         for bad in ("T21", "X5", "S", "20", "t20"):
             with self.assertRaises(ValueError):
                 Score.parse(bad)
+
+    def test_wire_distance_from_ring_wires_and_radial_wires(self):
+        mid_t20 = board_point(102.9, 0.0)
+        self.assertAlmostEqual(wire_distance_mm(*mid_t20), 106.65 - 102.9)
+        self.assertAlmostEqual(wire_distance_mm(*board_point(159.75, 0.0)), 0.0)
+        beside_20_1 = board_point(130.0, boundary_degrees(SEGMENTS.index(20)) - 0.5)
+        self.assertAlmostEqual(wire_distance_mm(*beside_20_1), 130.0 * math.sin(math.radians(0.5)))
+        past_the_double = board_point(169.25 + 3.0, boundary_degrees(0))
+        self.assertAlmostEqual(wire_distance_mm(*past_the_double), 3.0)
+        for point in CALIBRATION_POINTS:
+            self.assertAlmostEqual(wire_distance_mm(*point.mm), 0.0)
 
 
 if __name__ == "__main__":

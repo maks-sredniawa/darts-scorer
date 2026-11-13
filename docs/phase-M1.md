@@ -739,11 +739,13 @@ is recorded in the sheet as an **open mismatch**, with the Photo it is on and it
 - **Reviewed twice.** Every held-out Photo goes through `review` at 300% a second time, on a
   different day. A Photo that review changes gets a further one on a later day (§5). `check` must be
   clean. This is the truth the bar is read against, so it gets the hours.
-- **Frozen** at G by `ml/splits/held-out.toml`, committed. For every held-out Photo it records the
+- **Frozen** at G by `ml/splits/held-out.toml`, committed. `darts-ml freeze-held-out` writes it, and
+  only once `check` is clean on every held-out Capture session. For every held-out Photo it records the
   file name, the SHA-256 of the Photo and of its label, and the SHA-256 of each sheet and review
   manifest. The files stay in `DARTS_DATA`. The names say only Capture session, Visit and Angle, and
   a hash reveals nothing of a Photo.
-- **Enforced in code** (F). `darts-ml verify-held-out` fails on any missing or changed file.
+- **Enforced in code** (F). `darts-ml verify-held-out` fails on any missing or changed file, and on
+  a held-out sheet the manifest does not freeze. `evaluate` runs the same check before it reads.
   `records.py`'s builder refuses to put a held-out Photo into any training or validation record, by
   Capture session and by hash, and its test proves it (*Tests*).
 - **Changed only on purpose.** A label error found later in a held-out Photo is fixed in a commit
@@ -839,14 +841,16 @@ leak a Photo:
   - one Visit with an extra Dart, and one with two compensating wrong Darts → both wrong;
   - a Visit hidden in p1 → left out of B2 and counted in its own figure.
 
-  It fails towards a bar that reads better than the model is.
+  It also pins the bar's numbers in `BarTest`, each at its edge, reads the treble and double rows
+  apart, and counts a Photo missing from the predictions as a Board not found. It fails towards a bar
+  that reads better than the model is.
 - **`ReviewTest`** checks that a label edited after its review is unreviewed again, so `check`
   fails and its crossings are not `checked`, and that a held-out Photo fails `check` when reviewed
   once, or when its second review changed it and no later review followed.
   It fails towards unchecked labels counting as truth.
 - **`HeldOutTest`** checks that the builder, given a held-out Photo by name, by hash or by Capture
-  session, refuses it, and that `verify-held-out` fails on one changed byte. It fails towards a
-  Held-out set that leaks into training.
+  session, refuses it, and that `verify-held-out` fails on one changed byte in a Photo, a label, a
+  sheet or a review manifest. It fails towards a Held-out set that leaks into training.
 - **`PathsTest`** checks that a `DARTS_DATA` inside the repo or a sibling worktree is refused,
   including through a symlink, and so is a symlinked folder under it. It fails towards Photos
   sitting where git can reach them.

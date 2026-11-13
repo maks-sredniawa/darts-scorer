@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from . import DartsMlError, labelme
 from .check import check
+from .evaluate import LABELS, evaluate, report
+from .heldout import MANIFEST, HeldOutSet, freeze, verify
 from .ingest import ingest, jpegtran_version
 from .overlay import overlay
 from .paths import DataDir, Round, repo_roots
 from .prefill import prefill
+from .records import RECORDS, build
 from .repeatability import repeatability
 from .review import review
 
@@ -47,6 +51,20 @@ def _parser() -> argparse.ArgumentParser:
     checker.add_argument("--all", action="store_true", help="every Capture session with a sheet")
     step("overlay", _overlay, "draw the rings, crossings and scored Entry points onto each Photo", round_=True)
     step("repeatability", _repeatability, "the gate's figures: rounds a, b and c compared in board mm")
+    manifest_help = f"the frozen manifest; default {MANIFEST}"
+    frozen = step("freeze-held-out", _freeze, "hash every held-out Photo, label, sheet and review manifest into the manifest",
+                  capture_session=False)
+    frozen.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    verifier = step("verify-held-out", _verify, "fail on any held-out file missing or changed since the freeze",
+                    capture_session=False)
+    verifier.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    builder = step("build", _build, "write the training records, refusing every held-out Photo", capture_session=False)
+    builder.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    evaluator = step("evaluate", _evaluate, "the bar for opening phase 1 (phase-M1.md §7), read on the Held-out set",
+                     capture_session=False)
+    evaluator.add_argument("--predictions", required=True, metavar="{labels,FILE}",
+                           help=f"`{LABELS}` to read the labels as the predictions, or a predictions JSON file (ml/README.md)")
+    evaluator.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
     return parser
 
 
@@ -132,6 +150,44 @@ def _repeatability(args) -> int:
     verdict = reading.verdict
     print(f"verdict: {verdict}" if verdict else "verdict: not yet; it needs rounds a, b and c reviewed")
     return 0
+
+
+def _freeze(args) -> int:
+    held = freeze(DataDir.from_environment())
+    held.save(args.manifest)
+    print(f"{len(held.photos)} Photos of {', '.join(sorted(held.capture_sessions))} frozen into {args.manifest}")
+    print("Commit it; a later change to it gives its reason in the commit body (phase-M1.md §6)")
+    return 0
+
+
+def _verify(args) -> int:
+    held = HeldOutSet.load(args.manifest)
+    problems = verify(DataDir.from_environment(), held)
+    for problem in problems:
+        print(problem)
+    if problems:
+        print(f"the Held-out set does not match {args.manifest}: {len(problems)} problems")
+        return 1
+    print(f"{len(held.photos)} Photos of {len(held.capture_sessions)} Capture sessions match {args.manifest}")
+    return 0
+
+
+def _build(args) -> int:
+    data = DataDir.from_environment()
+    built = build(data, HeldOutSet.load(args.manifest))
+    for photo, reason in built.skipped:
+        print(f"skipped  {photo}: {reason}")
+    for photo, reason in built.refused:
+        print(f"refused  {photo}: {reason}")
+    print(f"{built.records} records written to {data.build() / RECORDS}; "
+          f"{len(built.refused)} held-out Photos refused, {len(built.skipped)} skipped")
+    return 0
+
+
+def _evaluate(args) -> int:
+    result = evaluate(DataDir.from_environment(), args.predictions, args.manifest)
+    print("\n".join(report(result)))
+    return 0 if result.met else 1
 
 
 if __name__ == "__main__":

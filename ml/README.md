@@ -72,6 +72,65 @@ uv run --directory ml darts-ml repeatability s01
 `repeatability` reads only reviewed labels. A Hand point counts as dragged, because it was placed by
 hand.
 
+## The Held-out set and the bar
+
+phase-M1.md §6 and §7. The bar's numbers live once, in `BAR` in `evaluate.py`, and `BarTest` pins
+them; a change to the bar is a change to §7 first.
+
+```bash
+uv run --directory ml darts-ml freeze-held-out     # G: hash every held-out file into ml/splits/held-out.toml
+uv run --directory ml darts-ml verify-held-out     # fails on any held-out file missing or changed since
+uv run --directory ml darts-ml build               # build/records.jsonl, refusing every held-out Photo
+uv run --directory ml darts-ml evaluate --predictions labels           # R7: the harness reads perfect as perfect
+uv run --directory ml darts-ml evaluate --predictions predictions.json # a model's reading
+```
+
+- **`freeze-held-out`** freezes every Capture session whose sheet says `set = "held-out"`, and only
+  once `check` is clean on each. The manifest holds the SHA-256 of each held-out Photo and label, and
+  of each held-out sheet and review manifest; it is committed, and a later change to it says why in
+  its commit body.
+- **`verify-held-out`** fails on a frozen file that is missing or changed, and on a held-out sheet the
+  manifest does not freeze. `evaluate` runs the same check first and reads nothing that fails it.
+- **`build`** writes one record per reviewed training Photo (phase-M1.md §4, *The common record*). It
+  refuses a Photo whose sheet says held-out, one of a Capture session the manifest freezes, and one
+  whose Photo or label has the bytes of a held-out one. It needs the frozen manifest to run.
+- **`evaluate`** counts Photos and Visits from the manifest, never from the predictions: a Photo the
+  predictions leave out is a Board not found. It exits 0 when the bar is met and 1 when it is not.
+
+### The predictions file
+
+JSON, pixel positions on the held-out Photo as ingested:
+
+```json
+{
+  "photos": {
+    "s04-v01-p1": {
+      "calibration": {"do-5-20": [812.4, 140.9], "ti-6-10": [1180.2, 603.5]},
+      "entries": [{"x": 940.1, "y": 512.8}, {"x": 951.7, "y": 498.0, "low_confidence": true}]
+    }
+  }
+}
+```
+
+- `calibration` names crossings from `board.py`'s list. *Ĥ* is the least-squares homography through
+  every point given, so a model that fits with RANSAC passes its inliers only. Fewer than four points,
+  or a degenerate set, is a Board not found.
+- `entries` are Entry points. `low_confidence`, optional, is the model's own flag; it feeds only the
+  trigger figure below.
+
+### How the figures beside the bar are read
+
+The plan names them; these are the rules this code applies where it leaves one open.
+
+- **Merged** (B2 on all three Photos, and the Visits hidden in p1): each Photo's Entry points, in
+  board mm, join the Darts found so far one to one, nearest pair first, within 2 mm (pre-fill's
+  same-Dart distance); the rest are new Darts. A merged Dart scores at its points' mean.
+- **Darts scored right**: over the Visits B2 counts, from p1, the predicted and recorded Scores in
+  common as multisets, out of the Darts in the Board.
+- **Triggers** (ADR-0008), on p1 alone: the Board not found; fewer Darts found than were thrown, `out`
+  included; a `low_confidence` Entry point; an Entry point within 2 mm of a wire's centre line. The
+  fourth, Photos disagreeing on a segment, needs a second Photo and is not read on p1.
+
 ## labelme
 
 `label` and `review` open one labelme window per Photo through `uvx`, so labelme (GPL-3.0) stays out
