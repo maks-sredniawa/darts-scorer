@@ -51,8 +51,10 @@ asks for a subscription (§4). B2's rule is why D3 now has 18 Capture sessions r
   rule for training code. This phase writes the geometry as code once (`board.py`, §2). Phase 1
   ports it to Kotlin and reads the same test cases (*Tests*).
 - **The licence rule, as this phase applies it: permissive licences only** (Apache, MIT, BSD and
-  the like) for everything in `ml/`'s lockfile, everything that trains, and everything that ships.
-  Copyleft code (GPL, AGPL) stays out of all three. labelme, which is GPL-3.0, runs beside `ml/`
+  the like) for the code we adapt, train with, or ship, and no copyleft code (GPL, AGPL) among it. A
+  runtime library bundled inside a dev tool's wheel under a runtime exception or the LGPL is
+  allowed and listed in `ml/README.md`'s licence table, such as NumPy's libgfortran and libquadmath:
+  `ml/` never ships, and the app ships only weights. labelme, which is GPL-3.0, runs beside `ml/`
   through `uvx` and never ships (§5). ADR-0008 words the rule as "Apache or MIT code only", while
   its own table already counts BSD-3 ncnn as usable, and §2's NumPy and pandas are BSD-3. So the
   ADR's wording is amended to "permissive" at A, and `PLAN.md`'s Phase M2 line with it.
@@ -249,9 +251,10 @@ for four reasons:
 3.12 is a conservative pin with wheels for every dependency A needs. M2 may move it when it picks
 a framework.
 
-Every dependency is permissive (§0): NumPy (BSD-3), Pillow (MIT-CMU) and tomli-w (MIT), which
-writes the review manifest. OpenCV was planned here and left out at A: nothing in the loop needs it,
-and `opencv-python-headless`'s wheels bundle FFmpeg under the LGPL-2.1. C adds pandas (BSD-3) for one job: `labels.pkl` is a pickled
+Every dependency is permissive (§0): NumPy (BSD-3, its wheel's bundled runtime libraries allowed and
+listed by §0's rule), Pillow (MIT-CMU) and tomli-w (MIT), which
+writes the review manifest. OpenCV was planned here and left out at A: nothing in the loop needs it.
+C adds pandas (BSD-3) for one job: `labels.pkl` is a pickled
 pandas DataFrame and cannot be rebuilt without it. It is still loaded only through the restricted
 unpickler (§4), never with `pd.read_pickle`. `ml/README.md` keeps a table of each dependency and its
 licence, re-read when one is added, because M2 adds to this lockfile. The labelling tool is GPL-3.0
@@ -853,7 +856,7 @@ leak a Photo:
 
 | Document | Change | At |
 | --- | --- | --- |
-| ADR-0008 | dated amendment: the 80 Calibration points as crossing centres with their names and radii (§2); DeepDarts' labels from DataPort's CC BY `labels_pkl.zip`, not the unlicensed repo's `labels.pkl`; `models.zip` unused; the licence rule worded as permissive licences only, copyleft out of the lockfile, training and the app (§0) | A |
+| ADR-0008 | dated amendment: the 80 Calibration points as crossing centres with their names and radii (§2); DeepDarts' labels from DataPort's CC BY `labels_pkl.zip`, not the unlicensed repo's `labels.pkl`; `models.zip` unused; the licence rule worded as permissive licences only for code adapted, trained with or shipped, with runtime libraries bundled in a dev tool's wheel under a runtime exception or the LGPL allowed and listed (§0) | A |
 | ADR-0008 | if DeepDarts is left out (D5): a dated amendment saying so, and that its licences-screen credit falls away | C |
 | `PLAN.md` | Phase M2's line: "trained with permissively licensed code", as in ADR-0008's amendment | A |
 | `CONTEXT.md` | **Capture session**: one phone, one light, one day, the unit the Held-out set is drawn in; not *session* alone, which a game may want later. **Held-out set**: the Capture sessions never trained or tuned on; not *test set*. **Hand point**: one of the four Calibration points clicked by hand on a Photo, from which pre-fill projects the rest; not *anchor*, which Calibration point already rules out | A |

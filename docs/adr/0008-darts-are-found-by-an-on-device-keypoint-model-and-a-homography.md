@@ -139,8 +139,12 @@ and settles three things this ADR left open.
   the `dataset/labels.pkl` in `wmcnally/deep-darts`, which carries that repository's no-licence status.
   DataPort's **`models.zip` is not used**: those weights were trained with the unlicensed code, and M2
   starts from its own permissively licensed initialisation.
-- **The licence rule is permissive licences only** (Apache, MIT, BSD and the like) for everything in
-  `ml/`'s lockfile, everything that trains, and everything that ships. Copyleft code (GPL, AGPL) stays
-  out of all three. The earlier wording, "Apache or MIT code only", contradicted this ADR's own table,
-  which counts BSD-3 ncnn as usable. labelme, which is GPL-3.0, runs beside `ml/` through `uvx` to
-  label Photos and never enters the lockfile, training or the app.
+- **The licence rule is permissive licences only** (Apache, MIT, BSD and the like) for the code we
+  adapt, train with, or ship. Copyleft code (GPL, AGPL) is none of those. The earlier wording, "Apache
+  or MIT code only", contradicted this ADR's own table, which counts BSD-3 ncnn as usable.
+  - **A runtime library bundled inside a dev tool's wheel** under a runtime exception or the LGPL is
+    allowed, and listed in `ml/README.md`'s licence table. Today that is libgfortran (GPL-3.0 with the
+    GCC Runtime Library Exception) and libquadmath (LGPL-2.1-or-later), both in NumPy's Linux wheel.
+    They are allowed because `ml/` never ships: the app ships only the exported weights.
+  - labelme, which is GPL-3.0, runs beside `ml/` through `uvx` to label Photos and never enters the
+    lockfile, training or the app.
