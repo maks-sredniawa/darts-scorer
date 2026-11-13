@@ -118,6 +118,30 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
 
+  # ml/'s tests (phase-M1.md §2). Synthetic Boards only: no Photo, label or weight is ever in the
+  # repository for a test to read. Only uv's downloads are cached; the tests run every time.
+  ml:
+    name: ml tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-python: true
+          cache-dependency-glob: ml/uv.lock
+
+      - name: Install jpegtran
+        run: sudo apt-get update && sudo apt-get install --yes libjpeg-turbo-progs
+
+      # --locked, not --frozen: fails when uv.lock and pyproject.toml disagree.
+      - name: Sync the locked environment
+        run: uv sync --locked --directory ml
+
+      - name: Tests
+        run: uv run --locked --directory ml python -m unittest discover -s tests
+
   instrumented:
     name: Instrumented tests (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
