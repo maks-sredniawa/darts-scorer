@@ -36,7 +36,7 @@ class LoopTest(unittest.TestCase):
                 orientation = ORIENTATIONS[index % len(ORIENTATIONS)]
                 stored = as_stored(upright.convert("RGB"), orientation)
             jpeg_with_exif(stored, inbox / f"IMG_{900 - index}.jpg", orientation=orientation,
-                           taken=start + dt.timedelta(seconds=20 * index))
+                           taken=start + dt.timedelta(seconds=75 * (index // 3) + 10 * (index % 3)))
         shutil.rmtree(self.data.photos("s01"))
         return truths
 
