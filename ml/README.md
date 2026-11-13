@@ -14,7 +14,8 @@ uv run --directory ml darts-ml paths        # prints DARTS_DATA, refuses one ins
 ```
 
 `DARTS_DATA` defaults to `~/darts-scorer-data`. `paths.py` refuses any value that resolves inside the
-repository, symlinks followed.
+repository or one of its worktrees, symlinks followed, and the same for every folder under it that the
+loop reads or writes.
 
 ## The sheet
 

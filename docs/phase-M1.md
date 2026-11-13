@@ -308,8 +308,9 @@ test idiom.
      build/                              generated records for M2; regenerated, never edited
    ```
 2. **`paths.py` refuses a `DARTS_DATA` that resolves inside the repo**, with symlinks followed, and
-   says why. Without this, the `.gitignore` would be the only thing in the way, and `.toml` sheets
-   would get past it.
+   says why. The repo is every worktree of the clone, found from git's common directory, and the
+   same check runs on each folder under `DARTS_DATA` the loop reads or writes. Without this, the
+   `.gitignore` would be the only thing in the way, and `.toml` sheets would get past it.
 3. **The `.gitignore` fence** (§0) is the second line.
 
 ### Ingest
@@ -836,8 +837,9 @@ leak a Photo:
 - **`HeldOutTest`** checks that the builder, given a held-out Photo by name, by hash or by Capture
   session, refuses it, and that `verify-held-out` fails on one changed byte. It fails towards a
   Held-out set that leaks into training.
-- **`PathsTest`** checks that a `DARTS_DATA` inside the repo is refused, including through a
-  symlink. It fails towards Photos sitting where git can reach them.
+- **`PathsTest`** checks that a `DARTS_DATA` inside the repo or a sibling worktree is refused,
+  including through a symlink, and so is a symlinked folder under it. It fails towards Photos
+  sitting where git can reach them.
 - **`DeepDartsTest`** checks that the restricted unpickler loads a DataFrame built in the test and
   refuses a pickle that names any other class. It fails towards running code from a download.
 - **`IngestTest`** checks that a test JPEG with GPS and an orientation tag comes out upright with no
