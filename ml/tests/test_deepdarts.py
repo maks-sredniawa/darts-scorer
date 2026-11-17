@@ -1,6 +1,9 @@
 import io
 import pickle
+import pickletools
+import sys
 import unittest
+from unittest import mock
 
 import numpy as np
 import pandas as pd
@@ -29,6 +32,30 @@ class _Calls:
         return self.reduced
 
 
+DATAPORT_2021 = {
+    ("builtins", "slice"),
+    ("numpy", "dtype"),
+    ("numpy", "ndarray"),
+    ("numpy.core.multiarray", "_reconstruct"),
+    ("numpy.core.multiarray", "scalar"),
+    ("pandas.core.frame", "DataFrame"),
+    ("pandas.core.indexes.base", "Index"),
+    ("pandas.core.indexes.base", "_new_Index"),
+    ("pandas.core.indexes.range", "RangeIndex"),
+    ("pandas.core.internals.managers", "BlockManager"),
+}
+_TODAY_TO_2021 = {
+    b"cnumpy._core.multiarray\n": b"cnumpy.core.multiarray\n",
+    b"cpandas\nDataFrame\n": b"cpandas.core.frame\nDataFrame\n",
+    b"cpandas\nIndex\n": b"cpandas.core.indexes.base\nIndex\n",
+    b"cpandas\nRangeIndex\n": b"cpandas.core.indexes.range\nRangeIndex\n",
+}
+
+
+def _globals(data: bytes) -> set[tuple[str, str]]:
+    return {tuple(arg.split(" ", 1)) for op, arg, _ in pickletools.genops(data) if op.name == "GLOBAL"}
+
+
 def _frame(rows) -> pd.DataFrame:
     frame = pd.DataFrame(rows, columns=["img_folder", "img_name", "bbox", "xy"], dtype=object)
     frame.columns = pd.Index(list(frame.columns), dtype=object)
@@ -48,6 +75,17 @@ class RestrictedUnpicklerTest(unittest.TestCase):
         frame = _frame([["d1_02_04_2020", "IMG_1.JPG", [1, 2, 3, 4], [[0.4, 0.1], [0.6, 0.9], [0.1, 0.6], [0.9, 0.4]]]])
         self.path.write_bytes(pickle.dumps(frame, protocol=4))
         loaded = load_labels(self.path)
+        self.assertEqual(loaded.to_dict("records"), frame.to_dict("records"))
+
+    def test_loads_the_class_paths_of_the_2021_dataport_file(self):
+        frame = _frame([["d1_02_04_2020", "IMG_1.JPG", [np.int64(v) for v in (1, 2, 3, 4)], [[0.4, 0.1], [0.6, 0.9], [0.1, 0.6], [0.9, 0.4]]]])
+        data = pickle.dumps(frame, protocol=3)
+        for today, then in _TODAY_TO_2021.items():
+            data = data.replace(today, then)
+        self.assertEqual(_globals(data), DATAPORT_2021 | {("pandas._libs.internals", "_unpickle_block")})
+        self.path.write_bytes(data)
+        with mock.patch.dict(sys.modules, {"numpy.core": None, "numpy.core.multiarray": None}):
+            loaded = load_labels(self.path)
         self.assertEqual(loaded.to_dict("records"), frame.to_dict("records"))
 
     def test_refuses_any_other_class_before_running_it(self):
