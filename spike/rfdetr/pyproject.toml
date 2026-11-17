@@ -1,0 +1,17 @@
+[project]
+name = "m2-rfdetr"
+version = "0.0.0"
+description = "Throwaway M2 toolchain trial, candidate B: RF-DETR keypoint on the same synthetic boards"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "m2-spike",
+    "rfdetr[train,loggers,augment,onnx]>=1.12.1",
+]
+
+[tool.uv.sources]
+m2-spike = { path = "..", editable = true }
+darts-ml = { path = "../../ml" }
+
+[build-system]
+requires = ["uv_build>=0.12,<0.14"]
+build-backend = "uv_build"
