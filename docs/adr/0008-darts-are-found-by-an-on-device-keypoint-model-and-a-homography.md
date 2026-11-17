@@ -148,3 +148,20 @@ and settles three things this ADR left open.
     They are allowed because `ml/` never ships: the app ships only the exported weights.
   - labelme, which is GPL-3.0, runs beside `ml/` through `uvx` to label Photos and never enters the
     lockfile, training or the app.
+
+## Amendment — 2026-11-17: a GPL library inside the training runtime
+
+Phase M2's gate ([`phase-M2.md`](../phase-M2.md) §1) found that PyTorch's ROCm build, the one that
+trains on this machine's AMD GPU, bundles SuiteSparse's `libcholmod` with its Supernodal and Modify
+modules, which are GPL-2.0-or-later. The rule above allowed only the LGPL or a runtime exception, so
+it ruled the GPU out. The owner chose, on the gate's reading (9.7 minutes an epoch on the GPU, 20.9 on
+the CPU), to allow this case:
+
+- **A library under the GPL, bundled inside a dev tool's wheel, is allowed when the training never
+  calls it and it never ships.** It is listed in `ml/README.md`'s licence table with what it is and
+  why it is there. Today that is `libcholmod`, loaded with the ROCm runtime's sparse solvers, which a
+  keypoint model does not use.
+- **What did not change:** the code we adapt, train with or ship is permissive only, and nothing GPL
+  reaches the app. The GPL governs distributing the library; `ml/` is never distributed, and the
+  exported weights are the model's, not a work based on a sparse solver.
+- A GPL library that the training *does* call, or one that would ship, is still out.

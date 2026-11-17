@@ -96,7 +96,7 @@ argument.
 | **A** | **The gate**: does a training step run on this machine, and how fast | code | `chore(ml):` (the probe), `docs:` (the verdict) | D1, D3 |
 | **B** | **The training code**: dataset from the records, model, loss, decode, the predictions writer, `darts-ml train` and `darts-ml predict`, tests | code | `chore(ml):` | A |
 | **C** | **The Board, on DeepDarts**: Calibration points only; the error in mm at the wires on DeepDarts' val and test splits | code + compute | `docs:` (readings) | B |
-| **D** | **The Darts, on DeepDarts**: Entry points added; DeepDarts' D1 and D2 test splits scored beside the paper's 94.7% and 84.0% | code + compute | `docs:` (readings) | C |
+| **D** | **The Darts, on DeepDarts**: Entry points added; DeepDarts' face-on (`d1_`) and angled (`d2_`) test folders scored beside the paper's 94.7% and 84.0% | code + compute | `docs:` (readings) | C |
 | **E** | **Export**: the model in D4's runtime, its size, its parity with PyTorch, its latency on an emulator; ADR-0008 amended | code | `chore(ml):` + `docs(adr):` | D |
 | **F** | **The owner's Photos**: trained on DeepDarts plus the owner's training Capture sessions, chosen on the Validation sessions | code + compute | `docs:` (readings) | E, and M1's G (the freeze) |
 | **G** | **The bar**: `evaluate` on the Held-out set, within D6's budget | code | `docs:` (the verdict) | F |
@@ -144,14 +144,14 @@ question, not an assumption.
 
 ### The verdicts, decided now rather than argued about later
 
-Every outcome lands in exactly one of these. A device *works* when it runs the probe and, for the
-GPU, passes the parity check below.
+Every outcome lands in exactly one of these. A device *works* when it runs the probe, its build of
+PyTorch is allowed by ADR-0008's licence rule, and, for the GPU, it passes the parity check below.
 
 1. **ROCm works and its epoch takes ≤ 15 minutes** → train on the GPU. A 30-epoch run is an evening.
 2. **Otherwise, the faster device that works takes ≤ 60 minutes an epoch** → train on it, with
    fewer, longer runs for C and D. The verdict says that D2's from-scratch choice is the one most
    hurt.
-3. **Otherwise** (the faster device that works takes more than 60 minutes an epoch) → D3 comes back
+3. **Otherwise** (no device works, or the faster one that does takes more than 60 minutes an epoch) → D3 comes back
    to you: a rented GPU for DeepDarts-only runs (A–E), and F on this machine regardless, since the
    owner's Photos stay here.
 
@@ -162,9 +162,23 @@ when its mean loss over steps 151–200 is within 5% of the CPU's, and both curv
 mean over steps 151–200 is below half its mean over steps 1–10. A GPU run that fails this counts as
 not working, whatever its speed.
 
-### The verdict, taken *(date)*
+### The verdict, taken 2026-11-17: 1, train on the GPU
 
-*(Which one, the reading behind it.)*
+- **The GPU works.** PyTorch 2.14.1 with ROCm 7.14 runs on the Radeon 8050S (gfx1151) with nothing
+  installed system-wide: the wheel carries ROCm, and the kernel driver was already there. **9.7
+  minutes an epoch** at 512 pixels, batch 16 (22.0 Photos a second).
+- **The CPU works too, at 20.9 minutes an epoch** (10.2 Photos a second), so verdict 2 was the
+  fallback: the GPU buys a factor of two, not the phase.
+- **Parity holds.** Mean loss over steps 151–200: 0.180 on the GPU, 0.183 on the CPU, 1.7% apart.
+  Both fall from about 2.40 over steps 1–10. The first five losses agree to three decimals.
+- **What neither verdict anticipated: the licence.** The ROCm runtime bundles SuiteSparse's
+  `libcholmod` built with its Supernodal and Modify modules, which are GPL-2.0-or-later, not LGPL.
+  Training loads it with the rest of the runtime and never calls it, and it never ships. ADR-0008's
+  rule as worded ruled that wheel out; the owner amended the rule the same day to allow exactly this
+  case (ADR-0008, 2026-11-17), so the GPU *works* in the sense above. Without that amendment the
+  verdict would have been 2, on the CPU.
+- MIOpen ships no tuned kernel database for gfx1151 and warns so; it picks kernels at run time. The
+  9.7 minutes is with that, so tuning can only make it shorter.
 
 ## 2. The model
 
@@ -175,9 +189,15 @@ at a quarter of the input resolution:
 - **81 heatmaps**: one per Calibration point, by name, and one shared by all Entry points, since a
   Photo holds any number of Darts and they have no order;
 - **2 offset channels**: the sub-pixel distance from each heatmap cell to the true point, so a point is
-  not rounded to a 4-pixel grid. Two Entry points in the same heatmap cell share one offset, so the
-  second is placed at the cell's grid position; at stride 4 that takes two Entry points within 4
-  input pixels, which is rare.
+  not rounded to a 4-pixel grid.
+
+**Grouped Darts are the hard case for one Entry channel.** At 512 pixels on an 800-pixel crop a
+heatmap cell is about 3.5 mm of Board. Two Entry points in one cell decode as one Dart, and two a
+cell or two apart blur into one peak if the target Gaussian is wide; M1 captures grouped Visits on
+purpose, so this is not rare. The Entry channel's target Gaussian is therefore half as wide as the
+Calibration channels' (σ of 1 cell, not 2), and B reads on DeepDarts' val split the share of Dart
+pairs closer than 10 mm that decode as two Darts. Below 95%, the Entry channel moves to a stride-2
+output before C trains anything on it.
 
 **Decoding.** A Calibration point is the peak of its channel, if the peak clears a threshold; an
 Entry point is every local maximum of its channel above a threshold. The offsets refine each. The
@@ -313,9 +333,10 @@ keep the Held-out set unseen and the bar honest:
 
 | Document | Change | At |
 | --- | --- | --- |
+| ADR-0008 | dated amendment: a plain-GPL library bundled in a training tool's wheel, loaded and never called, never shipped, is allowed and listed (taken 2026-11-17, from A's licence finding) | A |
 | ADR-0008 | dated amendment: the model (D1), the runtime and its readings (D4, §5), where the weights start (D2) | E |
 | `CONTEXT.md` | **Validation sessions**: the training Capture sessions set aside to choose between models, never the Held-out set | B |
-| `ml/README.md` | `train`, `predict`, the runs folder; PyTorch and torchvision, and every library the ROCm wheel bundles, in the licence table. That table is where the ROCm wheel is checked: a bundled library under plain GPL (no runtime exception, not LGPL) rules the wheel out under ADR-0008's amended licence rule, and training uses the CPU wheel | A, B |
+| `ml/README.md` | `train`, `predict`, the runs folder; PyTorch and torchvision, and every library the ROCm wheel bundles, in the licence table, with the libraries the ROCm runtime bundles under the LGPL, a runtime exception or, by ADR-0008's 2026-11-17 amendment, the GPL | A, B |
 | `CLAUDE.md` | the `train` and `predict` commands | B |
 | `PLAN.md`, `DOD.md` | M2 ticked; phase 1's `minSdk` item gets E's latency and size | H |
 
@@ -347,9 +368,9 @@ with the command that took them. Each training reading names its run folder.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | **The gate.** Epoch time on the GPU (ROCm) and on the CPU; the first 200 losses compared | `darts-ml train --probe` under each build | *(A)* |
+| R1 | **The gate.** Epoch time on the GPU (ROCm) and on the CPU; the first 200 losses compared | `darts-ml train --probe --device gpu`, then `--device cpu` | **Verdict 1, 2026-11-17.** GPU (Radeon 8050S, ROCm 7.14): 9.7 min an epoch, 22.0 Photos/s. CPU: 20.9 min, 10.2 Photos/s. Loss over steps 151–200: 0.180 against 0.183, 1.7% apart; both from about 2.40 over steps 1–10. 512 px, batch 16, seed 0, `runs/probes/` |
 | R2 | The Board on DeepDarts: found share, and median / 95th percentile error at the treble and double wires, on val and on test | `darts-ml evaluate`-style figures on DeepDarts, from the chosen C run | *(C)* |
-| R3 | The Darts on DeepDarts: share of D1 test and of D2 test Photos scored right, the paper's way (total), beside 94.7% and 84.0%; and Dart by Dart | the chosen D run | *(D)* |
+| R3 | The Darts on DeepDarts: share of the face-on (`d1_`) and of the angled (`d2_`) test Photos scored right, the paper's way (total), beside 94.7% and 84.0%; and Dart by Dart | the chosen D run | *(D)* |
 | R4 | Export, per runtime tried: model size, runtime size per ABI, parity in mm over 1,070 val Photos, emulator latency of both passes, operations that failed | `darts-ml export` and its report | *(E)* |
 | R5 | The owner's Photos: B1 and B2 on the Validation sessions for the chosen F run | the chosen F run | *(F)* |
 | R6 | **The bar**, each reading: date, commit, weights SHA-256, then every row of `evaluate` | `darts-ml evaluate --predictions <file>` | *(G)* |
