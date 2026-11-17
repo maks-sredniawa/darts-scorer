@@ -101,18 +101,49 @@ uv run --directory ml darts-ml deepdarts overlay --sample 10  # R3: drawn number
 
 ## Training (phase M2)
 
-[`docs/phase-M2.md`](../docs/phase-M2.md). The model, its training samples and the probe; `train` and
-`predict` proper arrive with checkpoint B.
+[`docs/phase-M2.md`](../docs/phase-M2.md): the model, its training samples, the decoder and the two
+passes, and the commands that train it and turn it into predictions.
 
 ```bash
-uv run --directory ml darts-ml train --probe                 # 200 steps on DeepDarts' training split
-uv run --directory ml darts-ml train --probe --device cpu    # the same on the CPU, for the parity check
+uv run --directory ml darts-ml train --name board-512 --board-only   # C: Calibration points only
+uv run --directory ml darts-ml train --name darts-512 --init <run>   # D: Entry points added, from C's weights
+uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, R3: a run's figures on DeepDarts
+uv run --directory ml darts-ml deepdarts grouped                     # pairs under 10 mm the targets decode as two
+uv run --directory ml darts-ml predict --run <run>                   # the predictions file, on the Held-out set
+uv run --directory ml darts-ml train --probe                         # gate A: time 200 steps (--device cpu for parity)
 ```
 
+- **`train`** writes each run to `$DARTS_DATA/runs/<date>-<name>/` and refuses a folder that exists:
+  `config.json` (every option, the commit, the hardware), `losses.jsonl` (one line per step),
+  `epochs.jsonl` (one line per epoch, with the validation figures) and the weights, `last.pt` and
+  `best.pt`. After each epoch it reads DeepDarts' `val` split through both passes, as `predict`
+  would, and keeps `best.pt` from the epoch that reads best: Photos scored exactly right, then Board
+  found; with `--board-only`, Board found, then the worse wire row's median. Weights never enter git.
+- **The samples** are augmented by default (`--no-augment` turns it off): the Board plane re-viewed
+  from a camera orbiting it up to 60° to either side, 20° up or down and rolled up to 30°; framed as
+  the second pass frames it (the outer double ring filling 70–90% of the side) seven times in ten,
+  and as a whole Photo (25–70%) otherwise; brightness, contrast, colour and blur. Labels move with the
+  pixels through the same matrix, and nothing mirrors the Board. The ranges are `Ranges` in
+  `augment.py`.
+- **Two passes** (phase-M2.md §2): the whole Photo, letterboxed, finds the Board; a square around the
+  outer double ring, the ring filling 80% of it, gives the points kept. A Calibration point is its
+  channel's peak, an Entry point every local maximum of its channel, both from 0.25 up, refined by
+  their offsets; an Entry point under 0.5 is `low_confidence`. RANSAC keeps the crossings within
+  3 mm of a four-point fit, and a Board needs eight of them.
+- **`predict`** reads the frozen manifest, refuses a Held-out set that fails `verify-held-out`, and
+  writes `predictions-held-out-<weights>-<time>.json` into the run folder, naming the run and the
+  SHA-256 of its weights. Reading it with `evaluate` is one of phase M2's three readings (D6).
+- **The fences.** DeepDarts' `test` split is served only to `deepdarts score`, never to training or
+  to choosing a run. The owner's records (`build/records.jsonl`, from checkpoint F) are refused
+  outright when one belongs to a held-out Capture session, by name or by the bytes of its Photo or
+  label, and the Validation sessions (`s09`, `s14`) are never in the training split. An inferred
+  Entry point, a Dart hidden in that Photo, is never a training target.
+- **`--probe`** writes `runs/probes/<device>-<size>-<batch>-<steps>steps[-bf16][-cl]-<time>.json`, never
+  over an earlier one, with the commit and any `MIOPEN_*` settings it ran under.
+
 `--device` is `auto` (the GPU if PyTorch sees one, else the CPU), `gpu` or `cpu`. A GPU is an AMD one
-through ROCm or an NVIDIA one through CUDA; PyTorch names both `cuda`, and the probe prints the real
-name. Each probe writes its losses to `$DARTS_DATA/runs/probes/`. The training samples never include
-DeepDarts' `test` split, which is read only for phase M2's readings.
+through ROCm or an NVIDIA one through CUDA; PyTorch names both `cuda`, and the run prints the real
+name. `--bf16` (bfloat16 autocast) and `--channels-last` are for the GPU.
 
 ## The Held-out set and the bar
 

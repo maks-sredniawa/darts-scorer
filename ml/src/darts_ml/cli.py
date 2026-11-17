@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import sys
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from .repeatability import repeatability
 from .review import review
 
 _INPUT_MULTIPLE = 32
+WEIGHTS = ("best", "last")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -31,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="darts-ml", description="Darts Scorer's labelling loop (phase M1)")
+    parser = argparse.ArgumentParser(prog="darts-ml", description="Darts Scorer's labelling loop (phase M1) and its model (phase M2)")
     steps = parser.add_subparsers(dest="step", required=True)
 
     def step(name: str, run, help_: str, *, capture_session=True, round_=False):
@@ -72,15 +74,32 @@ def _parser() -> argparse.ArgumentParser:
     evaluator.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
     trainer = step("train", _train, "train the keypoint model (phase-M2.md); --probe times 200 steps for the gate",
                    capture_session=False)
-    trainer.add_argument("--probe", action="store_true", required=True,
+    trainer.add_argument("--probe", action="store_true",
                          help="time 200 steps on DeepDarts' training split and project an epoch (gate A)")
+    trainer.add_argument("--name", help="the run's name; it is written to $DARTS_DATA/runs/<date>-<name>/")
     trainer.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto",
                          help="gpu: an AMD GPU through ROCm or an NVIDIA one through CUDA; auto: the GPU if PyTorch sees one, else the CPU")
-    trainer.add_argument("--steps", type=_positive, default=200)
+    trainer.add_argument("--steps", type=_positive, default=200, help="--probe only; default 200")
+    trainer.add_argument("--epochs", type=_positive, default=30)
     trainer.add_argument("--size", type=_input_size, default=512,
                          help=f"input size in pixels, a multiple of {_INPUT_MULTIPLE}; default 512")
     trainer.add_argument("--batch", type=_positive, default=16)
+    trainer.add_argument("--lr", type=float, default=1e-3)
     trainer.add_argument("--workers", type=_non_negative, default=8)
+    trainer.add_argument("--seed", type=int, default=0)
+    trainer.add_argument("--no-augment", dest="augment", action="store_false", help="train on the Photos as they are")
+    trainer.add_argument("--board-only", action="store_true", help="Calibration points only, no Entry points (checkpoint C)")
+    trainer.add_argument("--bf16", action="store_true", help="bfloat16 autocast on the GPU")
+    trainer.add_argument("--channels-last", action="store_true", help="channels-last memory layout")
+    trainer.add_argument("--init", metavar="RUN", help="start from that run's best weights instead of from scratch")
+    predictor = step("predict", _predict, "the predictions file `evaluate` reads, from a run's weights, on the Held-out set",
+                     capture_session=False)
+    predictor.add_argument("--run", required=True, help="the run folder's name under $DARTS_DATA/runs/")
+    predictor.add_argument("--weights", choices=WEIGHTS, default="best")
+    predictor.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
+    predictor.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    predictor.add_argument("--out", type=Path, help="default: predictions-held-out-<weights>-<time>.json in the run folder")
+    predictor.add_argument("--workers", type=_non_negative, default=4)
     deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
@@ -90,6 +109,17 @@ def _parser() -> argparse.ArgumentParser:
     sampler.add_argument("--sample", type=_positive, default=10, help="how many Photos; default 10")
     sampler.add_argument("--seed", type=int, default=0, help="which sample; default 0")
     sampler.set_defaults(run=_deepdarts_overlay)
+    scorer = actions.add_parser("score", help="a run's figures on DeepDarts' val or test split (phase-M2.md R2, R3)")
+    scorer.add_argument("--run", required=True)
+    scorer.add_argument("--weights", choices=WEIGHTS, default="best")
+    scorer.add_argument("--split", choices=("val", "test"), default="val")
+    scorer.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
+    scorer.add_argument("--workers", type=_non_negative, default=4)
+    scorer.set_defaults(run=_deepdarts_score)
+    grouped = actions.add_parser("grouped", help="the share of Dart pairs under 10 mm that the targets decode as two")
+    grouped.add_argument("--split", choices=("train", "val"), default="val")
+    grouped.add_argument("--size", type=_input_size, default=512)
+    grouped.set_defaults(run=_deepdarts_grouped)
     return parser
 
 
@@ -244,15 +274,68 @@ def _evaluate(args) -> int:
 
 
 def _train(args) -> int:
-    from .train import probe, save
+    from .locate import Speed
+    from .train import RunConfig, probe, probe_path, save, train
 
     data = DataDir.from_environment()
-    result = probe(data, args.device, args.steps, args.size, args.batch, args.workers)
-    target = data.runs() / "probes" / f"{result.device}-{result.size}-{result.batch}.json"
-    save(result, target)
-    print(f"{result.hardware}: {result.images_per_second:.1f} Photos/s at {result.size} px, batch {result.batch}; "
-          f"an epoch of {result.training_photos} Photos takes {result.epoch_minutes:.1f} min")
-    print(f"loss: step 1 {result.losses[0]:.3f}, step {result.steps} {result.losses[-1]:.3f}; written to {target}")
+    speed = Speed(args.bf16, args.channels_last)
+    if args.probe:
+        result = probe(data, args.device, args.steps, args.size, args.batch, args.workers, args.seed, speed)
+        target = probe_path(data, result, dt.datetime.now())
+        save(result, target)
+        print(f"{result.hardware}: {result.images_per_second:.1f} Photos/s at {result.size} px, batch {result.batch}; "
+              f"an epoch of {result.training_photos} Photos takes {result.epoch_minutes:.1f} min")
+        print(f"loss: step 1 {result.losses[0]:.3f}, step {result.steps} {result.losses[-1]:.3f}; written to {target}")
+        return 0
+    if not args.name:
+        raise DartsMlError("name the run with --name, or pass --probe")
+    config = RunConfig(args.name, args.device, args.epochs, args.size, args.batch, args.lr, workers=args.workers,
+                       seed=args.seed, augment=args.augment, board_only=args.board_only, bf16=args.bf16,
+                       channels_last=args.channels_last, init=args.init)
+    folder = train(data, config)
+    print(f"written to {folder}")
+    return 0
+
+
+def _predict(args) -> int:
+    from .predict import predict
+
+    target = predict(DataDir.from_environment(), args.run, args.weights, args.device, args.manifest, args.out,
+                     args.workers)
+    print(f"written to {target}")
+    print("Reading it with `darts-ml evaluate` is one of phase M2's three readings of the bar (D6)")
+    return 0
+
+
+def _deepdarts_score(args) -> int:
+    import json
+
+    from .locate import Inference, Speed, figures, locate
+    from .train import load_weights, resolve_device
+    from .training_data import deepdarts_reading_samples
+
+    data = DataDir.from_environment()
+    folder = data.runs() / args.run
+    config = json.loads((folder / "config.json").read_text(encoding="utf-8"))
+    device, _ = resolve_device(args.device)
+    speed = Speed(config["bf16"] and device == "cuda", config["channels_last"])
+    model = load_weights(folder / f"{args.weights}.pt", device).to(memory_format=speed.memory)
+    samples = deepdarts_reading_samples(data, args.split)
+    print(f"{len(samples)} DeepDarts {args.split} Photos ...", file=sys.stderr, flush=True)
+    reading = figures(samples, locate(Inference(model, device, config["size"], config["batch"], args.workers, speed),
+                                      [s.photo for s in samples]))
+    print("\n".join(reading.lines()))
+    return 0
+
+
+def _deepdarts_grouped(args) -> int:
+    from .locate import figures, located_from_targets
+    from .training_data import deepdarts_samples
+
+    samples = [s for s in deepdarts_samples(DataDir.from_environment(), args.split) if len(s.entries) > 1]
+    print(f"{len(samples)} DeepDarts {args.split} Photos with two or more Darts ...", file=sys.stderr, flush=True)
+    reading = figures(samples, [located_from_targets(s, args.size) for s in samples])
+    print(f"targets at {args.size} px decode {reading.grouped} of the Dart pairs under 10 mm as two Darts")
     return 0
 
 

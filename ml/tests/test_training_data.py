@@ -1,8 +1,11 @@
 import contextlib
+import datetime as dt
 import io
 import json
 import unittest
 from unittest import mock
+
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -13,8 +16,20 @@ from darts_ml.deepdarts import ORDER, PROJECTED, RECORDS, SOURCE, deepdarts_mm
 from darts_ml.homography import project
 from darts_ml.cli import main
 from darts_ml.model import ENTRY_CHANNEL, HEATMAPS, OUTPUTS, STRIDE, KeypointNet
-from darts_ml.train import WARMUP, loss_terms, probe, resolve_device
-from darts_ml.training_data import PROJECTED_WEIGHT, KeypointDataset, RefusedRecord, Sample, deepdarts_samples
+from darts_ml.heldout import FrozenPhoto, FrozenSession, HeldOutSet, file_sha256
+from darts_ml.records import RECORDS as OWNER_RECORDS
+from darts_ml.train import WARMUP, Probe, RunConfig, loss_terms, probe, probe_path, resolve_device, save, train
+from darts_ml.training_data import (
+    PROJECTED_WEIGHT,
+    TRAIN,
+    VALIDATION,
+    KeypointDataset,
+    RefusedRecord,
+    Sample,
+    deepdarts_reading_samples,
+    deepdarts_samples,
+    owner_samples,
+)
 from synthetic import TemporaryData, board_image, camera
 
 SIZE = (800, 800)
@@ -56,6 +71,7 @@ class TrainingDataTest(unittest.TestCase):
         self.assertEqual([s.photo.stem for s in deepdarts_samples(self.data, "val")], ["c"])
         with self.assertRaises(RefusedRecord):
             deepdarts_samples(self.data, "test")
+        self.assertEqual([s.photo.stem for s in deepdarts_reading_samples(self.data, "test")], ["b"])
 
     def test_moves_deepdarts_four_to_the_crossing_centres_and_weights_the_projected(self):
         self._write(self._record("a", "train"))
@@ -98,6 +114,69 @@ class TrainingDataTest(unittest.TestCase):
         np.testing.assert_allclose(entry_offsets[:, cell, cell].numpy(), (0.75, 0.25))
         self.assertEqual(float(calibration_mask[cell, cell]), 1.0)
         self.assertEqual(float(entry_mask[cell, cell]), 1.0)
+
+
+class OwnerFenceTest(unittest.TestCase):
+    def setUp(self):
+        self.td = TemporaryData()
+        self.data = self.td.data
+        self.to_image = camera()
+        self.records = []
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def _photo(self, session: str, name: str, colour=(70, 70, 70)) -> Path:
+        image = board_image(self.to_image)
+        image.putpixel((0, 0), colour)
+        return self.td.write_photo(session, name, image)
+
+    def _record(self, session: str, visit: int = 1, angle: int = 1, colour=(70, 70, 70)) -> None:
+        name = f"{session}-v{visit:02d}-p{angle}"
+        photo = self._photo(session, name, colour)
+        pixels = project(self.to_image, [p.mm for p in CALIBRATION_POINTS])
+        entry = project(self.to_image, [(30.0, 40.0), (-50.0, 20.0)])
+        self.records.append({
+            "source": "owner", "capture_session": session, "visit": visit, "angle": angle,
+            "photo": photo.relative_to(self.data.root).as_posix(), "photo_sha256": file_sha256(photo),
+            "calibration": [{"name": p.name, "x": float(x), "y": float(y), "source": "hand"}
+                            for p, (x, y) in zip(CALIBRATION_POINTS, pixels, strict=True)],
+            "entries": [{"x": float(entry[0][0]), "y": float(entry[0][1]), "inferred": False},
+                        {"x": float(entry[1][0]), "y": float(entry[1][1]), "inferred": True}],
+        })
+        path = self.data.build() / OWNER_RECORDS
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("".join(json.dumps(r) + "\n" for r in self.records), encoding="utf-8")
+
+    def test_validation_sessions_never_reach_training_and_are_the_whole_validation_split(self):
+        for session in ("s01", "s09", "s14", "s16"):
+            self._record(session)
+        nobody = HeldOutSet({}, {})
+        self.assertEqual({s.capture_session for s in owner_samples(self.data, nobody, TRAIN)}, {"s01", "s16"})
+        self.assertEqual({s.capture_session for s in owner_samples(self.data, nobody, VALIDATION)}, {"s09", "s14"})
+        with self.assertRaises(DartsMlError):
+            owner_samples(self.data, nobody, "held-out")
+
+    def test_an_inferred_entry_point_is_not_a_training_target(self):
+        self._record("s01")
+        [sample] = owner_samples(self.data, HeldOutSet({}, {}), TRAIN)
+        self.assertEqual(len(sample.entries), 1)
+
+    def test_a_held_out_capture_session_is_refused_by_name(self):
+        self._record("s01")
+        self._record("s04")
+        held = HeldOutSet({"s04": FrozenSession("sheet", "review")}, {"s04-v01-p1": FrozenPhoto("photo", "label")})
+        for split in (TRAIN, VALIDATION):
+            with self.subTest(split=split), self.assertRaisesRegex(RefusedRecord, "s04-v01-p1"):
+                owner_samples(self.data, held, split)
+
+    def test_a_held_out_photo_under_another_name_is_refused_by_its_hash(self):
+        self._record("s01", colour=(1, 2, 3))
+        held_photo = self._photo("s04", "s04-v01-p1", colour=(1, 2, 3))
+        held = HeldOutSet({"s04": FrozenSession("sheet", "review")},
+                          {"s04-v01-p1": FrozenPhoto(file_sha256(held_photo), "label")})
+        with self.assertRaisesRegex(RefusedRecord, "bytes"):
+            owner_samples(self.data, held, TRAIN)
 
 
 class ModelTest(unittest.TestCase):
@@ -145,6 +224,51 @@ class ProbeBoundsTest(unittest.TestCase):
                     main(["train", "--probe", *argv])
                 self.assertEqual(exit_.exception.code, 2)
                 self.assertIn(argv[0], error.getvalue())
+
+
+class RunTest(unittest.TestCase):
+    def setUp(self):
+        self.td = TemporaryData()
+        self.data = self.td.data
+        records = TrainingDataTest._record
+        holder = TrainingDataTest()
+        holder.data, holder.to_image = self.data, camera(yaw_deg=10.0, pitch_deg=5.0, distance_mm=900.0,
+                                                          focal_px=1200.0, size=SIZE)
+        lines = [records(holder, name, split) for name, split in (("a", "train"), ("b", "train"), ("c", "val"))]
+        (self.data.deepdarts() / RECORDS).write_text("".join(json.dumps(r) + "\n" for r in lines), encoding="utf-8")
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def test_a_run_writes_its_folder_once_and_never_overwrites_it(self):
+        config = RunConfig("smoke", device="cpu", epochs=1, size=64, batch=2, warmup_steps=1, workers=0)
+        today = dt.date(2026, 11, 17)
+        with contextlib.redirect_stderr(io.StringIO()):
+            folder = train(self.data, config, today)
+        self.assertEqual(folder, self.data.runs() / "2026-11-17-smoke")
+        for name in ("config.json", "losses.jsonl", "epochs.jsonl", "best.pt", "last.pt"):
+            self.assertTrue((folder / name).exists(), name)
+        [epoch] = [json.loads(line) for line in (folder / "epochs.jsonl").read_text().splitlines()]
+        self.assertEqual(epoch["figures"]["found"][1], 1)
+        self.assertEqual(json.loads((folder / "config.json").read_text())["validation_photos"], 1)
+        with self.assertRaisesRegex(DartsMlError, "never overwritten"):
+            train(self.data, config, today)
+
+    def test_a_run_name_is_a_plain_slug(self):
+        with self.assertRaisesRegex(DartsMlError, "--name"):
+            train(self.data, RunConfig("../escape", device="cpu"), dt.date(2026, 11, 17))
+
+
+class ProbeFileTest(unittest.TestCase):
+    def test_names_carry_steps_speed_and_time_and_never_overwrite(self):
+        td = TemporaryData()
+        self.addCleanup(td.cleanup)
+        result = Probe("cuda", "gpu", 512, 16, 50, 1.0, 1.0, 10, [1.0], bf16=True)
+        path = probe_path(td.data, result, dt.datetime(2026, 11, 17, 20, 18, 5))
+        self.assertEqual(path.name, "gpu-512-16-50steps-bf16-20261117-201805.json")
+        save(result, path)
+        with self.assertRaises(FileExistsError):
+            save(result, path)
 
 
 class DeviceTest(unittest.TestCase):
