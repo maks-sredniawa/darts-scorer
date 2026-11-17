@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import unittest
 from unittest import mock
@@ -9,9 +11,10 @@ from darts_ml import DartsMlError
 from darts_ml.board import CALIBRATION_BY_NAME, CALIBRATION_POINTS
 from darts_ml.deepdarts import ORDER, PROJECTED, RECORDS, SOURCE, deepdarts_mm
 from darts_ml.homography import project
+from darts_ml.cli import main
 from darts_ml.model import ENTRY_CHANNEL, HEATMAPS, OUTPUTS, STRIDE, KeypointNet
-from darts_ml.train import loss_terms, resolve_device
-from darts_ml.training_data import PROJECTED_WEIGHT, KeypointDataset, RefusedRecord, deepdarts_samples
+from darts_ml.train import WARMUP, loss_terms, probe, resolve_device
+from darts_ml.training_data import PROJECTED_WEIGHT, KeypointDataset, RefusedRecord, Sample, deepdarts_samples
 from synthetic import TemporaryData, board_image, camera
 
 SIZE = (800, 800)
@@ -63,10 +66,11 @@ class TrainingDataTest(unittest.TestCase):
             np.testing.assert_allclose((x, y), project(self.to_image, [point.mm])[0], atol=1e-6)
             self.assertEqual(weight, 1.0 if point.name in ORDER else PROJECTED_WEIGHT)
 
-    def test_a_point_lands_on_its_heatmap_peak_with_its_offset(self):
+    def test_a_point_lands_on_its_heatmap_peak_with_its_offset_in_its_own_kind(self):
         self._write(self._record("a", "train"))
         [sample] = deepdarts_samples(self.data, "train")
-        image, heatmaps, weights, offsets, mask = KeypointDataset([sample], 512)[0]
+        image, heatmaps, _, calibration_offsets, calibration_mask, entry_offsets, entry_mask = \
+            KeypointDataset([sample], 512)[0]
         self.assertEqual(tuple(image.shape), (3, 512, 512))
         scale = 512 / SIZE[0] / STRIDE
         for channel, x, y, _ in sample.calibration[:3]:
@@ -74,9 +78,26 @@ class TrainingDataTest(unittest.TestCase):
             iy, ix = np.unravel_index(int(heatmaps[channel].argmax()), heatmaps[channel].shape)
             self.assertEqual((ix, iy), (int(cx), int(cy)))
             self.assertEqual(float(heatmaps[channel, iy, ix]), 1.0)
-            np.testing.assert_allclose(offsets[:, iy, ix].numpy(), (cx - ix, cy - iy), atol=1e-5)
-            self.assertEqual(float(mask[iy, ix]), 1.0)
-        self.assertEqual(float(heatmaps[ENTRY_CHANNEL].max()), 1.0)
+            np.testing.assert_allclose(calibration_offsets[:, iy, ix].numpy(), (cx - ix, cy - iy), atol=1e-5)
+            self.assertEqual(float(calibration_mask[iy, ix]), 1.0)
+        [(x, y)] = sample.entries
+        cx, cy = x * scale, y * scale
+        ix, iy = int(cx), int(cy)
+        self.assertEqual(float(heatmaps[ENTRY_CHANNEL, iy, ix]), 1.0)
+        np.testing.assert_allclose(entry_offsets[:, iy, ix].numpy(), (cx - ix, cy - iy), atol=1e-5)
+        self.assertEqual(float(entry_mask.sum()), 1.0)
+        self.assertEqual(float(entry_mask[iy, ix]), 1.0)
+
+    def test_an_entry_point_in_a_crossings_cell_leaves_the_crossings_offset(self):
+        photo = self.data.root / "cell.jpg"
+        board_image(self.to_image, size=SIZE).save(photo, "JPEG", quality=90)
+        sample = Sample(photo, ((0, 401.0, 403.0, 1.0),), ((403.0, 401.0),))
+        _, _, _, calibration_offsets, calibration_mask, entry_offsets, entry_mask = KeypointDataset([sample], 800)[0]
+        cell = 400 // STRIDE
+        np.testing.assert_allclose(calibration_offsets[:, cell, cell].numpy(), (0.25, 0.75))
+        np.testing.assert_allclose(entry_offsets[:, cell, cell].numpy(), (0.75, 0.25))
+        self.assertEqual(float(calibration_mask[cell, cell]), 1.0)
+        self.assertEqual(float(entry_mask[cell, cell]), 1.0)
 
 
 class ModelTest(unittest.TestCase):
@@ -89,8 +110,41 @@ class ModelTest(unittest.TestCase):
         heatmaps[0, 0, 5, 5] = 1.0
         mask = torch.zeros(1, cells, cells)
         mask[0, 5, 5] = 1.0
-        terms = loss_terms(output, heatmaps, torch.ones(1, HEATMAPS), torch.zeros(1, 2, cells, cells), mask)
+        offsets = torch.zeros(1, 2, cells, cells)
+        terms = loss_terms(output, heatmaps, torch.ones(1, HEATMAPS), offsets, mask, offsets, mask)
         self.assertTrue(all(torch.isfinite(t) for t in terms))
+
+
+class _Stub(torch.utils.data.Dataset):
+    def __len__(self):
+        return 20
+
+    def __getitem__(self, index):
+        return torch.zeros(1)
+
+
+class ProbeBoundsTest(unittest.TestCase):
+    def _probe(self, steps: int):
+        with mock.patch("darts_ml.train.deepdarts_samples", return_value=[None] * 20), \
+             mock.patch("darts_ml.train.KeypointDataset", return_value=_Stub()), \
+             mock.patch("darts_ml.train.KeypointNet", side_effect=AssertionError("trained past the bounds")):
+            return probe(None, "cpu", steps=steps, size=64, batch=4, workers=0)
+
+    def test_refuses_steps_inside_the_warmup(self):
+        with self.assertRaisesRegex(DartsMlError, "warm-up"):
+            self._probe(WARMUP)
+
+    def test_refuses_more_steps_than_one_epoch_of_batches(self):
+        with self.assertRaisesRegex(DartsMlError, "one epoch, 5 batches"):
+            self._probe(WARMUP + 1)
+
+    def test_size_off_the_stride_and_negative_workers_are_refused_by_the_parser(self):
+        for argv in (["--size", "500"], ["--size", "0"], ["--workers", "-1"]):
+            with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()) as error:
+                with self.assertRaises(SystemExit) as exit_:
+                    main(["train", "--probe", *argv])
+                self.assertEqual(exit_.exception.code, 2)
+                self.assertIn(argv[0], error.getvalue())
 
 
 class DeviceTest(unittest.TestCase):

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -11,7 +13,11 @@ STRIDE = 4
 CALIBRATION_CHANNELS = len(CALIBRATION_POINTS)
 ENTRY_CHANNEL = CALIBRATION_CHANNELS
 HEATMAPS = CALIBRATION_CHANNELS + 1
-OUTPUTS = HEATMAPS + 2
+CALIBRATION_OFFSETS = slice(HEATMAPS, HEATMAPS + 2)
+ENTRY_OFFSETS = slice(HEATMAPS + 2, HEATMAPS + 4)
+OUTPUTS = HEATMAPS + 4
+PRIOR = 0.01
+PRIOR_LOGIT = math.log(PRIOR / (1 - PRIOR))
 _TAPS = (3, 6, 12, 16)
 _WIDTH = 96
 
@@ -28,7 +34,7 @@ class KeypointNet(nn.Module):
             nn.ReLU(inplace=True),
         )
         self.out = nn.Conv2d(_WIDTH, OUTPUTS, 1)
-        nn.init.constant_(self.out.bias[:HEATMAPS], -4.6)
+        nn.init.constant_(self.out.bias[:HEATMAPS], PRIOR_LOGIT)
 
     def forward(self, image: torch.Tensor) -> torch.Tensor:
         taps = []

@@ -81,22 +81,24 @@ class KeypointDataset(torch.utils.data.Dataset):
         cells = self.size // STRIDE
         heatmaps = np.zeros((HEATMAPS, cells, cells), dtype=np.float32)
         weights = np.ones(HEATMAPS, dtype=np.float32)
-        offsets = np.zeros((2, cells, cells), dtype=np.float32)
-        mask = np.zeros((cells, cells), dtype=np.float32)
+        calibration_offsets, entry_offsets = np.zeros((2, 2, cells, cells), dtype=np.float32)
+        calibration_mask, entry_mask = np.zeros((2, cells, cells), dtype=np.float32)
         points = [(channel, x, y, w) for channel, x, y, w in sample.calibration]
         points += [(ENTRY_CHANNEL, x, y, 1.0) for x, y in sample.entries]
         for channel, x, y, weight in points:
             cx, cy = x * scale[0] / STRIDE, y * scale[1] / STRIDE
             if not (0 <= cx < cells and 0 <= cy < cells):
                 continue
-            _splat(heatmaps[channel], cx, cy, ENTRY_SIGMA_CELLS if channel == ENTRY_CHANNEL else SIGMA_CELLS)
-            if channel != ENTRY_CHANNEL:
+            entry = channel == ENTRY_CHANNEL
+            _splat(heatmaps[channel], cx, cy, ENTRY_SIGMA_CELLS if entry else SIGMA_CELLS)
+            if not entry:
                 weights[channel] = weight
             ix, iy = int(cx), int(cy)
+            offsets, mask = (entry_offsets, entry_mask) if entry else (calibration_offsets, calibration_mask)
             offsets[:, iy, ix] = (cx - ix, cy - iy)
             mask[iy, ix] = 1.0
-        return (torch.from_numpy(image.transpose(2, 0, 1).copy()), torch.from_numpy(heatmaps),
-                torch.from_numpy(weights), torch.from_numpy(offsets), torch.from_numpy(mask))
+        arrays = (heatmaps, weights, calibration_offsets, calibration_mask, entry_offsets, entry_mask)
+        return (torch.from_numpy(image.transpose(2, 0, 1).copy()), *map(torch.from_numpy, arrays))
 
 
 def _splat(heatmap: np.ndarray, cx: float, cy: float, sigma: float) -> None:

@@ -17,6 +17,8 @@ from .records import RECORDS, build
 from .repeatability import repeatability
 from .review import review
 
+_INPUT_MULTIPLE = 32
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
@@ -75,9 +77,10 @@ def _parser() -> argparse.ArgumentParser:
     trainer.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto",
                          help="gpu: an AMD GPU through ROCm or an NVIDIA one through CUDA; auto: the GPU if PyTorch sees one, else the CPU")
     trainer.add_argument("--steps", type=_positive, default=200)
-    trainer.add_argument("--size", type=_positive, default=512, help="input size in pixels; default 512")
+    trainer.add_argument("--size", type=_input_size, default=512,
+                         help=f"input size in pixels, a multiple of {_INPUT_MULTIPLE}; default 512")
     trainer.add_argument("--batch", type=_positive, default=16)
-    trainer.add_argument("--workers", type=int, default=8)
+    trainer.add_argument("--workers", type=_non_negative, default=8)
     deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
@@ -94,6 +97,21 @@ def _positive(text: str) -> int:
     value = int(text)
     if value < 1:
         raise argparse.ArgumentTypeError(f"{value} is not a positive count")
+    return value
+
+
+def _non_negative(text: str) -> int:
+    value = int(text)
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"{value} is negative")
+    return value
+
+
+def _input_size(text: str) -> int:
+    value = _positive(text)
+    if value % _INPUT_MULTIPLE:
+        raise argparse.ArgumentTypeError(
+            f"{value} is not a multiple of {_INPUT_MULTIPLE}, the backbone's stride; the output grid would not match the targets")
     return value
 
 
