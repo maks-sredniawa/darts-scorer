@@ -1,10 +1,14 @@
+import contextlib
 import dataclasses
+import io
 import json
 import unittest
+from unittest import mock
 
 import numpy as np
 import torch
 
+from darts_ml.cli import main
 from darts_ml.evaluate import PredictedEntry, evaluate
 from darts_ml.heldout import file_sha256, freeze
 from darts_ml.labelme import label_path, read_label
@@ -63,6 +67,14 @@ class PredictTest(unittest.TestCase):
         self.assertEqual(written["weights_sha256"], file_sha256(folder / "best.pt"))
         self.assertEqual(set(written["photos"]), set(self.held.photos))
         self.assertTrue(evaluate(self.data, path, self.manifest).found.total)
+
+    def test_a_missing_run_is_named_not_a_traceback(self):
+        for argv in (["predict", "--run", "nope"], ["deepdarts", "score", "--run", "nope"]):
+            err = io.StringIO()
+            with mock.patch.dict("os.environ", {"DARTS_DATA": str(self.data.root)}), contextlib.redirect_stderr(err):
+                code = main(argv)
+            self.assertEqual(code, 2, argv)
+            self.assertIn(f"no run at {self.data.runs() / 'nope'}", err.getvalue())
 
 
 if __name__ == "__main__":
