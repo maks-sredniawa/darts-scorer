@@ -188,8 +188,9 @@ at a quarter of the input resolution:
 
 - **81 heatmaps**: one per Calibration point, by name, and one shared by all Entry points, since a
   Photo holds any number of Darts and they have no order;
-- **2 offset channels**: the sub-pixel distance from each heatmap cell to the true point, so a point is
-  not rounded to a 4-pixel grid.
+- **4 offset channels**: the sub-pixel distance from each heatmap cell to the true point, so a point is
+  not rounded to a 4-pixel grid; two for Calibration points and two for Entry points, so a Dart
+  landing in a crossing's cell does not overwrite the crossing's offset.
 
 **Grouped Darts are the hard case for one Entry channel.** At 512 pixels on an 800-pixel crop a
 heatmap cell is about 3.5 mm of Board. Two Entry points in one cell decode as one Dart, and two a
