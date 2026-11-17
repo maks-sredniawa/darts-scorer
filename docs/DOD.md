@@ -45,6 +45,13 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 - [x] **DeepDarts in, or out** (D5): in, from DataPort with a free account; R2 and R3 in
       `phase-M1.md`.
 
+## Phase M2 — the model
+
+[`phase-M2.md`](phase-M2.md). A to E run on DeepDarts alone, alongside M1; F and G wait for M1's freeze.
+
+- [ ] **Answer the six decisions** at the top of `phase-M2.md`; D1–D5 before A, D6 before G.
+- [ ] **The gate (A):** R1, an epoch's time on this machine's GPU and CPU, and its verdict.
+
 ## Before the first upload
 
 - [x] **Delete what the app does not need.** Phase 0: reminders, the custom backup and sharing, the
