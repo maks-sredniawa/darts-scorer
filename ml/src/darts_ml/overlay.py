@@ -37,8 +37,8 @@ def overlay(data: DataDir, name: str, round_: Round = Round.A) -> list[str]:
     return written
 
 
-def render(image: Image.Image, label) -> Image.Image:
-    to_board = image_to_board(label.calibration)
+def render(image: Image.Image, label, to_board: np.ndarray | None = None) -> Image.Image:
+    to_board = image_to_board(label.calibration) if to_board is None else to_board
     to_image = invert(to_board)
     draw = ImageDraw.Draw(image)
     width = max(1, round(min(image.size) / 600))

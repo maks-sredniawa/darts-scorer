@@ -74,10 +74,17 @@ def _parser() -> argparse.ArgumentParser:
     actions.add_parser("convert", help="labels.pkl → deepdarts/records.jsonl, through the restricted unpickler"
                        ).set_defaults(run=_deepdarts_convert)
     sampler = actions.add_parser("overlay", help="draw the Board from DeepDarts' four points onto a sample of its Photos")
-    sampler.add_argument("--sample", type=int, default=10, help="how many Photos; default 10")
+    sampler.add_argument("--sample", type=_positive, default=10, help="how many Photos; default 10")
     sampler.add_argument("--seed", type=int, default=0, help="which sample; default 0")
     sampler.set_defaults(run=_deepdarts_overlay)
     return parser
+
+
+def _positive(text: str) -> int:
+    value = int(text)
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"{value} is not a positive count")
+    return value
 
 
 def _paths(args) -> int:

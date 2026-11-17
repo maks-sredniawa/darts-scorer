@@ -130,7 +130,11 @@ class ConvertTest(unittest.TestCase):
         self._photo("d1_02_04_2020", "IMG_1.JPG")
         broken = self._xy()
         broken[2][0] = float("nan")
+        corrupt = self.root / IMAGES / "d1_02_04_2020" / "IMG_3.JPG"
+        corrupt.write_bytes(b"not a jpeg")
         self._labels([
+            ["d1_02_04_2020", "IMG_1.JPG", [0, float("nan"), 0, 0], self._xy()],
+            ["d1_02_04_2020", "IMG_3.JPG", [0, 0, 0, 0], self._xy()],
             ["d1_02_04_2020", "../IMG_1.JPG", [0, 0, 0, 0], self._xy()],
             ["d1_02_04_2020", "IMG_2.JPG", [0, 0, 0, 0], self._xy()],
             ["d1_02_04_2020", "IMG_1.JPG", [0, 0, 0, 0], broken],
@@ -140,11 +144,13 @@ class ConvertTest(unittest.TestCase):
         converted = convert(self.data)
         self.assertEqual(converted.records, 1)
         reasons = [reason for _, reason in converted.skipped]
-        self.assertEqual(len(reasons), 4)
-        self.assertIn("not a plain name", reasons[0])
-        self.assertEqual(reasons[1], "no Photo")
-        self.assertIn("finite", reasons[2])
-        self.assertIn("3 points", reasons[3])
+        self.assertEqual(len(reasons), 6)
+        self.assertIn("bbox", reasons[0])
+        self.assertIn("cannot be read", reasons[1])
+        self.assertIn("not a plain name", reasons[2])
+        self.assertEqual(reasons[3], "no Photo")
+        self.assertIn("finite", reasons[4])
+        self.assertIn("3 points", reasons[5])
 
     def test_overlay_draws_a_sample_from_the_records(self):
         self._photo("d1_02_04_2020", "IMG_1.JPG")

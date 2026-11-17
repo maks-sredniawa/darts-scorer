@@ -85,6 +85,10 @@ def load_labels(path: Path):
     return frame
 
 
+def _deepdarts_mm() -> list[tuple[float, float]]:
+    return [board_point(RADIUS_MM, CALIBRATION_BY_NAME[n].degrees) for n in ORDER]
+
+
 def split_of(folder: str) -> str:
     if folder in TEST_FOLDERS:
         return "test"
@@ -127,14 +131,18 @@ def _record(root: Path, data_root: Path, folder: str, name: str, bbox, xy) -> di
     if not (_PLAIN_NAME.fullmatch(folder) and _PLAIN_NAME.fullmatch(name)):
         raise DartsMlError("the folder or file name is not a plain name")
     points = _points(xy)
+    crop = _crop(bbox)
     photo = root / IMAGES / folder / name
     if not photo.is_file():
         raise DartsMlError("no Photo")
-    with Image.open(photo) as image:
-        width, height = image.size
+    try:
+        with Image.open(photo) as image:
+            width, height = image.size
+    except OSError as error:
+        raise DartsMlError(f"the Photo cannot be read: {error}") from None
     pixels = [(x * width, y * height) for x, y in points]
     clicked = dict(zip(ORDER, pixels[:len(ORDER)], strict=True))
-    to_image = fit([board_point(RADIUS_MM, CALIBRATION_BY_NAME[n].degrees) for n in ORDER], list(clicked.values()))
+    to_image = fit(_deepdarts_mm(), list(clicked.values()))
     calibration = []
     for point in CALIBRATION_POINTS:
         if point.name in clicked:
@@ -149,11 +157,21 @@ def _record(root: Path, data_root: Path, folder: str, name: str, bbox, xy) -> di
         "photo": photo.relative_to(data_root).as_posix(),
         "width": width,
         "height": height,
-        "crop": [int(v) for v in bbox],
+        "crop": crop,
         "calibration": calibration,
         "photo_sha256": file_sha256(photo),
         "entries": [{"x": x, "y": y, "inferred": False} for x, y in pixels[len(ORDER):]],
     }
+
+
+def _crop(bbox) -> list[int]:
+    try:
+        crop = [float(v) for v in bbox]
+    except (TypeError, ValueError):
+        crop = []
+    if len(crop) != 4 or not all(math.isfinite(v) and v == int(v) for v in crop):
+        raise DartsMlError("bbox is not four whole numbers")
+    return [int(v) for v in crop]
 
 
 def _points(xy) -> list[tuple[float, float]]:
@@ -185,8 +203,10 @@ def overlay_sample(data: DataDir, count: int, seed: int = 0) -> list[str]:
         shapes = [Shape(c["name"], c["x"], c["y"]) for c in record["calibration"] if c["source"] == SOURCE]
         shapes += [Shape(ENTRY, e["x"], e["y"]) for e in record["entries"]]
         label = Label(Path(), record["photo"], record["width"], record["height"], False, tuple(shapes))
+        clicked = label.calibration
+        to_board = fit([clicked[n] for n in ORDER], _deepdarts_mm())
         with Image.open(data.root / record["photo"]) as image:
-            rendered = render(image.convert("RGB"), label)
+            rendered = render(image.convert("RGB"), label, to_board)
         name = f"{record['capture_session']}-{Path(record['photo']).stem}.jpg"
         rendered.save(target / name, quality=85)
         written.append(name)
