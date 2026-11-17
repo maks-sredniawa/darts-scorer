@@ -72,6 +72,27 @@ uv run --directory ml darts-ml repeatability s01
 `repeatability` reads only reviewed labels. A Hand point counts as dragged, because it was placed by
 hand.
 
+## DeepDarts
+
+phase-M1.md §4. From [IEEE DataPort](https://ieee-dataport.org/open-access/deepdarts-dataset), logged
+in: `labels_pkl.zip` and `cropped_images.zip` only, never the GitHub repo's `labels.pkl` and never
+`models.zip`. Unpack both into `$DARTS_DATA/deepdarts/` and keep their `sha256sum` beside them.
+
+```bash
+uv run --directory ml darts-ml deepdarts convert              # labels.pkl → deepdarts/records.jsonl
+uv run --directory ml darts-ml deepdarts overlay --sample 10  # R3: drawn numbers match the Board's own
+```
+
+- **`convert`** loads `labels_pkl/labels.pkl` through an unpickler that admits only the classes the
+  DataPort file names, at their 2021 paths or today's; anything else stops the load and names the
+  class. It is the only step that reads the pickle. It skips, and lists, a row whose names are not
+  plain file names, whose Photo is missing, or whose points are not four to seven finite numbers.
+- **Each record** is phase-M1.md §4's common record, plus `split` (`train`, `val` or `test`, by
+  DeepDarts' own folders) and `crop` (the row's `bbox`, unread). The four points keep DeepDarts'
+  positions on the outer edge of the double wire, 170.0 mm, as `source = "deepdarts"`; the other 76
+  crossings are projected through them as `deepdarts-projected`.
+- **`overlay`** reads the records, not the pickle, and writes into `overlays/deepdarts/`.
+
 ## The Held-out set and the bar
 
 phase-M1.md §6 and §7. The bar's numbers live once, in `BAR` in `evaluate.py`, and `BarTest` pins
@@ -193,6 +214,9 @@ and is listed in the last column: today NumPy's libgfortran and libquadmath.
 | NumPy 2.5.4 | BSD-3-Clause | OpenBLAS (BSD-3-Clause); libgfortran (GPL-3.0 with the GCC Runtime Library Exception); libquadmath (LGPL-2.1-or-later) |
 | Pillow 13.0.0 | MIT-CMU | libjpeg-turbo, libpng, zlib, libtiff, libwebp, lcms2, OpenJPEG, HarfBuzz, Brotli, libavif and others, all permissive; FreeType under its FTL (dual-licensed FTL or GPL-2.0) |
 | tomli-w 1.2.0 | MIT | — |
+| pandas 3.1.0 | BSD-3-Clause | — |
+| python-dateutil 4.0.0 | BSD-3-Clause | — |
+| tzdata 2026.6 | Apache-2.0 | — |
 
 Outside the lockfile: **labelme** (GPL-3.0) runs beside it through `uvx` and never ships;
 **jpegtran** (libjpeg-turbo, IJG and BSD-style) is a system tool. **OpenCV is not used**: nothing in
