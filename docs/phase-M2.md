@@ -16,8 +16,10 @@ writes its predictions in the format `evaluate` reads. The difference a reader c
 or, if it does not, the phase closes with the figures it reached and the decision that follows
 (§7). Phase 1 opens only on the first.
 
-**`PLAN.md`'s paragraph holds, with two additions said here first.** It says the Board comes first
-and the Darts second; that is checkpoints C and D. It does not say that most of M2 can run before
+**`PLAN.md`'s paragraph holds, with three additions said here first.** It says the Board comes first
+and the Darts second; that is checkpoints C and D. It says the Board is found "from a handheld
+photo", but C first finds it on DeepDarts' fixed-mount crops, because those are here today; the
+handheld reading arrives with the owner's Photos in F. It does not say that most of M2 can run before
 M1's Photos exist: everything up to E trains and measures on DeepDarts alone, which holds none of the
 owner's Photos and so cannot leak the Held-out set or flatter the bar. Only F and G wait for M1.
 And it does not say how often the bar may be read; §7 limits that, because a bar read after every
@@ -36,7 +38,7 @@ None of them moves the bar, which M1 fixed on 2026-11-13.
 | **D2** | **Where the weights start** (§2) | **From scratch.** ImageNet-pretrained backbones learn faster, but their weights come from a dataset whose terms are research-only, and the app is public with a Tip. DeepDarts gives 12,830 training Photos of one narrow subject, which is a reasonable amount to start from nothing. If C misses its reading by a wide margin, this comes back to you with the licence question written out, before any pretrained weight is downloaded |
 | **D3** | **Where training runs** (§1) | **On this machine.** Its Radeon 8050S (gfx1151, 16 GiB carve-out plus shared memory) through PyTorch's ROCm build if the gate (A) shows it works, its 24 CPU cores if not. A rented cloud GPU only for DeepDarts-only runs, and only if both local routes are too slow. **The owner's Photos never go to a cloud machine**: M1's D4 already rules out a cloud drive for them, and a rented GPU is the same thing with a bill |
 | **D4** | **The on-device runtime** (§5) | **LiteRT tried first, ONNX Runtime second**, chosen by E's readings (size, parity with PyTorch, latency on the emulator). Both are bundled in the app, not taken from Play services (ADR-0008). ncnn stays a fallback: fastest on CPU, but a C++ build to own |
-| **D5** | **The Validation sessions** (§3) | **s05 (phone 2, evening) and s09 (phone 1, day)**: one per phone, from the training rows, chosen now and high enough in M1's table that no shortfall drops them. Models are compared on these and on DeepDarts' own val split, never on the Held-out set. They cost a sixth of the owner's training Photos, about 90 |
+| **D5** | **The Validation sessions** (§3) | **s09 (phone 1, day) and s14 (phone 2, evening)**: one per phone, from the training rows, chosen now. While all 12 training rows are taken, each is the second row of its phone and light, so holding it out leaves every light trained: phone 1's day keeps s01 and s16, phone 2's evening keeps s05. M1's shortfall rule can drop either; §3 says what happens then. Models are compared on these and on DeepDarts' own val split, never on the Held-out set. They cost a sixth of the owner's training Photos, about 90 |
 | **D6** | **How often the bar may be read** (§7) | **At most three times**, each on a model the Validation sessions already say is ready, each recorded with its date, commit and weights hash. A third miss stops the phase and comes back to you; it is not a fourth try |
 
 ---
@@ -142,15 +144,23 @@ question, not an assumption.
 
 ### The verdicts, decided now rather than argued about later
 
-1. **ROCm runs and an epoch takes ≤ 15 minutes** → train on the GPU. A 30-epoch run is an evening.
-2. **ROCm fails, or is slower, and the CPU takes ≤ 60 minutes an epoch** → train on the CPU, overnight
-   runs, and C and D get fewer, longer runs. D2's from-scratch choice is the one most hurt; say so in
-   the verdict.
-3. **Both are slower** → D3 comes back to you: a rented GPU for DeepDarts-only runs (A–E), and F
-   on this machine regardless, since the owner's Photos stay here.
+Every outcome lands in exactly one of these. A device *works* when it runs the probe and, for the
+GPU, passes the parity check below.
 
-A GPU run whose first 200 losses differ from the CPU's by more than ordinary floating-point noise
-counts as failing, whatever its speed.
+1. **ROCm works and its epoch takes ≤ 15 minutes** → train on the GPU. A 30-epoch run is an evening.
+2. **Otherwise, the faster device that works takes ≤ 60 minutes an epoch** → train on it, with
+   fewer, longer runs for C and D. The verdict says that D2's from-scratch choice is the one most
+   hurt.
+3. **Otherwise** (the faster device that works takes more than 60 minutes an epoch) → D3 comes back
+   to you: a rented GPU for DeepDarts-only runs (A–E), and F on this machine regardless, since the
+   owner's Photos stay here.
+
+**The parity check.** The two probe runs start from the same initial weights, built on the CPU under
+one seed and then moved to the device; see the same batches in the same order, from a seeded loader
+with no augmentation in the probe; and share the input size, batch size and optimiser. The GPU passes
+when its mean loss over steps 151–200 is within 5% of the CPU's, and both curves fall: each run's
+mean over steps 151–200 is below half its mean over steps 1–10. A GPU run that fails this counts as
+not working, whatever its speed.
 
 ### The verdict, taken *(date)*
 
@@ -165,7 +175,9 @@ at a quarter of the input resolution:
 - **81 heatmaps**: one per Calibration point, by name, and one shared by all Entry points, since a
   Photo holds any number of Darts and they have no order;
 - **2 offset channels**: the sub-pixel distance from each heatmap cell to the true point, so a point is
-  not rounded to a 4-pixel grid.
+  not rounded to a 4-pixel grid. Two Entry points in the same heatmap cell share one offset, so the
+  second is placed at the cell's grid position; at stride 4 that takes two Entry points within 4
+  input pixels, which is rare.
 
 **Decoding.** A Calibration point is the peak of its channel, if the peak clears a threshold; an
 Entry point is every local maximum of its channel above a threshold. The offsets refine each. The
@@ -206,6 +218,13 @@ by itself, whatever it is asked: a DeepDarts record whose `split` is `test` in a
 validation set, an owner record from a held-out Capture session (read from the frozen manifest, as
 `build` does), and a Validation session in the training set. That is a second fence behind `build`'s,
 because a training loader is exactly the place one gets added back by a flag.
+
+**If hours run short in M1.** Its shortfall rule (phase-M1.md §3) runs first, unchanged, and can
+drop a Validation session: from the bottom up it drops s18, s16 and s14, skips s13 and s11 as phone
+1's only flash and phone 2's only harsh row, then drops s09. A dropped Validation session is not
+replaced. If no Validation session survives for a phone, F compares runs by leaving one Capture
+session out at a time over that phone's training sessions instead, and that stands in wherever this
+document says "the Validation sessions". It costs compute, not owner hours.
 
 **DeepDarts' projected points are trained on, at a lower weight.** The four clicked points carry full
 weight. The 76 projected through them are right only as far as four clicks are, and wrong by the
@@ -251,7 +270,7 @@ The ADR-0008 amendment records the runtime picked and these figures.
 ## 6. The owner's Photos (F)
 
 The model from E is trained further on DeepDarts' training split plus the owner's training Capture
-sessions, sampled so the owner's Photos make up about half of each batch despite being a twentieth of
+sessions, sampled so the owner's Photos make up about half of each batch despite being about a thirtieth of
 the data: they are the handheld case the bar is about. Runs are compared on the Validation sessions'
 B1 and B2. When one is ready, G reads the bar.
 
@@ -296,7 +315,7 @@ keep the Held-out set unseen and the bar honest:
 | --- | --- | --- |
 | ADR-0008 | dated amendment: the model (D1), the runtime and its readings (D4, §5), where the weights start (D2) | E |
 | `CONTEXT.md` | **Validation sessions**: the training Capture sessions set aside to choose between models, never the Held-out set | B |
-| `ml/README.md` | `train`, `predict`, the runs folder; PyTorch and torchvision, and every library the ROCm wheel bundles, in the licence table | A, B |
+| `ml/README.md` | `train`, `predict`, the runs folder; PyTorch and torchvision, and every library the ROCm wheel bundles, in the licence table. That table is where the ROCm wheel is checked: a bundled library under plain GPL (no runtime exception, not LGPL) rules the wheel out under ADR-0008's amended licence rule, and training uses the CPU wheel | A, B |
 | `CLAUDE.md` | the `train` and `predict` commands | B |
 | `PLAN.md`, `DOD.md` | M2 ticked; phase 1's `minSdk` item gets E's latency and size | H |
 
@@ -311,6 +330,10 @@ phase; phase 1, which ships the model, owes the DeepDarts credit on the licences
 - **The projected labels.** Training on DeepDarts' 76 projected points teaches whatever error four
   clicks carry. C's reading measures it; the owner's labels, clicked or checked at every crossing,
   correct it in F.
+- **The whole-Photo pass learns mostly from the owner's Photos.** DeepDarts' Photos are already
+  crops, so the first pass, which finds the Board in a whole Photo, has only the owner's 450 or so
+  training Photos showing a real room around a Board. DeepDarts crops shrunk onto a padded canvas
+  help a little, but their background is not a room.
 - **From scratch is slower to learn.** D2 trades accuracy, possibly, for a licence that is clean. C
   shows the cost.
 - **One Board.** As in M1: the Held-out set measures new Capture sessions, not new homes.
