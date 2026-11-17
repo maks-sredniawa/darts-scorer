@@ -17,6 +17,7 @@ from .paths import DataDir
 
 PROJECTED_WEIGHT = 0.5
 SIGMA_CELLS = 2.0
+ENTRY_SIGMA_CELLS = 1.0
 _INDEX = {point.name: i for i, point in enumerate(CALIBRATION_POINTS)}
 _MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 _STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
@@ -88,7 +89,7 @@ class KeypointDataset(torch.utils.data.Dataset):
             cx, cy = x * scale[0] / STRIDE, y * scale[1] / STRIDE
             if not (0 <= cx < cells and 0 <= cy < cells):
                 continue
-            _splat(heatmaps[channel], cx, cy)
+            _splat(heatmaps[channel], cx, cy, ENTRY_SIGMA_CELLS if channel == ENTRY_CHANNEL else SIGMA_CELLS)
             if channel != ENTRY_CHANNEL:
                 weights[channel] = weight
             ix, iy = int(cx), int(cy)
@@ -98,13 +99,13 @@ class KeypointDataset(torch.utils.data.Dataset):
                 torch.from_numpy(weights), torch.from_numpy(offsets), torch.from_numpy(mask))
 
 
-def _splat(heatmap: np.ndarray, cx: float, cy: float) -> None:
+def _splat(heatmap: np.ndarray, cx: float, cy: float, sigma: float) -> None:
     cells = heatmap.shape[0]
-    radius = int(3 * SIGMA_CELLS)
+    radius = int(3 * sigma)
     ix, iy = int(cx), int(cy)
     x0, x1 = max(0, ix - radius), min(cells, ix + radius + 1)
     y0, y1 = max(0, iy - radius), min(cells, iy + radius + 1)
     xs = np.arange(x0, x1) - ix
     ys = np.arange(y0, y1) - iy
-    patch = np.exp(-(xs[None, :] ** 2 + ys[:, None] ** 2) / (2 * SIGMA_CELLS**2))
+    patch = np.exp(-(xs[None, :] ** 2 + ys[:, None] ** 2) / (2 * sigma**2))
     np.maximum(heatmap[y0:y1, x0:x1], patch, out=heatmap[y0:y1, x0:x1])
