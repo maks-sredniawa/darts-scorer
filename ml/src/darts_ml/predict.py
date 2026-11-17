@@ -8,7 +8,7 @@ from . import DartsMlError
 from .heldout import MANIFEST, file_sha256, verified
 from .locate import Inference, Located, Speed, locate
 from .paths import DataDir
-from .train import load_weights, resolve_device
+from .train import load_weights, resolve_device, use_tuned_kernels
 
 HELD_OUT = "held-out"
 
@@ -39,6 +39,7 @@ def predict(data: DataDir, run: str, weights: str = "best", device: str = "auto"
     config = json.loads(config_path.read_text(encoding="utf-8"))
     held = verified(data, manifest)
     names = held.photo_names()
+    use_tuned_kernels(data)
     device, _ = resolve_device(device)
     speed = Speed(config["bf16"] and device == "cuda", config["channels_last"])
     weights_path = folder / f"{weights}.pt"

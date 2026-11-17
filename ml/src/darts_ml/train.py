@@ -50,6 +50,13 @@ def _offset_loss(predicted: torch.Tensor, offsets: torch.Tensor, mask: torch.Ten
     return error.sum() / mask.sum().clamp(min=1)
 
 
+def use_tuned_kernels(data: DataDir) -> None:
+    # MIOpen ships no tuned kernels for gfx1151; its user database, filled once by a run under
+    # MIOPEN_FIND_ENFORCE=SEARCH, makes later runs about 12% faster (phase-M2.md §1).
+    os.environ.setdefault("MIOPEN_USER_DB_PATH", str(data.miopen()))
+    os.environ.setdefault("MIOPEN_CUSTOM_CACHE_DIR", str(data.miopen() / "cache"))
+
+
 def resolve_device(choice: str) -> tuple[str, str]:
     gpu = torch.cuda.is_available()
     if choice == "gpu" and not gpu:
@@ -108,6 +115,7 @@ def probe(data: DataDir, choice: str, steps: int = 200, size: int = 512, batch: 
     if steps > len(loader):
         raise DartsMlError(f"--steps {steps} is more than one epoch, {len(loader)} batches of {batch} from "
                            f"{len(samples)} Photos; pass at most {len(loader)}")
+    use_tuned_kernels(data)
     model = _model(device, speed)
     optimiser = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     model.train()
@@ -198,6 +206,7 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
     folder = run_folder(data, config.name, today or dt.date.today())
     if folder.exists():
         raise DartsMlError(f"{folder} exists; a run is never overwritten, so give this one another --name")
+    use_tuned_kernels(data)
     device, hardware = resolve_device(config.device)
     config.speed.check(device)
     torch.manual_seed(config.seed)
