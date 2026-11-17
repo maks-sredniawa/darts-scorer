@@ -301,7 +301,7 @@ by its validation figures: on DeepDarts' val split in C and D, on the Validation
 the same B1 and B2 figures `evaluate` computes, so the number that chooses is the number that is
 judged.
 
-`darts-ml predict --run <run> --photos held-out` writes the predictions file `evaluate` reads. It is
+`darts-ml predict --run <run>` writes the predictions file `evaluate` reads. It is
 the only way a model's output reaches the Held-out set, and it records in the file which run made it.
 
 ## 5. Export and the runtime
