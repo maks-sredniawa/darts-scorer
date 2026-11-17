@@ -68,6 +68,16 @@ def _parser() -> argparse.ArgumentParser:
     evaluator.add_argument("--predictions", required=True, metavar="{labels,FILE}",
                            help=f"`{LABELS}` to read the labels as the predictions, or a predictions JSON file (ml/README.md)")
     evaluator.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    trainer = step("train", _train, "train the keypoint model (phase-M2.md); --probe times 200 steps for the gate",
+                   capture_session=False)
+    trainer.add_argument("--probe", action="store_true", required=True,
+                         help="time 200 steps on DeepDarts' training split and project an epoch (gate A)")
+    trainer.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto",
+                         help="gpu: an AMD GPU through ROCm or an NVIDIA one through CUDA; auto: the GPU if PyTorch sees one, else the CPU")
+    trainer.add_argument("--steps", type=_positive, default=200)
+    trainer.add_argument("--size", type=_positive, default=512, help="input size in pixels; default 512")
+    trainer.add_argument("--batch", type=_positive, default=16)
+    trainer.add_argument("--workers", type=int, default=8)
     deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
@@ -213,6 +223,19 @@ def _evaluate(args) -> int:
     result = evaluate(DataDir.from_environment(), args.predictions, args.manifest)
     print("\n".join(report(result)))
     return 0 if result.met else 1
+
+
+def _train(args) -> int:
+    from .train import probe, save
+
+    data = DataDir.from_environment()
+    result = probe(data, args.device, args.steps, args.size, args.batch, args.workers)
+    target = data.runs() / "probes" / f"{result.device}-{result.size}-{result.batch}.json"
+    save(result, target)
+    print(f"{result.hardware}: {result.images_per_second:.1f} Photos/s at {result.size} px, batch {result.batch}; "
+          f"an epoch of {result.training_photos} Photos takes {result.epoch_minutes:.1f} min")
+    print(f"loss: step 1 {result.losses[0]:.3f}, step {result.steps} {result.losses[-1]:.3f}; written to {target}")
+    return 0
 
 
 def _deepdarts_convert(args) -> int:
