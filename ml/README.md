@@ -9,9 +9,15 @@ in [`CONTEXT.md`](../CONTEXT.md).
 
 ```bash
 sudo apt install libjpeg-turbo-progs        # jpegtran, for ingest
-uv sync --locked --directory ml
+uv sync --locked --directory ml --extra rocm   # PyTorch for an AMD GPU (ROCm); --extra cpu for no GPU
 uv run --directory ml darts-ml paths        # prints DARTS_DATA, refuses one inside the repo, checks jpegtran
 ```
+
+PyTorch comes in one of two builds, the `rocm` and `cpu` extras, which cannot be installed together.
+Sync once with the one this machine wants: a later `uv sync` without it removes PyTorch, while `uv run`
+leaves it alone. The `rocm` build carries the whole ROCm runtime (about 17 GB installed) and needs only
+the kernel's `amdgpu` driver. The lock covers Linux on x86-64 only, and holds PyPI packages to releases
+before 2026-11-03 (`[tool.uv.exclude-newer-package]`); move that date forward deliberately.
 
 `DARTS_DATA` defaults to `~/darts-scorer-data`. `paths.py` refuses any value that resolves inside the
 repository or one of its worktrees, symlinks followed, and the same for every folder under it that the
@@ -92,6 +98,21 @@ uv run --directory ml darts-ml deepdarts overlay --sample 10  # R3: drawn number
   positions on the outer edge of the double wire, 170.0 mm, as `source = "deepdarts"`; the other 76
   crossings are projected through them as `deepdarts-projected`.
 - **`overlay`** reads the records, not the pickle, and writes into `overlays/deepdarts/`.
+
+## Training (phase M2)
+
+[`docs/phase-M2.md`](../docs/phase-M2.md). The model, its training samples and the probe; `train` and
+`predict` proper arrive with checkpoint B.
+
+```bash
+uv run --directory ml darts-ml train --probe                 # 200 steps on DeepDarts' training split
+uv run --directory ml darts-ml train --probe --device cpu    # the same on the CPU, for the parity check
+```
+
+`--device` is `auto` (the GPU if PyTorch sees one, else the CPU), `gpu` or `cpu`. A GPU is an AMD one
+through ROCm or an NVIDIA one through CUDA; PyTorch names both `cuda`, and the probe prints the real
+name. Each probe writes its losses to `$DARTS_DATA/runs/probes/`. The training samples never include
+DeepDarts' `test` split, which is read only for phase M2's readings.
 
 ## The Held-out set and the bar
 
@@ -217,6 +238,14 @@ and is listed in the last column: today NumPy's libgfortran and libquadmath.
 | pandas 3.1.0 | BSD-3-Clause | — |
 | python-dateutil 4.0.0 | BSD-3-Clause | — |
 | tzdata 2026.6 | Apache-2.0 | — |
+| PyTorch 2.14.1 (`cpu` and `rocm` extras) | BSD-3-Clause, with Apache-2.0, MIT, BSD-2-Clause and BSL-1.0 third-party parts | libgomp (GPL-3.0 with the GCC Runtime Library Exception) |
+| torchvision 0.29.1 | BSD-3-Clause | — |
+| ROCm 7.14.1 runtime (`rocm`, `rocm-sdk-core`, `rocm-sdk-libraries`, `rocm-sdk-device-*`; `rocm` extra only) | MIT and Apache-2.0, per component | under the LGPL: elfutils' libelf, libdw and libasm (LGPL-3.0-or-later, or GPL-2.0-or-later), libnuma, libnl, libmnl, util-linux's libblkid and libmount (LGPL-2.1-or-later), GMP and MPFR (LGPL-3.0-or-later). **Under the GPL**: SuiteSparse's libcholmod with its Supernodal and Modify modules (GPL-2.0-or-later), loaded with the runtime's sparse solvers and never called by training (ADR-0008, 2026-11-17). The rest permissive: libdrm, ncurses, SQLite, zstd, zlib, LLVM and others |
+| triton-rocm 3.8.0 (`rocm` extra only) | MIT | — |
+| sympy 1.14.0, mpmath 1.3.0 | BSD-3-Clause | — |
+| networkx 3.7, fsspec 2026.9.0, Jinja2 3.1.6, MarkupSafe 3.0.4 | BSD-3-Clause | — |
+| filelock 4.2.7, setuptools 84.2.1 | MIT | — |
+| typing-extensions 4.16.0 | PSF-2.0 | — |
 
 Outside the lockfile: **labelme** (GPL-3.0) runs beside it through `uvx` and never ships;
 **jpegtran** (libjpeg-turbo, IJG and BSD-style) is a system tool. **OpenCV is not used**: nothing in
