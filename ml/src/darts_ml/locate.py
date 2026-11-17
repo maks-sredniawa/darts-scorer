@@ -117,7 +117,6 @@ def _board(matrix: np.ndarray, logits: np.ndarray) -> Located:
     )
 
 
-# phase-M2.md §2, two passes: the whole Photo finds the Board, then a square around it gives the points kept.
 def locate(run: Inference, photos: list[Path]) -> list[Located]:
     sizes = []
     for path in photos:
@@ -226,7 +225,6 @@ def _matched(truth: np.ndarray, guess: np.ndarray) -> set[int]:
     return taken_truth
 
 
-# What a model reproducing its training targets exactly would decode: the limit of the output encoding itself.
 def located_from_targets(sample: Sample, size: int) -> Located:
     to_photo = sample.board_to_photo()
     matrix = framing(to_photo, size)
