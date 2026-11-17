@@ -85,7 +85,7 @@ def load_labels(path: Path):
     return frame
 
 
-def _deepdarts_mm() -> list[tuple[float, float]]:
+def deepdarts_mm() -> list[tuple[float, float]]:
     return [board_point(RADIUS_MM, CALIBRATION_BY_NAME[n].degrees) for n in ORDER]
 
 
@@ -142,7 +142,7 @@ def _record(root: Path, data_root: Path, folder: str, name: str, bbox, xy) -> di
         raise DartsMlError(f"the Photo cannot be read: {error}") from None
     pixels = [(x * width, y * height) for x, y in points]
     clicked = dict(zip(ORDER, pixels[:len(ORDER)], strict=True))
-    to_image = fit(_deepdarts_mm(), list(clicked.values()))
+    to_image = fit(deepdarts_mm(), list(clicked.values()))
     calibration = []
     for point in CALIBRATION_POINTS:
         if point.name in clicked:
@@ -204,7 +204,7 @@ def overlay_sample(data: DataDir, count: int, seed: int = 0) -> list[str]:
         shapes += [Shape(ENTRY, e["x"], e["y"]) for e in record["entries"]]
         label = Label(Path(), record["photo"], record["width"], record["height"], False, tuple(shapes))
         clicked = label.calibration
-        to_board = fit([clicked[n] for n in ORDER], _deepdarts_mm())
+        to_board = fit([clicked[n] for n in ORDER], deepdarts_mm())
         with Image.open(data.root / record["photo"]) as image:
             rendered = render(image.convert("RGB"), label, to_board)
         name = f"{record['capture_session']}-{Path(record['photo']).stem}.jpg"

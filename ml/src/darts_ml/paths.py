@@ -110,6 +110,9 @@ class DataDir:
     def deepdarts(self) -> Path:
         return self._fenced(self.root / "deepdarts")
 
+    def runs(self) -> Path:
+        return self._fenced(self.root / "runs")
+
     def deepdarts_overlays(self) -> Path:
         return self._fenced(self.root / "overlays" / "deepdarts")
 

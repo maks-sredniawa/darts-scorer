@@ -10,9 +10,110 @@ dependencies = [
     "tomli-w>=1.2.0",
 ]
 
+[project.optional-dependencies]
+cpu = ["torch==2.14.1", "torchvision==0.29.1"]
+rocm = [
+    "torch==2.14.1",
+    "torchvision==0.29.1",
+    "rocm[device-all,libraries]==7.14.1",
+    "rocm-sdk-core==7.14.1",
+    "rocm-sdk-libraries==7.14.1",
+    "triton-rocm==3.8.0",
+    "rocm-sdk-device-gfx1010==7.14.1",
+    "rocm-sdk-device-gfx1011==7.14.1",
+    "rocm-sdk-device-gfx1012==7.14.1",
+    "rocm-sdk-device-gfx1030==7.14.1",
+    "rocm-sdk-device-gfx1031==7.14.1",
+    "rocm-sdk-device-gfx1032==7.14.1",
+    "rocm-sdk-device-gfx1033==7.14.1",
+    "rocm-sdk-device-gfx1034==7.14.1",
+    "rocm-sdk-device-gfx1035==7.14.1",
+    "rocm-sdk-device-gfx1036==7.14.1",
+    "rocm-sdk-device-gfx1100==7.14.1",
+    "rocm-sdk-device-gfx1101==7.14.1",
+    "rocm-sdk-device-gfx1102==7.14.1",
+    "rocm-sdk-device-gfx1103==7.14.1",
+    "rocm-sdk-device-gfx1150==7.14.1",
+    "rocm-sdk-device-gfx1151==7.14.1",
+    "rocm-sdk-device-gfx1152==7.14.1",
+    "rocm-sdk-device-gfx1153==7.14.1",
+    "rocm-sdk-device-gfx1200==7.14.1",
+    "rocm-sdk-device-gfx1201==7.14.1",
+    "rocm-sdk-device-gfx1250==7.14.1",
+    "rocm-sdk-device-gfx908==7.14.1",
+    "rocm-sdk-device-gfx90a==7.14.1",
+    "rocm-sdk-device-gfx942==7.14.1",
+    "rocm-sdk-device-gfx950==7.14.1",
+]
+
 [project.scripts]
 darts-ml = "darts_ml.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12,<0.14"]
 build-backend = "uv_build"
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "rocm" }]]
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
+
+[tool.uv.exclude-newer-package]
+"numpy" = "2026-11-03T00:00:00Z"
+"pandas" = "2026-11-03T00:00:00Z"
+"pillow" = "2026-11-03T00:00:00Z"
+"tomli-w" = "2026-11-03T00:00:00Z"
+"python-dateutil" = "2026-11-03T00:00:00Z"
+"tzdata" = "2026-11-03T00:00:00Z"
+"six" = "2026-11-03T00:00:00Z"
+"filelock" = "2026-11-03T00:00:00Z"
+"fsspec" = "2026-11-03T00:00:00Z"
+"jinja2" = "2026-11-03T00:00:00Z"
+"markupsafe" = "2026-11-03T00:00:00Z"
+"mpmath" = "2026-11-03T00:00:00Z"
+"networkx" = "2026-11-03T00:00:00Z"
+"setuptools" = "2026-11-03T00:00:00Z"
+"sympy" = "2026-11-03T00:00:00Z"
+"typing-extensions" = "2026-11-03T00:00:00Z"
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-rocm", extra = "rocm" }]
+torchvision = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-rocm", extra = "rocm" }]
+rocm = { index = "pytorch-rocm" }
+rocm-sdk-core = { index = "pytorch-rocm" }
+rocm-sdk-libraries = { index = "pytorch-rocm" }
+triton-rocm = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1010 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1011 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1012 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1030 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1031 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1032 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1033 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1034 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1035 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1036 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1100 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1101 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1102 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1103 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1150 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1151 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1152 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1153 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1200 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1201 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx1250 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx908 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx90a = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx942 = { index = "pytorch-rocm" }
+rocm-sdk-device-gfx950 = { index = "pytorch-rocm" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm7.14"
+explicit = true
