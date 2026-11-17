@@ -27,10 +27,10 @@ change is a bar being fitted to.
 
 ## Decisions for the owner
 
-Six, each with a recommendation. A–E need D1–D5; F and G need D6. None of them moves the bar,
-which M1 fixed on 2026-11-13.
+All six were decided on **2026-11-17**, each as recommended. A–E need D1–D5; F and G need D6.
+None of them moves the bar, which M1 fixed on 2026-11-13.
 
-| # | Decision | Recommended |
+| # | Decision | Decided 2026-11-17 |
 | --- | --- | --- |
 | **D1** | **The model, and the code that trains it** (§2) | **A heatmap keypoint model written here in PyTorch** (BSD-3-Clause): a small convolutional backbone from torchvision (BSD-3-Clause), 80 heatmap channels for the Calibration points and one for Entry points, with a sub-pixel offset. About 300 lines we own, three dependencies, and an export path every runtime takes. The alternative is DeepDarts' own method, keypoints as tiny boxes, through a permissive detector (YOLOX, Apache-2.0, or `MultimediaTechLab/YOLO`, MIT): proven on this data, but a larger codebase to vendor and a box head that has to be bent into a point. RTMPose is the wrong shape: it wants one box per object first |
 | **D2** | **Where the weights start** (§2) | **From scratch.** ImageNet-pretrained backbones learn faster, but their weights come from a dataset whose terms are research-only, and the app is public with a Tip. DeepDarts gives 12,830 training Photos of one narrow subject, which is a reasonable amount to start from nothing. If C misses its reading by a wide margin, this comes back to you with the licence question written out, before any pretrained weight is downloaded |
