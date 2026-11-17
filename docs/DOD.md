@@ -49,7 +49,7 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 [`phase-M2.md`](phase-M2.md). A to E run on DeepDarts alone, alongside M1; F and G wait for M1's freeze.
 
-- [ ] **Answer the six decisions** at the top of `phase-M2.md`; D1–D5 before A, D6 before G.
+- [x] **Answer the six decisions** at the top of `phase-M2.md`. All six taken as recommended on 2026-11-17.
 - [ ] **The gate (A):** R1, an epoch's time on this machine's GPU and CPU, and its verdict.
 
 ## Before the first upload
