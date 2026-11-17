@@ -200,6 +200,14 @@ Calibration channels' (σ of 1 cell, not 2), and B reads on DeepDarts' val split
 pairs closer than 10 mm that decode as two Darts. Below 95%, the Entry channel moves to a stride-2
 output before C trains anything on it.
 
+**Read at B, 2026-11-17: the Entry channel stays at stride 4.** Decoded from the training targets
+themselves, at 512 pixels through the second pass's framing, the pairs closer than 10 mm come back as
+two Darts in **27 of 27** on DeepDarts' val split and **348 of 353 (98.6%)** on its train split
+(`darts-ml deepdarts grouped`). Val holds too few close pairs to judge alone, so train, which nothing
+is chosen on here, is read beside it. This is the encoding's own limit, what a model reproducing its
+targets exactly would decode; a trained model blurs peaks further, so every epoch of `darts-ml train`
+reads the same share on its own output, and C reads it again.
+
 **Decoding.** A Calibration point is the peak of its channel, if the peak clears a threshold; an
 Entry point is every local maximum of its channel above a threshold. The offsets refine each. The
 Calibration points then go through RANSAC to a homography (ADR-0008), and the predictions file
@@ -220,6 +228,27 @@ Training samples both: whole Photos scaled down, and crops jittered in position 
 
 **The input size** is settled in B by A's speed reading and C's first run, starting from 512 pixels for
 the crop pass. It is a trade between the bar and the phone's latency, so E reads it again.
+
+**What B settled from A's speed reading, 2026-11-17.** The backbone is MobileNetV3-Large, as gate A
+measured it. The speed-ups were each read with the probe and its parity check (512 px, 200 steps,
+`runs/probes/`):
+
+| Change | Photos/s | Epoch | Loss 151–200 against the CPU's 0.777 |
+| --- | --- | --- | --- |
+| none (float32) | 22.5 | 9.5 min | +0.8% |
+| bfloat16 autocast | 23.6 | 9.0 min | +1.3% |
+| channels-last | 22.5 | 9.5 min | +0.8% |
+| both | 23.4 | 9.1 min | +1.3% |
+| both, batch 32 | 22.9 | 9.3 min | — |
+| **MIOpen's tuned kernels** (user database filled once under `MIOPEN_FIND_ENFORCE=SEARCH`) | **25.3** | **8.5 min** | −0.5% |
+
+Every row passes parity and both curves fall. The GPU shares the laptop's memory, and MobileNet's
+depthwise layers wait on memory rather than arithmetic, which is why halving the number width or
+doubling the batch buys little. Only the tuned kernels are kept, as the default: `train`, `predict`
+and `deepdarts score` point MIOpen at `$DARTS_DATA/miopen/`. bfloat16 stays a flag, off: its kernels
+print about 15 debugging lines per step to standard output from inside the ROCm library, which
+nothing turns off, for 5%. Batch 32 runs at batch 16's speed, so 16 stays. The model is two passes at
+512 pixels until C's first run says otherwise.
 
 **From scratch** (D2). Weights start random; nothing pretrained is downloaded.
 
