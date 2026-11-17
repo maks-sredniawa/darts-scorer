@@ -51,8 +51,6 @@ def _offset_loss(predicted: torch.Tensor, offsets: torch.Tensor, mask: torch.Ten
 
 
 def use_tuned_kernels(data: DataDir) -> None:
-    # MIOpen ships no tuned kernels for gfx1151; its user database, filled once by a run under
-    # MIOPEN_FIND_ENFORCE=SEARCH, makes later runs about 12% faster (phase-M2.md §1).
     os.environ.setdefault("MIOPEN_USER_DB_PATH", str(data.miopen()))
     os.environ.setdefault("MIOPEN_CUSTOM_CACHE_DIR", str(data.miopen() / "cache"))
 
@@ -191,6 +189,14 @@ def run_folder(data: DataDir, name: str, today: dt.date) -> Path:
     if not _RUN_NAME.fullmatch(name):
         raise DartsMlError(f"--name {name!r}: lower-case letters, digits and hyphens, such as board-512")
     return data.runs() / f"{today:%Y-%m-%d}-{name}"
+
+
+def run_config(data: DataDir, run: str) -> tuple[Path, dict]:
+    folder = data.runs() / run
+    path = folder / "config.json"
+    if not path.exists():
+        raise DartsMlError(f"no run at {folder}; `darts-ml train` writes one")
+    return folder, json.loads(path.read_text(encoding="utf-8"))
 
 
 def load_weights(path: Path, device: str) -> torch.nn.Module:
