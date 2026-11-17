@@ -107,6 +107,12 @@ class DataDir:
     def build(self) -> Path:
         return self._fenced(self.root / "build")
 
+    def deepdarts(self) -> Path:
+        return self._fenced(self.root / "deepdarts")
+
+    def deepdarts_overlays(self) -> Path:
+        return self._fenced(self.root / "overlays" / "deepdarts")
+
     def _fenced(self, path: Path) -> Path:
         refuse_inside_repo(path, self.roots, f"{path.relative_to(self.root)} under DARTS_DATA")
         return path

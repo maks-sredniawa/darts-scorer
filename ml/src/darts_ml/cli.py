@@ -6,6 +6,7 @@ from pathlib import Path
 
 from . import DartsMlError, labelme
 from .check import check
+from .deepdarts import RECORDS as DEEPDARTS_RECORDS, convert, overlay_sample
 from .evaluate import LABELS, evaluate, report
 from .heldout import MANIFEST, HeldOutError, HeldOutSet, freeze, frozen_before, verify
 from .ingest import ingest, jpegtran_version
@@ -67,6 +68,15 @@ def _parser() -> argparse.ArgumentParser:
     evaluator.add_argument("--predictions", required=True, metavar="{labels,FILE}",
                            help=f"`{LABELS}` to read the labels as the predictions, or a predictions JSON file (ml/README.md)")
     evaluator.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
+                                 description="DeepDarts' labels (phase-M1.md §4)")
+    actions = deepdarts.add_subparsers(dest="action", required=True)
+    actions.add_parser("convert", help="labels.pkl → deepdarts/records.jsonl, through the restricted unpickler"
+                       ).set_defaults(run=_deepdarts_convert)
+    sampler = actions.add_parser("overlay", help="draw the Board from DeepDarts' four points onto a sample of its Photos")
+    sampler.add_argument("--sample", type=int, default=10, help="how many Photos; default 10")
+    sampler.add_argument("--seed", type=int, default=0, help="which sample; default 0")
+    sampler.set_defaults(run=_deepdarts_overlay)
     return parser
 
 
@@ -196,6 +206,26 @@ def _evaluate(args) -> int:
     result = evaluate(DataDir.from_environment(), args.predictions, args.manifest)
     print("\n".join(report(result)))
     return 0 if result.met else 1
+
+
+def _deepdarts_convert(args) -> int:
+    data = DataDir.from_environment()
+    converted = convert(data)
+    for photo, reason in converted.skipped:
+        print(f"skipped  {photo}: {reason}")
+    splits = ", ".join(f"{count} {split}" for split, count in sorted(converted.splits.items()))
+    print(f"{converted.rows} label rows; {converted.records} records of {len(converted.capture_sessions)} "
+          f"Capture sessions written to {data.deepdarts() / DEEPDARTS_RECORDS} ({splits}); "
+          f"{len(converted.skipped)} skipped")
+    return 1 if converted.skipped else 0
+
+
+def _deepdarts_overlay(args) -> int:
+    data = DataDir.from_environment()
+    written = overlay_sample(data, args.sample, args.seed)
+    print(f"{len(written)} overlays written to {data.deepdarts_overlays()}; "
+          "the numbers drawn must match the Board's own (phase-M1.md R3)")
+    return 0
 
 
 if __name__ == "__main__":

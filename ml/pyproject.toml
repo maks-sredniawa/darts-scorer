@@ -5,6 +5,7 @@ description = "Darts Scorer's data tools: ingest, label, check and measure the o
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "numpy>=2.5.4",
+    "pandas>=3.1.0",
     "pillow>=13.0.0",
     "tomli-w>=1.2.0",
 ]

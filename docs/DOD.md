@@ -42,8 +42,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       verdict written in before any other Capture session is taken.
 - [ ] **Capture and label the other 17 Capture sessions**, each through `darts-ml check`; the six
       held-out ones frozen by `ml/splits/held-out.toml`, with at least 60 Visits B2 counts.
-- [ ] **DeepDarts in, or out** (D5): from DataPort, or from the author's written grant; with no
-      grant three weeks after the ask, M1 goes on without it.
+- [x] **DeepDarts in, or out** (D5): in, from DataPort with a free account; R2 and R3 in
+      `phase-M1.md`.
 
 ## Before the first upload
 
