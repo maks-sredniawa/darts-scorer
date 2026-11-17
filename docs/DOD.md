@@ -51,6 +51,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 - [x] **Answer the six decisions** at the top of `phase-M2.md`. All six taken as recommended on 2026-11-17.
 - [x] **The gate (A):** verdict 1 on 2026-11-17, train on the GPU; R1 in `phase-M2.md`.
+- [x] **The training code (B):** `darts-ml train` and `predict`, the decoder and both passes, the
+      fences and their tests; the Entry channel stays at stride 4 (`phase-M2.md` §2).
 
 ## Before the first upload
 
