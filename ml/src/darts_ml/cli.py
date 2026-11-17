@@ -311,12 +311,13 @@ def _deepdarts_score(args) -> int:
     import json
 
     from .locate import Inference, Speed, figures, locate
-    from .train import load_weights, resolve_device
+    from .train import load_weights, resolve_device, use_tuned_kernels
     from .training_data import deepdarts_reading_samples
 
     data = DataDir.from_environment()
     folder = data.runs() / args.run
     config = json.loads((folder / "config.json").read_text(encoding="utf-8"))
+    use_tuned_kernels(data)
     device, _ = resolve_device(args.device)
     speed = Speed(config["bf16"] and device == "cuda", config["channels_last"])
     model = load_weights(folder / f"{args.weights}.pt", device).to(memory_format=speed.memory)
