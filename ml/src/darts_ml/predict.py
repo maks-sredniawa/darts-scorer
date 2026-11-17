@@ -4,11 +4,10 @@ import datetime as dt
 import json
 from pathlib import Path
 
-from . import DartsMlError
 from .heldout import MANIFEST, file_sha256, verified
 from .locate import Inference, Located, Speed, locate
 from .paths import DataDir
-from .train import load_weights, resolve_device, use_tuned_kernels
+from .train import load_weights, resolve_device, run_config, use_tuned_kernels
 
 HELD_OUT = "held-out"
 
@@ -32,11 +31,7 @@ def write_predictions(path: Path, run: str, weights_sha256: str, located: dict[s
 
 def predict(data: DataDir, run: str, weights: str = "best", device: str = "auto", manifest: Path = MANIFEST,
             out: Path | None = None, workers: int = 4, now: dt.datetime | None = None) -> Path:
-    folder = data.runs() / run
-    config_path = folder / "config.json"
-    if not config_path.exists():
-        raise DartsMlError(f"no run at {folder}; `darts-ml train` writes one")
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    folder, config = run_config(data, run)
     held = verified(data, manifest)
     names = held.photo_names()
     use_tuned_kernels(data)

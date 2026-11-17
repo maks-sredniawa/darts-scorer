@@ -26,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     try:
-        return args.run(args)
+        return args.handler(args)
     except DartsMlError as error:
         print(f"darts-ml {args.step}: {error}", file=sys.stderr)
         return 2
@@ -36,14 +36,14 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="darts-ml", description="Darts Scorer's labelling loop (phase M1) and its model (phase M2)")
     steps = parser.add_subparsers(dest="step", required=True)
 
-    def step(name: str, run, help_: str, *, capture_session=True, round_=False):
+    def step(name: str, handler, help_: str, *, capture_session=True, round_=False):
         sub = steps.add_parser(name, help=help_, description=help_)
         if capture_session:
             sub.add_argument("capture_session", help="such as s01")
         if round_:
             sub.add_argument("--round", dest="round_", type=Round, choices=list(Round), default=Round.A,
                              metavar="{a,b,c}", help="the labelling round; b and c are the gate's repeats")
-        sub.set_defaults(run=run)
+        sub.set_defaults(handler=handler)
         return sub
 
     step("paths", _paths, "print DARTS_DATA, refuse one inside the repo, and check for jpegtran", capture_session=False)
@@ -104,22 +104,22 @@ def _parser() -> argparse.ArgumentParser:
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
     actions.add_parser("convert", help="labels.pkl → deepdarts/records.jsonl, through the restricted unpickler"
-                       ).set_defaults(run=_deepdarts_convert)
+                       ).set_defaults(handler=_deepdarts_convert)
     sampler = actions.add_parser("overlay", help="draw the Board from DeepDarts' four points onto a sample of its Photos")
     sampler.add_argument("--sample", type=_positive, default=10, help="how many Photos; default 10")
     sampler.add_argument("--seed", type=int, default=0, help="which sample; default 0")
-    sampler.set_defaults(run=_deepdarts_overlay)
+    sampler.set_defaults(handler=_deepdarts_overlay)
     scorer = actions.add_parser("score", help="a run's figures on DeepDarts' val or test split (phase-M2.md R2, R3)")
     scorer.add_argument("--run", required=True)
     scorer.add_argument("--weights", choices=WEIGHTS, default="best")
     scorer.add_argument("--split", choices=("val", "test"), default="val")
     scorer.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
     scorer.add_argument("--workers", type=_non_negative, default=4)
-    scorer.set_defaults(run=_deepdarts_score)
+    scorer.set_defaults(handler=_deepdarts_score)
     grouped = actions.add_parser("grouped", help="the share of Dart pairs under 10 mm that the targets decode as two")
     grouped.add_argument("--split", choices=("train", "val"), default="val")
     grouped.add_argument("--size", type=_input_size, default=512)
-    grouped.set_defaults(run=_deepdarts_grouped)
+    grouped.set_defaults(handler=_deepdarts_grouped)
     return parser
 
 
@@ -308,15 +308,12 @@ def _predict(args) -> int:
 
 
 def _deepdarts_score(args) -> int:
-    import json
-
     from .locate import Inference, Speed, figures, locate
-    from .train import load_weights, resolve_device, use_tuned_kernels
+    from .train import load_weights, resolve_device, run_config, use_tuned_kernels
     from .training_data import deepdarts_reading_samples
 
     data = DataDir.from_environment()
-    folder = data.runs() / args.run
-    config = json.loads((folder / "config.json").read_text(encoding="utf-8"))
+    folder, config = run_config(data, args.run)
     use_tuned_kernels(data)
     device, _ = resolve_device(args.device)
     speed = Speed(config["bf16"] and device == "cuda", config["channels_last"])
