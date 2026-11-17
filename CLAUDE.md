@@ -103,7 +103,7 @@ adb devices                                     # confirm the phone is attached
 
 uv run --directory ml darts-ml paths            # where DARTS_DATA is; refuses one inside the repo
 uv run --directory ml darts-ml <step> s01       # ingest, label, prefill, review, check, overlay, repeatability
-uv run --directory ml python -m unittest discover -s tests   # ml/'s tests (need jpegtran)
+uv run --directory ml python -m unittest discover -s tests   # ml/'s tests (need jpegtran and a synced PyTorch extra)
 ```
 
 ## Layout

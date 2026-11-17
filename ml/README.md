@@ -221,14 +221,13 @@ side. Board millimetres put x to the right and y up, with the bull at the origin
 uv run --directory ml python -m unittest discover -s tests
 ```
 
-They need `jpegtran` and no data: the Photos and labels are built from `board.py` in the test.
+They need `jpegtran`, PyTorch from either extra synced as in Setup (`uv run` alone installs neither),
+and no data: the Photos and labels are built from `board.py` in the test.
 
 ## Dependencies and their licences
 
-Re-read this table whenever the lockfile gains a package. The rule is ADR-0008's: permissive licences
-only for the code we adapt, train with, or ship. A runtime library bundled inside a wheel under a
-runtime exception or the LGPL is allowed, because `ml/` never ships and the app ships only weights,
-and is listed in the last column: today NumPy's libgfortran and libquadmath.
+Re-read this table whenever the lockfile gains a package. The rule is ADR-0008's, with its 2026-11-13
+and 2026-11-17 amendments; the table lists every bundled library that rule covers, in its last column.
 
 | Package | Licence | Bundled in the Linux wheel |
 | --- | --- | --- |
