@@ -87,9 +87,12 @@ def _logits(run: Inference, items: list[tuple[Path, np.ndarray]]):
     try:
         with torch.no_grad():
             for images in loader:
+                count = len(images)
+                # A short last batch is a new shape, and MIOpen's fresh kernel search for one can fail (ml/README.md).
+                images = torch.cat([images, images[-1:].expand(run.batch - count, *images.shape[1:])])
                 with run.speed.autocast(run.device):
                     output = run.model(images.to(run.device).contiguous(memory_format=run.speed.memory))
-                yield from output.float().cpu().numpy()
+                yield from output[:count].float().cpu().numpy()
     finally:
         run.model.train(was_training)
 
