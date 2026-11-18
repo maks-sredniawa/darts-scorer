@@ -20,6 +20,8 @@ from .review import review
 
 _INPUT_MULTIPLE = 32
 WEIGHTS = ("best", "last")
+TUNE_THRESHOLDS = (0.25, 0.35, 0.45, 0.55)
+TUNE_APART_MM = (0.0, 4.0, 6.0, 8.0, 12.0)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -116,6 +118,12 @@ def _parser() -> argparse.ArgumentParser:
     scorer.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
     scorer.add_argument("--workers", type=_non_negative, default=4)
     scorer.set_defaults(handler=_deepdarts_score)
+    tuner = actions.add_parser("tune", help="a run's figures on DeepDarts' val split under each rule for keeping Entry points")
+    tuner.add_argument("--run", required=True)
+    tuner.add_argument("--weights", choices=WEIGHTS, default="best")
+    tuner.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
+    tuner.add_argument("--workers", type=_non_negative, default=4)
+    tuner.set_defaults(handler=_deepdarts_tune)
     grouped = actions.add_parser("grouped", help="the share of Dart pairs under 10 mm that the targets decode as two")
     grouped.add_argument("--split", choices=("train", "val"), default="val")
     grouped.add_argument("--size", type=_input_size, default=512)
@@ -324,6 +332,39 @@ def _deepdarts_score(args) -> int:
                                       [s.photo for s in samples]))
     print("\n".join(reading.lines()))
     return 0
+
+
+def _deepdarts_tune(args) -> int:
+    from .decode import EntryRule
+    from .locate import Inference, Speed, figures, locate, refiltered
+    from .train import load_weights, resolve_device, run_config, use_tuned_kernels
+    from .training_data import deepdarts_reading_samples
+
+    data = DataDir.from_environment()
+    folder, config = run_config(data, args.run)
+    use_tuned_kernels(data)
+    device, _ = resolve_device(args.device)
+    speed = Speed(config["bf16"] and device == "cuda", config["channels_last"])
+    model = load_weights(folder / f"{args.weights}.pt", device).to(memory_format=speed.memory)
+    samples = deepdarts_reading_samples(data, "val")
+    print(f"{len(samples)} DeepDarts val Photos ...", file=sys.stderr, flush=True)
+    floor = EntryRule(threshold=min(TUNE_THRESHOLDS))
+    raw = locate(Inference(model, device, config["size"], config["batch"], args.workers, speed, floor),
+                 [s.photo for s in samples])
+    print("threshold  apart mm  most  exactly right        d1      d2      Darts right          pairs as two")
+    for threshold in TUNE_THRESHOLDS:
+        for apart in TUNE_APART_MM:
+            for most in (None, 3):
+                rule = EntryRule(threshold, apart, most)
+                reading = figures(samples, [refiltered(located, rule) for located in raw])
+                d1, d2 = (reading.exact_by_folder.get(k) for k in ("d1", "d2"))
+                print(f"{threshold:9.2f}  {apart:8.0f}  {most or '-':>4}  {reading.exact!s:<19}  "
+                      f"{_percent(d1):>6}  {_percent(d2):>6}  {reading.darts_right!s:<19}  {reading.grouped}")
+    return 0
+
+
+def _percent(share) -> str:
+    return f"{100 * share.hits / share.total:.1f}%" if share and share.total else "-"
 
 
 def _deepdarts_grouped(args) -> int:

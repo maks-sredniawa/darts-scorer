@@ -11,7 +11,9 @@ from darts_ml.augment import letterbox
 from darts_ml.board import CALIBRATION_POINTS
 from darts_ml.evaluate import Share
 from darts_ml.homography import project
-from darts_ml.locate import Inference, _logits, figures, located_from_targets
+from darts_ml.decode import EntryRule
+from darts_ml.evaluate import PredictedEntry
+from darts_ml.locate import Inference, Located, _logits, figures, located_from_targets, refiltered
 from darts_ml.training_data import Sample
 from synthetic import camera, dart_mm
 
@@ -42,6 +44,14 @@ class _Recording(torch.nn.Module):
 
 
 class LocateTest(unittest.TestCase):
+    def test_refiltering_measures_apart_in_board_millimetres(self):
+        to_board = np.diag([0.5, 0.5, 1.0])
+        entries = (PredictedEntry(100, 100, confidence=0.9), PredictedEntry(110, 100, confidence=0.4),
+                   PredictedEntry(300, 100, confidence=0.6))
+        kept = refiltered(Located(to_board, entries=entries), EntryRule(threshold=0.0, apart_mm=6.0))
+        self.assertEqual(kept.entries, (entries[0], entries[2]))
+        self.assertEqual(refiltered(Located(None, entries=entries), EntryRule(most=1)).entries, entries)
+
     def test_a_short_last_batch_runs_at_full_size_and_yields_only_its_own_photos(self):
         with tempfile.TemporaryDirectory() as folder:
             items = []

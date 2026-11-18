@@ -78,6 +78,7 @@ class PredictedEntry:
     x: float
     y: float
     low_confidence: bool = False
+    confidence: float = 1.0
 
 
 @dataclass(frozen=True)

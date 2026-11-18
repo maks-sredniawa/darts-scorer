@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,7 +13,7 @@ from PIL import Image
 from . import DartsMlError
 from .augment import framing, letterbox, warp
 from .board import CALIBRATION_POINTS, DOUBLE_WIRES, TREBLE_WIRES, score
-from .decode import decode, ransac
+from .decode import EntryRule, decode, kept_entries, ransac
 from .evaluate import PredictedEntry, Share
 from .homography import crossing_errors_mm, invert, project
 from .model import ENTRY_CHANNEL
@@ -64,6 +65,7 @@ class Inference:
     batch: int = 16
     workers: int = 4
     speed: Speed = Speed()
+    entries: EntryRule = EntryRule()
 
 
 class _Framed(torch.utils.data.Dataset):
@@ -102,8 +104,8 @@ def _to_photo(matrix: np.ndarray, peaks) -> np.ndarray:
     return project(back, [(p.x, p.y) for p in peaks]) if peaks else np.empty((0, 2))
 
 
-def _board(matrix: np.ndarray, logits: np.ndarray) -> Located:
-    decoded = decode(logits)
+def _board(matrix: np.ndarray, logits: np.ndarray, rule: EntryRule = EntryRule()) -> Located:
+    decoded = decode(logits, entry_threshold=rule.threshold)
     channels = sorted(decoded.calibration)
     pixels = _to_photo(matrix, [decoded.calibration[c] for c in channels])
     calibration = {c: (float(x), float(y)) for c, (x, y) in zip(channels, pixels, strict=True)}
@@ -112,12 +114,21 @@ def _board(matrix: np.ndarray, logits: np.ndarray) -> Located:
         return Located(None)
     to_board, inliers = found
     entries = _to_photo(matrix, list(decoded.entries))
-    return Located(
+    located = Located(
         to_board,
         {CALIBRATION_POINTS[c].name: calibration[c] for c in inliers},
-        tuple(PredictedEntry(float(x), float(y), p.low_confidence)
+        tuple(PredictedEntry(float(x), float(y), p.low_confidence, p.confidence)
               for p, (x, y) in zip(decoded.entries, entries, strict=True)),
     )
+    return refiltered(located, rule)
+
+
+def refiltered(located: Located, rule: EntryRule) -> Located:
+    if not located.found or not located.entries:
+        return located
+    board_mm = project(located.to_board, [(e.x, e.y) for e in located.entries])
+    keep = kept_entries(board_mm, [e.confidence for e in located.entries], rule)
+    return dataclasses.replace(located, entries=tuple(located.entries[i] for i in keep))
 
 
 def locate(run: Inference, photos: list[Path]) -> list[Located]:
@@ -131,7 +142,7 @@ def locate(run: Inference, photos: list[Path]) -> list[Located]:
     located = [Located(None) for _ in photos]
     order = sorted(second)
     for i, logits in zip(order, _logits(run, [(photos[i], second[i]) for i in order]), strict=True):
-        located[i] = _board(second[i], logits)
+        located[i] = _board(second[i], logits, run.entries)
     return located
 
 

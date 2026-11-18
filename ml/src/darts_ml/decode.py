@@ -30,6 +30,13 @@ class Peak:
 
 
 @dataclass(frozen=True)
+class EntryRule:
+    threshold: float = THRESHOLD
+    apart_mm: float = 0.0
+    most: int | None = None
+
+
+@dataclass(frozen=True)
 class Decoded:
     calibration: dict[int, Peak]
     entries: tuple[Peak, ...]
@@ -39,7 +46,7 @@ def sigmoid(logits: np.ndarray) -> np.ndarray:
     return 1 / (1 + np.exp(-logits))
 
 
-def decode(logits: np.ndarray, threshold: float = THRESHOLD) -> Decoded:
+def decode(logits: np.ndarray, threshold: float = THRESHOLD, entry_threshold: float | None = None) -> Decoded:
     heat = sigmoid(logits[:ENTRY_CHANNEL + 1].astype(np.float64))
     calibration_offsets, entry_offsets = logits[CALIBRATION_OFFSETS], logits[ENTRY_OFFSETS]
     calibration = {}
@@ -48,9 +55,20 @@ def decode(logits: np.ndarray, threshold: float = THRESHOLD) -> Decoded:
         if heat[channel, iy, ix] >= threshold:
             calibration[channel] = _peak(ix, iy, heat[channel, iy, ix], calibration_offsets)
     entry = heat[ENTRY_CHANNEL]
-    ys, xs = np.nonzero((entry >= threshold) & (entry >= _neighbourhood_max(entry)))
+    floor = threshold if entry_threshold is None else entry_threshold
+    ys, xs = np.nonzero((entry >= floor) & (entry >= _neighbourhood_max(entry)))
     entries = tuple(_peak(ix, iy, entry[iy, ix], entry_offsets) for iy, ix in zip(ys, xs, strict=True))
     return Decoded(calibration, entries)
+
+
+def kept_entries(board_mm: np.ndarray, confidences: list[float], rule: EntryRule) -> list[int]:
+    kept: list[int] = []
+    for i in sorted(range(len(confidences)), key=lambda i: -confidences[i]):
+        if confidences[i] < rule.threshold or (rule.most is not None and len(kept) >= rule.most):
+            break
+        if all(np.linalg.norm(board_mm[i] - board_mm[k]) >= rule.apart_mm for k in kept):
+            kept.append(i)
+    return sorted(kept)
 
 
 def _peak(ix: int, iy: int, confidence: float, offsets: np.ndarray) -> Peak:
