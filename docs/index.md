@@ -22,13 +22,11 @@ Darts Scorer is still being built, and is not on Google Play yet.
 
 Darts Scorer reads a regulation steel-tip board. It is not built for soft-tip or electronic boards.
 
-## Your data stays on your phone
+## Your photos stay on your phone by default
 
 Today there is no backend to send anything to. The photos are processed on your phone and are not
 uploaded anywhere, and from version 1.0 one leaves only if you choose to share it (below). The
-details are in the
-
-**[Privacy Policy](privacy-policy.md)**.
+details are in the **[Privacy Policy](privacy-policy.md)**.
 
 ## Coming in version 1.0: help the model learn, if you want to
 
