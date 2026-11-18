@@ -3,8 +3,9 @@
 Darts Scorer counts your darts score from a few photos of the board, taken from different angles,
 as few as it needs, so you don't have to tally the darts by hand.
 
-The photos never leave the phone: finding the board and the darts runs on the device, offline. Free,
-no ads, no account.
+The photos never leave the phone unless the player chooses to share one, from version 1.0
+(`docs/PLAN.md`, phase S): finding the board and the darts runs on the device, offline. Free, no
+ads, no account.
 
 ## Status
 

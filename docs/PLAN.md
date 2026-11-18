@@ -33,10 +33,15 @@ was extracted from and the first app built from it settled on exactly this split
 - [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
   asking for another angle only when a dart is missing, unsure, or on a wire (ADR-0008)
 - [ ] **Phase S** — Sharing a photo, by choice: a player can send a photo with its corrected score
-  to help train the model. Off by default and asked per photo; it ships in 1.0.0. Its ADR comes
-  first: it brings back the `INTERNET` permission ADR-0007 removes, and needs a place to receive
-  photos, consent and deletion, and a new privacy policy. **Before the door**, so testers and Play's
-  Data safety answers see it from the first build
+  to help train the model. Off by default and asked per photo; it ships in 1.0.0. Scoring is the
+  same whether or not a player shares, and the new privacy policy is live before any build carries
+  the feature, internal testing included. Its ADR comes first and settles that `INTERNET` returns
+  for the whole app, including what the billing library's usage logging could then send for every
+  player, opted in or not, plus a place to receive photos, consent and deletion. It amends ADR-0007,
+  ADR-0008 (its "photos never leave the phone" context and its training-data list),
+  `scripts/aab-permissions.py`'s `INTERNET` rule, the privacy policy and `docs/play-app-content.md`'s
+  Data safety answers, and adds CONTEXT.md terms for a shared photo and the consent. **Before the
+  door**, so testers and Play's Data safety answers see it from the first build
 - [ ] **Phase 3** — *(safe to hand to a stranger)* ← **the door: closed testing opens here**. The
   first-run path, the DeepDarts attribution on the licences screen
 - [ ] **Phase N** — Ship shape: listing, screenshots, the App content answers
