@@ -52,6 +52,14 @@ was extracted from and the first app built from it settled on exactly this split
   its own name. Before the phase closes the model is read on photos from the cameras' own positions,
   from Capture sessions taken with them, against the same bar M1 wrote for phone photos; one camera
   first, more once those sessions show how often a Dart is hidden from one. **Before the door**
+- [ ] **Phase T** — The scoreboard on a second screen, an addition the player turns on: with a TV or
+  monitor connected by HDMI cable or Miracast, the app shows a large scoreboard there (the score,
+  the last Visit's Darts on the Board) through Android's `Presentation` display, while the phone
+  keeps the controls. It runs offline and asks for nothing; plain screen mirroring keeps working
+  without it. Google Cast is not used: a custom Cast screen is a web page hosted online and
+  registered with Google, which an offline app cannot be. It ships in 1.0.0, and since it asks for
+  nothing it may land on either side of the door. Its reading is taken on a real TV, over both a
+  cable and Miracast
 - [ ] **Phase S** — Sharing a photo, by choice: a player can send a photo with its corrected score
   to help train the model. Off by default and asked per photo; it ships in 1.0.0. Scoring is the
   same whether or not a player shares, and the new privacy policy is live before any build carries
