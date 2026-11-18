@@ -236,18 +236,28 @@ measured it. The speed-ups were each read with the probe and its parity check (5
 | Change | Photos/s | Epoch | Loss 151–200 against the CPU's 0.777 |
 | --- | --- | --- | --- |
 | none (float32) | 22.5 | 9.5 min | +0.8% |
-| bfloat16 autocast | 23.6 | 9.0 min | +1.3% |
+| bfloat16 autocast (a cached kernel search; see below) | 23.6 | 9.0 min | +1.3% |
 | channels-last | 22.5 | 9.5 min | +0.8% |
-| both | 23.4 | 9.1 min | +1.3% |
+| both (the same cached search) | 23.4 | 9.1 min | +1.3% |
 | both, batch 32 | 22.9 | 9.3 min | — |
 | **MIOpen's tuned kernels** (user database filled once under `MIOPEN_FIND_ENFORCE=SEARCH`) | **25.3** | **8.5 min** | −0.5% |
 
 Every row passes parity and both curves fall. The GPU shares the laptop's memory, and MobileNet's
 depthwise layers wait on memory rather than arithmetic, which is why halving the number width or
-doubling the batch buys little. Only the tuned kernels are kept, as the default: `train`, `predict`
-and `deepdarts score` point MIOpen at `$DARTS_DATA/miopen/`. bfloat16 stays a flag, off: its kernels
-print about 15 debugging lines per step to standard output from inside the ROCm library, which
-nothing turns off, for 5%. Batch 32 runs at batch 16's speed, so 16 stays. The model is two passes at
+doubling the batch buys little even where it runs. Only the tuned kernels are kept, as the default: `train`, `predict`
+and `deepdarts score` point MIOpen at `$DARTS_DATA/miopen/`. Batch 32 runs at batch 16's speed, so
+16 stays.
+
+**bfloat16 does not run here from a fresh start (read 2026-11-18).** `--bf16` stays a flag, off, and
+is not to be turned on for a run. Its row above came from a kernel search that happened to succeed
+once and was cached in MIOpen's default `~/.config/miopen/`. Any fresh search fails on the first
+convolution: MIOpen times every bfloat16 candidate as taking no time at all, rejects them all, and
+stops with `miopenStatusUnknownError` ("No suitable algorithm was found"). That holds with an empty
+database and with the tuned one in `$DARTS_DATA/miopen/`. `MIOPEN_FIND_MODE=FAST`, which picks kernels
+without timing them, does run, with a falling loss (0.787 at step 200), but at 14.3 Photos/s, about
+40% slower than float32 on the tuned kernels (`runs/probes/gpu-512-16-200steps-bf16-20261118-073643.json`).
+Its kernels also print about 15 debugging lines per step to standard output from inside the ROCm
+library, which nothing turns off. The model is two passes at
 512 pixels until C's first run says otherwise.
 
 **From scratch** (D2). Weights start random; nothing pretrained is downloaded.
