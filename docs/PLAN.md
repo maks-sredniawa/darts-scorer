@@ -32,15 +32,20 @@ was extracted from and the first app built from it settled on exactly this split
   colours (black, cream, red, green). Readings: real Visits on a real Board, in ordinary room light
 - [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
   asking for another angle only when a dart is missing, unsure, or on a wire (ADR-0008)
-- [ ] **Phase G** — GoPro cameras on a mount: the phone drives one to three GoPros around the board
-  through Open GoPro (Bluetooth to control, Wi-Fi to fetch the photo), takes the photos after a
-  Visit and scores them on the phone, offline, through phase 2's merge. It ships in 1.0.0. Its ADR
-  comes first and settles the permissions (Bluetooth, Wi-Fi, and `INTERNET` for the local link,
-  shared with phase S's), how several cameras are reached when a phone joins only one camera's own
-  Wi-Fi at a time (Open GoPro's Camera on the Home Network, on HERO12 and HERO13 Black), and the lens
-  (Linear mode, since the homography assumes straight lines). The model is read on photos from the
-  GoPros' own positions, from capture sessions taken with them, before the phase closes; one GoPro
-  first, more once those sessions show how often a Dart is hidden from one. **Before the door**
+- [ ] **Phase G** — Cameras on a mount, an addition the player turns on: by default the photos are
+  still taken with the phone, and nothing about that path changes. A player who adds one to three
+  cameras fixed around the board has the phone drive them over the local network or Bluetooth, take
+  the photos after a Visit and score them on the phone, offline, through phase 2's merge. It ships
+  in 1.0.0. The camera is not chosen yet: a cheap
+  network camera that serves a still image over a standard protocol (RTSP or ONVIF), a spare phone,
+  and a GoPro through Open GoPro are the candidates, chosen on a test of one of each kind on a real
+  board (sharpness at a Dart's tip, lens bending, how the photo is fetched, price). Its ADR comes
+  first and settles that choice, the permissions (Bluetooth, Wi-Fi, and `INTERNET` for the local
+  link, shared with phase S's), how several cameras are reached at once, and the lens (straightened
+  in the camera or on the phone, since the homography assumes straight lines). The model is read on
+  photos from the cameras' own positions, from capture sessions taken with them, before the phase
+  closes; one camera first, more once those sessions show how often a Dart is hidden from one.
+  **Before the door**
 - [ ] **Phase S** — Sharing a photo, by choice: a player can send a photo with its corrected score
   to help train the model. Off by default and asked per photo; it ships in 1.0.0. Scoring is the
   same whether or not a player shares, and the new privacy policy is live before any build carries
@@ -176,7 +181,7 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
 | --- | --- | --- |
 | Camera (through the system camera, so no `CAMERA` permission) | the first tap on *Take a photo* | phase 1 |
 | Sending a photo to train the model (off by default) | when the player first chooses to send one, then for each photo | phase S |
-| Nearby devices (Bluetooth), to reach a GoPro | the first tap on adding a GoPro | phase G |
+| Nearby devices (Bluetooth), if the chosen camera needs it | the first tap on adding a camera | phase G |
 
 ## Not in this plan
 
@@ -185,5 +190,5 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
   (ADR-0008).
 - A live camera view that scores while the darts are being thrown. The app scores still photos of
   darts already on the board.
-- Fixed or mounted cameras other than phase G's GoPros.
+- Fixed or mounted cameras other than phase G's.
 - Soft-tip (electronic) boards, until an ADR covers their geometry.
