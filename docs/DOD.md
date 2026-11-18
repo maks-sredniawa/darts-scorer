@@ -53,6 +53,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 - [x] **The gate (A):** verdict 1 on 2026-11-17, train on the GPU; R1 in `phase-M2.md`.
 - [x] **The training code (B):** `darts-ml train` and `predict`, the decoder and both passes, the
       fences and their tests; the Entry channel stays at stride 4 (`phase-M2.md` §2).
+- [x] **The Board (C):** found on every val and test Photo, wire medians 0.27 to 0.40 mm; 512 px
+      and from-scratch weights stay. R2 in `phase-M2.md`.
 
 ## Before the first upload
 
