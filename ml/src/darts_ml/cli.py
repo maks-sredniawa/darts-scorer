@@ -20,8 +20,8 @@ from .review import review
 
 _INPUT_MULTIPLE = 32
 WEIGHTS = ("best", "last")
-TUNE_THRESHOLDS = (0.25, 0.35, 0.45, 0.55)
-TUNE_APART_MM = (0.0, 4.0, 6.0, 8.0, 12.0)
+TUNE_THRESHOLDS = (0.25, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40, 0.45, 0.55)
+TUNE_APART_MM = (0.0, 4.0, 6.0, 8.0, 10.0, 12.0)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -348,8 +348,7 @@ def _deepdarts_tune(args) -> int:
     model = load_weights(folder / f"{args.weights}.pt", device).to(memory_format=speed.memory)
     samples = deepdarts_reading_samples(data, "val")
     print(f"{len(samples)} DeepDarts val Photos ...", file=sys.stderr, flush=True)
-    floor = EntryRule(threshold=min(TUNE_THRESHOLDS))
-    raw = locate(Inference(model, device, config["size"], config["batch"], args.workers, speed, floor),
+    raw = locate(Inference(model, device, config["size"], config["batch"], args.workers, speed, tune_floor()),
                  [s.photo for s in samples])
     print("threshold  apart mm  most  exactly right        d1      d2      Darts right          pairs as two")
     for threshold in TUNE_THRESHOLDS:
@@ -361,6 +360,12 @@ def _deepdarts_tune(args) -> int:
                 print(f"{threshold:9.2f}  {apart:8.0f}  {most or '-':>4}  {reading.exact!s:<19}  "
                       f"{_percent(d1):>6}  {_percent(d2):>6}  {reading.darts_right!s:<19}  {reading.grouped}")
     return 0
+
+
+def tune_floor():
+    from .decode import EntryRule
+
+    return EntryRule(min(TUNE_THRESHOLDS), 0.0, None)
 
 
 def _percent(share) -> str:
