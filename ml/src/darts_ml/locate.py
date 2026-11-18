@@ -155,6 +155,7 @@ class Figures:
     darts_right: Share
     grouped: Share
     exact_by_folder: dict[str, Share]
+    total_by_folder: dict[str, Share] = field(default_factory=dict)
 
     def key(self, board_only: bool) -> tuple[float, float]:
         found = float(self.found.fraction or 0)
@@ -172,7 +173,8 @@ class Figures:
 
         return {"found": share(self.found), "treble": spread(self.treble), "double": spread(self.double),
                 "exact": share(self.exact), "darts_right": share(self.darts_right), "grouped": share(self.grouped),
-                "exact_by_folder": {k: share(v) for k, v in sorted(self.exact_by_folder.items())}}
+                "exact_by_folder": {k: share(v) for k, v in sorted(self.exact_by_folder.items())},
+                "total_by_folder": {k: share(v) for k, v in sorted(self.total_by_folder.items())}}
 
     def lines(self) -> list[str]:
         def spread(s: Spread | None) -> str:
@@ -181,8 +183,14 @@ class Figures:
         lines = [f"Board found {self.found}; treble wires {spread(self.treble)}; double wires {spread(self.double)}",
                  f"Photos scored exactly right {self.exact}; Darts right {self.darts_right}; "
                  f"pairs under {GROUPED_MM:g} mm found as two {self.grouped}"]
-        lines += [f"  {folder}: exactly right {share}" for folder, share in sorted(self.exact_by_folder.items())]
+        lines += [f"  {folder}: exactly right {share}; Visit total right, the DeepDarts paper's way, "
+                  f"{self.total_by_folder.get(folder, Share(0, 0))}"
+                  for folder, share in sorted(self.exact_by_folder.items())]
         return lines
+
+
+def _points(scores: Counter) -> int:
+    return sum(s.value * n for s, n in scores.items())
 
 
 def figures(samples: list[Sample], located: list[Located]) -> Figures:
@@ -210,6 +218,7 @@ def figures(samples: list[Sample], located: list[Located]) -> Figures:
         given = Counter(score(*mm) for mm in guess_mm)
         tally["exact"] += given == recorded
         folder["exact"] += given == recorded
+        folder["total"] += _points(given) == _points(recorded)
         tally["darts right"] += sum((given & recorded).values())
         matched = _matched(truth_mm, guess_mm)
         tally["pairs two"] += sum(a in matched and b in matched for a, b in pairs)
@@ -221,6 +230,7 @@ def figures(samples: list[Sample], located: list[Located]) -> Figures:
         darts_right=Share(tally["darts right"], tally["darts"]),
         grouped=Share(tally["pairs two"], tally["pairs"]),
         exact_by_folder={k: Share(v["exact"], v["photos"]) for k, v in by_folder.items()},
+        total_by_folder={k: Share(v["total"], v["photos"]) for k, v in by_folder.items()},
     )
 
 

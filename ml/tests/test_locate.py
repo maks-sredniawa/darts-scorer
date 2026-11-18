@@ -48,7 +48,7 @@ class LocateTest(unittest.TestCase):
         to_board = np.diag([0.5, 0.5, 1.0])
         entries = (PredictedEntry(100, 100, confidence=0.9), PredictedEntry(110, 100, confidence=0.4),
                    PredictedEntry(300, 100, confidence=0.6))
-        kept = refiltered(Located(to_board, entries=entries), EntryRule(threshold=0.0, apart_mm=6.0))
+        kept = refiltered(Located(to_board, entries=entries), EntryRule(threshold=0.0, apart_mm=6.0, most=None))
         self.assertEqual(kept.entries, (entries[0], entries[2]))
         self.assertEqual(refiltered(Located(None, entries=entries), EntryRule(most=1)).entries, entries)
 
@@ -85,8 +85,18 @@ class LocateTest(unittest.TestCase):
         self.assertEqual(reading.darts_right, Share(3, 3))
         self.assertEqual(reading.grouped, Share(0, 0))
         self.assertEqual(reading.exact_by_folder, {"s01": Share(1, 1)})
+        self.assertEqual(reading.total_by_folder, {"s01": Share(1, 1)})
         self.assertLess(reading.treble.median_mm, 0.05)
         self.assertLess(reading.double.p95_mm, 0.05)
+
+    def test_a_visit_total_can_be_right_when_its_darts_are_not(self):
+        sample = sample_of((dart_mm("S20"), dart_mm("S10")))
+        located = located_from_targets(sample, SIZE)
+        other = project(sample.board_to_photo(), [dart_mm("S15"), dart_mm("S15", nudge_deg=3.5)])
+        swapped = dataclasses.replace(located, entries=tuple(PredictedEntry(float(x), float(y)) for x, y in other))
+        reading = figures([sample], [swapped])
+        self.assertEqual(reading.exact, Share(0, 1))
+        self.assertEqual(reading.total_by_folder, {"s01": Share(1, 1)})
 
     def test_a_close_pair_counts_as_grouped_only_when_both_darts_are_matched(self):
         sample = sample_of(CLOSE_DARTS)
