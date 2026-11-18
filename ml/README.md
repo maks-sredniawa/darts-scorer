@@ -143,8 +143,10 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
 
 `--device` is `auto` (the GPU if PyTorch sees one, else the CPU), `gpu` or `cpu`. A GPU is an AMD one
 through ROCm or an NVIDIA one through CUDA; PyTorch names both `cuda`, and the run prints the real
-name. `--bf16` (bfloat16 autocast) and `--channels-last` are for the GPU; neither is worth turning on
-(phase-M2.md §2).
+name. `--bf16` (bfloat16 autocast) and `--channels-last` are for the GPU; leave both off. On the
+Radeon 8050S, `--bf16` stops on its first step with `miopenStatusUnknownError` unless MIOpen's kernel
+search for it is already cached, and under `MIOPEN_FIND_MODE=FAST` it runs about 40% slower than
+float32 (phase-M2.md §2).
 
 MIOpen ships no tuned kernels for gfx1151. `train`, `predict` and `deepdarts score` keep its user
 database in `$DARTS_DATA/miopen/` (an `MIOPEN_USER_DB_PATH` already set wins), and one probe fills it
