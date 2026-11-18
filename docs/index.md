@@ -6,8 +6,8 @@ title: Darts Scorer
 # Darts Scorer
 
 **Scores a darts visit from a photo or two of the board, so you don't have to tally the darts by
-hand.** The photos never leave your phone: finding the board and the darts runs on the device,
-offline. Free, no ads, no account.
+hand.** The photos never leave your phone unless you choose to share one, from version 1.0
+(below): finding the board and the darts runs on the device, offline. Free, no ads, no account.
 
 Darts Scorer is still being built, and is not on Google Play yet.
 
@@ -24,8 +24,9 @@ Darts Scorer reads a regulation steel-tip board. It is not built for soft-tip or
 
 ## Your data stays on your phone
 
-There is no backend to send anything to. The photos are processed on your phone and are never
-uploaded anywhere. The details are in the
+Today there is no backend to send anything to. The photos are processed on your phone and are not
+uploaded anywhere, and from version 1.0 one leaves only if you choose to share it (below). The
+details are in the
 
 **[Privacy Policy](privacy-policy.md)**.
 
@@ -38,7 +39,7 @@ corrected, to help train it.
 It is entirely optional. It will be off unless you turn it on, it will ask before each photo, and
 the app will score your darts exactly the same whether you share or not. The privacy policy will
 say what is sent, where it goes and how to have it deleted before the feature reaches anyone. The
-app does not do this yet. Questions or wishes go to the support address below.
+app does not do this yet. For questions or wishes, write to darts-scorer.support@maksforge.com.
 
 ## Support
 
