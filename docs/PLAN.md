@@ -52,14 +52,21 @@ was extracted from and the first app built from it settled on exactly this split
   its own name. Before the phase closes the model is read on photos from the cameras' own positions,
   from Capture sessions taken with them, against the same bar M1 wrote for phone photos; one camera
   first, more once those sessions show how often a Dart is hidden from one. **Before the door**
-- [ ] **Phase T** — The scoreboard on a second screen, an addition the player turns on: with a TV or
-  monitor connected by HDMI cable or Miracast, the app shows a large scoreboard there (the score,
-  the last Visit's Darts on the Board) through Android's `Presentation` display, while the phone
-  keeps the controls. It runs offline and asks for nothing; plain screen mirroring keeps working
-  without it. Google Cast is not used: a custom Cast screen is a web page hosted online and
-  registered with Google, which an offline app cannot be. It ships in 1.0.0, and since it asks for
-  nothing it may land on either side of the door. Its reading is taken on a real TV, over both a
-  cable and Miracast
+- [ ] **Phase T** — The Scoreboard on a Second screen, an addition the player turns on: with a
+  Second screen (a TV or monitor connected by HDMI cable or Miracast), the app shows a large
+  Scoreboard there through Android's `Presentation` API, while the phone keeps the controls. The
+  Scoreboard shows the last Visit's Score and its Darts on a drawn Board, never the Photo, so no
+  Photo is sent to a wireless Second screen. It is read from across the room: large high-contrast
+  text, no state told by colour alone, nothing told by sound alone, and the same Score stays
+  readable on the phone, since TalkBack does not read the Second screen. The phase says what the
+  player sees with no Second screen and when one drops mid-Visit, because not every phone can drive
+  one: many have no USB-C video out, and stock Android, Pixels included, has no Miracast. It runs
+  offline and asks for nothing; plain screen mirroring keeps working without it. Google Cast is not
+  used: a custom Cast receiver is a web page hosted online and registered with Google, which an
+  offline app cannot be. It adds CONTEXT.md terms for the Scoreboard and the Second screen, with
+  *TV*, *monitor*, *cast* and *display* in the Not column. It ships in 1.0.0, and since it asks for
+  nothing it may land on either side of the door. Its reading is taken on a real Second screen, over
+  both a cable and Miracast
 - [ ] **Phase S** — Sharing a photo, by choice: a player can send a photo with its corrected score
   to help train the model. Off by default and asked per photo; it ships in 1.0.0. Scoring is the
   same whether or not a player shares, and the new privacy policy is live before any build carries
