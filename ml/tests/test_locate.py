@@ -1,13 +1,17 @@
 import dataclasses
+import tempfile
 import unittest
 from pathlib import Path
 
 import numpy as np
+import torch
+from PIL import Image
 
+from darts_ml.augment import letterbox
 from darts_ml.board import CALIBRATION_POINTS
 from darts_ml.evaluate import Share
 from darts_ml.homography import project
-from darts_ml.locate import figures, located_from_targets
+from darts_ml.locate import Inference, _logits, figures, located_from_targets
 from darts_ml.training_data import Sample
 from synthetic import camera, dart_mm
 
@@ -27,7 +31,32 @@ def sample_of(darts_mm, session="s01_day") -> Sample:
     )
 
 
+class _Recording(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.batches: list[int] = []
+
+    def forward(self, images: torch.Tensor) -> torch.Tensor:
+        self.batches.append(len(images))
+        return images[:, :1]
+
+
 class LocateTest(unittest.TestCase):
+    def test_a_short_last_batch_runs_at_full_size_and_yields_only_its_own_photos(self):
+        with tempfile.TemporaryDirectory() as folder:
+            items = []
+            for shade in (10, 60, 110, 160, 210):
+                path = Path(folder) / f"{shade}.png"
+                Image.new("RGB", (8, 8), (shade, shade, shade)).save(path)
+                items.append((path, letterbox((8, 8), 8)))
+            model = _Recording()
+            outputs = list(_logits(Inference(model, "cpu", 8, batch=2, workers=0), items))
+        self.assertEqual(model.batches, [2, 2, 2])
+        self.assertEqual(len(outputs), 5)
+        means = [float(o.mean()) for o in outputs]
+        self.assertEqual(means, sorted(means))
+        self.assertEqual(len(set(means)), 5)
+
     def test_targets_decode_back_to_the_photo_pixels_they_came_from(self):
         sample = sample_of(APART_DARTS)
         located = located_from_targets(sample, SIZE)

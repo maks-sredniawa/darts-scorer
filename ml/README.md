@@ -146,7 +146,9 @@ through ROCm or an NVIDIA one through CUDA; PyTorch names both `cuda`, and the r
 name. `--bf16` (bfloat16 autocast) and `--channels-last` are for the GPU; leave both off. On the
 Radeon 8050S, `--bf16` stops on its first step with `miopenStatusUnknownError` unless MIOpen's kernel
 search for it is already cached, and under `MIOPEN_FIND_MODE=FAST` it runs about 40% slower than
-float32 (phase-M2.md §2).
+float32 (phase-M2.md §2). A fresh search can fail the same way in float32: a batch of 6, the test
+split's last, did. Inference therefore pads a short last batch to the run's batch size and drops the
+padding's output, so it only ever runs shapes training has already searched.
 
 MIOpen ships no tuned kernels for gfx1151. `train`, `predict` and `deepdarts score` keep its user
 database in `$DARTS_DATA/miopen/` (an `MIOPEN_USER_DB_PATH` already set wins), and one probe fills it
