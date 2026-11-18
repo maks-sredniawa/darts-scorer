@@ -11,6 +11,9 @@ from .homography import _normaliser, fit, project
 from .model import CALIBRATION_CHANNELS, CALIBRATION_OFFSETS, ENTRY_CHANNEL, ENTRY_OFFSETS, STRIDE
 
 THRESHOLD = 0.25
+ENTRY_THRESHOLD = 0.34
+ENTRIES_APART_MM = 0.0
+MOST_ENTRIES = 3
 CONFIDENT = 0.5
 RANSAC_MM = 3.0
 MIN_INLIERS = 8
@@ -31,9 +34,9 @@ class Peak:
 
 @dataclass(frozen=True)
 class EntryRule:
-    threshold: float = THRESHOLD
-    apart_mm: float = 0.0
-    most: int | None = None
+    threshold: float = ENTRY_THRESHOLD
+    apart_mm: float = ENTRIES_APART_MM
+    most: int | None = MOST_ENTRIES
 
 
 @dataclass(frozen=True)
