@@ -3,7 +3,9 @@
 An Android app for darts players: photograph the board after a throw, from one angle or a few, and
 it reads where each dart landed and adds up the score, asking for another photo only when a dart is
 hidden or unclear. The constraint that shapes everything: **the photos never leave the phone; the
-board and the darts are found by a model that runs on the device, offline.**
+board and the darts are found by a model that runs on the device, offline.** The one exception is
+planned for 1.0: a player may choose to send a photo to help train the model (`docs/PLAN.md`,
+phase S).
 
 - **Vocabulary:** [`CONTEXT.md`](CONTEXT.md) — use these terms in code and UI.
 - **Decisions and why:** [`docs/adr/`](docs/adr/) — read before changing anything they cover.

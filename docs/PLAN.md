@@ -32,6 +32,11 @@ was extracted from and the first app built from it settled on exactly this split
   colours (black, cream, red, green). Readings: real Visits on a real Board, in ordinary room light
 - [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
   asking for another angle only when a dart is missing, unsure, or on a wire (ADR-0008)
+- [ ] **Phase S** — Sharing a photo, by choice: a player can send a photo with its corrected score
+  to help train the model. Off by default and asked per photo; it ships in 1.0.0. Its ADR comes
+  first: it brings back the `INTERNET` permission ADR-0007 removes, and needs a place to receive
+  photos, consent and deletion, and a new privacy policy. **Before the door**, so testers and Play's
+  Data safety answers see it from the first build
 - [ ] **Phase 3** — *(safe to hand to a stranger)* ← **the door: closed testing opens here**. The
   first-run path, the DeepDarts attribution on the licences screen
 - [ ] **Phase N** — Ship shape: listing, screenshots, the App content answers
@@ -156,16 +161,13 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
 | Ask | When | Owner |
 | --- | --- | --- |
 | Camera (through the system camera, so no `CAMERA` permission) | the first tap on *Take a photo* | phase 1 |
+| Sending a photo to train the model (off by default) | when the player first chooses to send one, then for each photo | phase S |
 
 ## Not in this plan
 
-- The app sending a player's photo off the phone, for any reason, including to train the model.
-  The model is trained off the phone, on the owner's own photos and the DeepDarts dataset
-  (ADR-0008). **An idea for after 1.0, on the site since 2026-11-18:** a player could choose to send
-  a photo with its corrected score to improve the model. It would be off by default and asked per
-  photo, and it needs its own ADR first: it brings back the `INTERNET` permission ADR-0007 removes,
-  a place to receive photos, consent and deletion, and a new privacy policy. The app explains it on
-  its own screen when it is built, not before.
+- The app sending a player's photo off the phone without the player choosing to, photo by photo.
+  Phase S's opt-in is the only way a photo leaves the phone. The model is trained off the phone
+  (ADR-0008).
 - A live camera view that scores while the darts are being thrown. The app scores still photos of
   darts already on the board.
 - Fixed or mounted cameras.

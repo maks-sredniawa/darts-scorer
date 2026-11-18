@@ -29,16 +29,16 @@ uploaded anywhere. The details are in the
 
 **[Privacy Policy](privacy-policy.md)**.
 
-## An idea for later: help the model learn
+## Coming in version 1.0: help the model learn, if you want to
 
 The model that finds the darts gets better with more real photos of real boards, from more angles
-and in more kinds of light. One day the app may let you **choose** to send a photo, with the score
-you corrected, to help train it.
+and in more kinds of light. Version 1.0 will let you **choose** to send a photo, with the score you
+corrected, to help train it.
 
-This is only an idea. The app does not do it and cannot: it has no internet access. If it is ever
-built, it will be off unless you turn it on, it will ask before each photo, and the privacy policy
-will change first. If you would like it, or would rather it never happens, write to the support
-address below.
+It is entirely optional. It will be off unless you turn it on, it will ask before each photo, and
+the app will score your darts exactly the same whether you share or not. The privacy policy will
+say what is sent, where it goes and how to have it deleted before the feature reaches anyone. The
+app does not do this yet. Questions or wishes go to the support address below.
 
 ## Support
 
