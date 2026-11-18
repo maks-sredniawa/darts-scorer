@@ -161,7 +161,11 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
 
 - The app sending a player's photo off the phone, for any reason, including to train the model.
   The model is trained off the phone, on the owner's own photos and the DeepDarts dataset
-  (ADR-0008).
+  (ADR-0008). **An idea for after 1.0, on the site since 2026-11-18:** a player could choose to send
+  a photo with its corrected score to improve the model. It would be off by default and asked per
+  photo, and it needs its own ADR first: it brings back the `INTERNET` permission ADR-0007 removes,
+  a place to receive photos, consent and deletion, and a new privacy policy. The app explains it on
+  its own screen when it is built, not before.
 - A live camera view that scores while the darts are being thrown. The app scores still photos of
   darts already on the board.
 - Fixed or mounted cameras.

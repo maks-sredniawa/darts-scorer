@@ -29,6 +29,17 @@ uploaded anywhere. The details are in the
 
 **[Privacy Policy](privacy-policy.md)**.
 
+## An idea for later: help the model learn
+
+The model that finds the darts gets better with more real photos of real boards, from more angles
+and in more kinds of light. One day the app may let you **choose** to send a photo, with the score
+you corrected, to help train it.
+
+This is only an idea. The app does not do it and cannot: it has no internet access. If it is ever
+built, it will be off unless you turn it on, it will ask before each photo, and the privacy policy
+will change first. If you would like it, or would rather it never happens, write to the support
+address below.
+
 ## Support
 
 **darts-scorer.support@maksforge.com** — an ordinary mailbox that a person reads.
