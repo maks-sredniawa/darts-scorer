@@ -243,22 +243,23 @@ measured it. The speed-ups were each read with the probe and its parity check (5
 | **MIOpen's tuned kernels** (user database filled once under `MIOPEN_FIND_ENFORCE=SEARCH`) | **25.3** | **8.5 min** | −0.5% |
 
 Every row passes parity and both curves fall. The GPU shares the laptop's memory, and MobileNet's
-depthwise layers wait on memory rather than arithmetic, which is why halving the number width or
-doubling the batch buys little even where it runs. Only the tuned kernels are kept, as the default: `train`, `predict`
-and `deepdarts score` point MIOpen at `$DARTS_DATA/miopen/`. Batch 32 runs at batch 16's speed, so
-16 stays.
+depthwise layers wait on memory rather than arithmetic, which is why halving the number width (where
+bfloat16 runs at all) or doubling the batch buys little. Only the tuned kernels are kept, as the
+default: `train`, `predict` and `deepdarts score` point MIOpen at `$DARTS_DATA/miopen/`. Batch 32
+runs at batch 16's speed, so 16 stays. The model is two passes at 512 pixels until C's first run
+says otherwise.
 
 **bfloat16 does not run here from a fresh start (read 2026-11-18).** `--bf16` stays a flag, off, and
 is not to be turned on for a run. Its row above came from a kernel search that happened to succeed
 once and was cached in MIOpen's default `~/.config/miopen/`. Any fresh search fails on the first
 convolution: MIOpen times every bfloat16 candidate as taking no time at all, rejects them all, and
 stops with `miopenStatusUnknownError` ("No suitable algorithm was found"). That holds with an empty
-database and with the tuned one in `$DARTS_DATA/miopen/`. `MIOPEN_FIND_MODE=FAST`, which picks kernels
-without timing them, does run, with a falling loss (0.787 at step 200), but at 14.3 Photos/s, about
-40% slower than float32 on the tuned kernels (`runs/probes/gpu-512-16-200steps-bf16-20261118-073643.json`).
-Its kernels also print about 15 debugging lines per step to standard output from inside the ROCm
-library, which nothing turns off. The model is two passes at
-512 pixels until C's first run says otherwise.
+database and with the tuned one in `$DARTS_DATA/miopen/`. `MIOPEN_FIND_MODE=FAST`, which picks
+kernels without timing them, does run, with a falling loss (0.787 at step 200) that passes parity:
+its mean over steps 151–200 was 0.786, 1.2% above the CPU's 0.777. It runs at 14.3 Photos/s, though,
+about 40% slower than float32 on the tuned kernels
+(`runs/probes/gpu-512-16-200steps-bf16-20261118-073643.json`). Its kernels also print about 15
+debugging lines per step to standard output from inside the ROCm library, which nothing turns off.
 
 **From scratch** (D2). Weights start random; nothing pretrained is downloaded.
 
