@@ -9,6 +9,7 @@ from PIL import Image
 
 from darts_ml.augment import letterbox
 from darts_ml.board import CALIBRATION_POINTS
+from darts_ml.cli import TUNE_THRESHOLDS, tune_floor
 from darts_ml.evaluate import Share
 from darts_ml.homography import project
 from darts_ml.decode import EntryRule
@@ -51,6 +52,15 @@ class LocateTest(unittest.TestCase):
         kept = refiltered(Located(to_board, entries=entries), EntryRule(threshold=0.0, apart_mm=6.0, most=None))
         self.assertEqual(kept.entries, (entries[0], entries[2]))
         self.assertEqual(refiltered(Located(None, entries=entries), EntryRule(most=1)).entries, entries)
+
+    def test_tune_reads_every_peak_so_an_uncapped_row_can_differ_from_a_capped_one(self):
+        to_board = np.diag([0.5, 0.5, 1.0])
+        entries = tuple(PredictedEntry(100 + 100 * i, 100, confidence=0.9 - 0.1 * i) for i in range(4))
+        raw = refiltered(Located(to_board, entries=entries), tune_floor())
+        self.assertEqual(raw.entries, entries)
+        uncapped = refiltered(raw, EntryRule(min(TUNE_THRESHOLDS), 0.0, None))
+        capped = refiltered(raw, EntryRule(min(TUNE_THRESHOLDS), 0.0, 3))
+        self.assertEqual((len(uncapped.entries), len(capped.entries)), (4, 3))
 
     def test_a_short_last_batch_runs_at_full_size_and_yields_only_its_own_photos(self):
         with tempfile.TemporaryDirectory() as folder:
