@@ -337,7 +337,9 @@ the only way a model's output reaches the Held-out set, and it records in the fi
 most extra ones sat on a real Dart's barrel or flight a few millimetres from its tip, flagged unsure
 (seen drawn over 20 val Photos). So a Photo is now scored from at most three Entry points, the most
 confident, each over 0.34. `darts-ml deepdarts tune` chose that on val alone, over thresholds 0.25 to
-0.55, caps of three or none, and a merge of peaks closer than 0 to 12 mm: exactly right rose from
+0.55, caps of three or none, and a merge of peaks closer than 0 to 12 mm, then a finer pass at 0.28
+to 0.40 in steps of 0.02 with the cap at three and merges of 0, 6, 8 and 10 mm, both inside its grid
+now: exactly right rose from
 39.1% to 58.8%. Merging peaks within 8 mm added 1.2 points more, but it drops a real second Dart
 landing that close, which is the grouped case M1 captures on purpose, so the merge stays at 0 and
 remains a setting. The cost is real Darts with low confidence: Darts right fell from 90.5% to 82.1%.
