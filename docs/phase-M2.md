@@ -208,6 +208,18 @@ is chosen on here, is read beside it. This is the encoding's own limit, what a m
 targets exactly would decode; a trained model blurs peaks further, so every epoch of `darts-ml train`
 reads the same share on its own output, and C reads it again.
 
+**After D, 2026-11-18: the Entry channel moves to stride 2, and false tips near a real one cost
+more.** D (`2026-11-18-darts-512`) got 91% of Darts right but found only 5 of 27 val pairs under
+10 mm as two, while its own targets decode 27 of 27: the limit is the model, not the encoding. Its
+overlays put phantom Entry peaks on barrels and flights a few millimetres from real tips. Two
+changes answer that, both switchable for an ablation (`ml/README.md`): the Entry heatmap and its
+offsets come from a small stride-2 head, so a pair 6 mm apart is about four cells apart instead of
+two, with the Calibration channels left at stride 4 as C trained them; and the Entry heatmap's
+penalty for a false peak is five times higher in a ring 4 to 20 mm of Board around each labelled
+Entry point, never on a neighbour's tip. The encoding limit at 640 pixels is unchanged by the
+stride: 27 of 27 val pairs and 348 of 353 train pairs at stride 2 and at stride 4 alike; the
+targets only part at stride 4 for pairs closer than about 3 mm.
+
 **Decoding.** A Calibration point is the peak of its channel, if the peak clears a threshold; an
 Entry point is every local maximum of its channel above a threshold. The offsets refine each. The
 Calibration points then go through RANSAC to a homography (ADR-0008), and the predictions file

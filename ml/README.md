@@ -107,6 +107,7 @@ passes, and the commands that train it and turn it into predictions.
 ```bash
 uv run --directory ml darts-ml train --name board-512 --board-only   # C: Calibration points only
 uv run --directory ml darts-ml train --name darts-512 --init <run>   # D: Entry points added, from C's weights
+uv run --directory ml darts-ml train --name darts-640-s2-ring --size 640 --init <run>   # after D: Entry head at stride 2
 uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, R3: a run's figures on DeepDarts
 uv run --directory ml darts-ml deepdarts tune --run <run>            # each rule for keeping Entry points, on val only
 uv run --directory ml darts-ml deepdarts grouped                     # pairs under 10 mm the targets decode as two
@@ -126,6 +127,16 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
   and as a whole Photo (25–70%) otherwise; brightness, contrast, colour and blur. Labels move with the
   pixels through the same matrix, and nothing mirrors the Board. The ranges are `Ranges` in
   `augment.py`.
+- **Two heads.** The Calibration heatmaps and their offsets come out at stride 4; the Entry heatmap and
+  its offsets at stride 2 (`--entry-stride 2`, the default), from a small head over the stride-4
+  features and the backbone's stride-2 layer. `--entry-stride 4` is C's and D's layout. `--init`
+  loads every weight whose name and shape fit, prints the rest, which start fresh, and starts a
+  stride-2 model from a stride-4 run with its Calibration outputs unchanged. `predict` and
+  `deepdarts score` read either layout from the weights themselves.
+- **The ring.** A false Entry peak between 4 and 20 mm of Board from a labelled Entry point, where its
+  own barrel and flight show, costs five times the ordinary penalty, except within 4 mm (or two
+  cells) of any labelled Entry point, a close neighbour's tip included. `--ring-weight 0` turns it
+  off and `--ring-mm INNER OUTER` moves it; `config.json` records all three.
 - **Two passes** (phase-M2.md §2): the whole Photo, letterboxed, finds the Board; a square around the
   outer double ring, the ring filling 80% of it, gives the points kept. A Calibration point is its
   channel's peak, an Entry point every local maximum of its channel, both from 0.25 up, refined by
