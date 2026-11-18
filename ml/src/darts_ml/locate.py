@@ -16,9 +16,9 @@ from .board import CALIBRATION_POINTS, DOUBLE_WIRES, TREBLE_WIRES, score
 from .decode import EntryRule, decode, kept_entries, ransac
 from .evaluate import PredictedEntry, Share
 from .homography import crossing_errors_mm, invert, project
-from .model import ENTRY_CHANNEL
+from .model import ENTRY_STRIDE, Heads
 from .repeatability import Spread
-from .training_data import Sample, normalise, targets
+from .training_data import Sample, framed_targets, normalise
 
 GROUPED_MM = 10.0
 MATCH_MM = 3.0
@@ -93,8 +93,9 @@ def _logits(run: Inference, items: list[tuple[Path, np.ndarray]]):
                 # A short last batch is a new shape, and MIOpen's fresh kernel search for one can fail (ml/README.md).
                 images = torch.cat([images, images[-1:].expand(run.batch - count, *images.shape[1:])])
                 with run.speed.autocast(run.device):
-                    output = run.model(images.to(run.device).contiguous(memory_format=run.speed.memory))
-                yield from output[:count].float().cpu().numpy()
+                    heads = run.model(images.to(run.device).contiguous(memory_format=run.speed.memory))
+                board, entry = (h[:count].float().cpu().numpy() for h in heads)
+                yield from (Heads(b, e) for b, e in zip(board, entry, strict=True))
     finally:
         run.model.train(was_training)
 
@@ -104,8 +105,8 @@ def _to_photo(matrix: np.ndarray, peaks) -> np.ndarray:
     return project(back, [(p.x, p.y) for p in peaks]) if peaks else np.empty((0, 2))
 
 
-def _board(matrix: np.ndarray, logits: np.ndarray, rule: EntryRule = EntryRule()) -> Located:
-    decoded = decode(logits, entry_threshold=rule.threshold)
+def _board(matrix: np.ndarray, heads: Heads, rule: EntryRule = EntryRule()) -> Located:
+    decoded = decode(heads, entry_threshold=rule.threshold)
     channels = sorted(decoded.calibration)
     pixels = _to_photo(matrix, [decoded.calibration[c] for c in channels])
     calibration = {c: (float(x), float(y)) for c, (x, y) in zip(channels, pixels, strict=True)}
@@ -249,13 +250,14 @@ def _matched(truth: np.ndarray, guess: np.ndarray) -> set[int]:
     return taken_truth
 
 
-def located_from_targets(sample: Sample, size: int) -> Located:
-    to_photo = sample.board_to_photo()
-    matrix = framing(to_photo, size)
-    points = [(c, x, y, w) for c, x, y, w in sample.calibration] + [(ENTRY_CHANNEL, x, y, 1.0) for x, y in sample.entries]
-    moved = project(matrix, [(x, y) for _, x, y, _ in points])
-    heatmaps, _, calibration_offsets, _, entry_offsets, _ = targets(
-        [(c, x, y, w) for (c, _, _, w), (x, y) in zip(points, moved, strict=True)], size)
-    clipped = np.clip(heatmaps, 1e-6, 1 - 1e-6)
-    logits = np.concatenate([np.log(clipped / (1 - clipped)), calibration_offsets, entry_offsets])
-    return _board(matrix, logits)
+def located_from_targets(sample: Sample, size: int, entry_stride: int = ENTRY_STRIDE) -> Located:
+    matrix = framing(sample.board_to_photo(), size)
+    made = framed_targets(sample, matrix, size, entry_stride)
+    board = np.concatenate([_logit(made.board_heat), made.board_offsets])
+    entry = np.concatenate([_logit(made.entry_heat[None]), made.entry_offsets])
+    return _board(matrix, Heads(board, entry))
+
+
+def _logit(heat: np.ndarray) -> np.ndarray:
+    clipped = np.clip(heat, 1e-6, 1 - 1e-6)
+    return np.log(clipped / (1 - clipped))

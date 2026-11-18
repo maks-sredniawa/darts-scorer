@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import torch
@@ -14,15 +15,18 @@ from .board import CALIBRATION_BY_NAME, CALIBRATION_POINTS
 from .capture_sessions import PhotoName
 from .deepdarts import ORDER, PROJECTED, RECORDS as DEEPDARTS_RECORDS, SOURCE as DEEPDARTS, deepdarts_mm
 from .heldout import HeldOutSet, file_sha256
-from .homography import fit, project
+from .homography import MIN_POINTS, fit, invert, project
 from .labelme import label_path
-from .model import ENTRY_CHANNEL, HEATMAPS, STRIDE
+from .model import BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_POINT, ENTRY_STRIDE
 from .paths import DataDir
 from .records import RECORDS as OWNER_RECORDS
 
 PROJECTED_WEIGHT = 0.5
 SIGMA_CELLS = 2.0
 ENTRY_SIGMA_CELLS = 1.0
+RING_INNER_MM = 4.0
+RING_OUTER_MM = 20.0
+RING_CLEAR_CELLS = 2.0
 VALIDATION_SESSIONS = frozenset({"s09", "s14"})
 TRAIN, VALIDATION = "train", "validation"
 _INDEX = {point.name: i for i, point in enumerate(CALIBRATION_POINTS)}
@@ -120,52 +124,112 @@ def normalise(image: Image.Image) -> torch.Tensor:
     return torch.from_numpy(pixels.transpose(2, 0, 1).copy())
 
 
-def targets(points_px, size: int):
-    cells = size // STRIDE
-    heatmaps = np.zeros((HEATMAPS, cells, cells), dtype=np.float32)
-    weights = np.ones(HEATMAPS, dtype=np.float32)
-    calibration_offsets, entry_offsets = np.zeros((2, 2, cells, cells), dtype=np.float32)
-    calibration_mask, entry_mask = np.zeros((2, cells, cells), dtype=np.float32)
+class Targets(NamedTuple):
+    board_heat: np.ndarray
+    board_weights: np.ndarray
+    board_offsets: np.ndarray
+    board_mask: np.ndarray
+    entry_heat: np.ndarray
+    entry_offsets: np.ndarray
+    entry_mask: np.ndarray
+    ring: np.ndarray
+
+
+def targets(points_px, size: int, entry_stride: int = ENTRY_STRIDE, to_board: np.ndarray | None = None,
+            ring_mm: tuple[float, float] = (RING_INNER_MM, RING_OUTER_MM)) -> Targets:
+    """to_board maps input pixels to Board mm; without it the ring is empty."""
+    cells, entry_cells = size // BOARD_STRIDE, size // entry_stride
+    board_heat = np.zeros((CALIBRATION_CHANNELS, cells, cells), dtype=np.float32)
+    board_weights = np.ones(CALIBRATION_CHANNELS, dtype=np.float32)
+    board_offsets = np.zeros((2, cells, cells), dtype=np.float32)
+    board_mask = np.zeros((cells, cells), dtype=np.float32)
+    entry_heat = np.zeros((entry_cells, entry_cells), dtype=np.float32)
+    entry_offsets = np.zeros((2, entry_cells, entry_cells), dtype=np.float32)
+    entry_mask = np.zeros((entry_cells, entry_cells), dtype=np.float32)
+    entries = []
     for channel, x, y, weight in points_px:
-        entry = channel == ENTRY_CHANNEL
-        if not entry:
-            weights[channel] = weight
-        cx, cy = x / STRIDE, y / STRIDE
-        if not (0 <= cx < cells and 0 <= cy < cells):
+        entry = channel == ENTRY_POINT
+        if entry:
+            entries.append((x, y))
+            stride, grid, heat, offsets, mask = entry_stride, entry_cells, entry_heat, entry_offsets, entry_mask
+        else:
+            board_weights[channel] = weight
+            stride, grid, heat, offsets, mask = BOARD_STRIDE, cells, board_heat[channel], board_offsets, board_mask
+        cx, cy = x / stride, y / stride
+        if not (0 <= cx < grid and 0 <= cy < grid):
             continue
-        _splat(heatmaps[channel], cx, cy, ENTRY_SIGMA_CELLS if entry else SIGMA_CELLS)
+        _splat(heat, cx, cy, ENTRY_SIGMA_CELLS if entry else SIGMA_CELLS)
         ix, iy = int(cx), int(cy)
-        offsets, mask = (entry_offsets, entry_mask) if entry else (calibration_offsets, calibration_mask)
         offsets[:, iy, ix] = (cx - ix, cy - iy)
         mask[iy, ix] = 1.0
-    return heatmaps, weights, calibration_offsets, calibration_mask, entry_offsets, entry_mask
+    ring = ring_mask(entries, entry_cells, entry_stride, to_board, ring_mm)
+    return Targets(board_heat, board_weights, board_offsets, board_mask, entry_heat, entry_offsets, entry_mask, ring)
+
+
+def ring_mask(entries_px, cells: int, stride: int, to_board: np.ndarray | None,
+              ring_mm: tuple[float, float]) -> np.ndarray:
+    """The Entry cells whose false peaks cost more: between ring_mm[0] and ring_mm[1] of Board from a labelled
+    Entry point, where its own barrel and flight show, but never within ring_mm[0] or RING_CLEAR_CELLS of any."""
+    ring = np.zeros((cells, cells), dtype=np.float32)
+    if not entries_px or to_board is None:
+        return ring
+    inner, outer = ring_mm
+    entries_px = np.asarray(entries_px, dtype=float)
+    to_board = to_board * np.sign((np.column_stack([entries_px, np.ones(len(entries_px))]) @ to_board.T)[0, 2])
+    ys, xs = np.mgrid[0:cells, 0:cells]
+    pixels = np.column_stack([(xs.ravel() + 0.5) * stride, (ys.ravel() + 0.5) * stride, np.ones(cells * cells)])
+    mapped = pixels @ to_board.T
+    # Cells past the Board plane's horizon map to w <= 0, and their projection lands anywhere, near a Dart too.
+    ahead = mapped[:, 2] > 0
+    board = mapped[:, :2] / np.where(ahead, mapped[:, 2], 1.0)[:, None]
+    entries_mm = project(to_board, entries_px)
+    mm = np.linalg.norm(board[:, None, :] - entries_mm[None, :, :], axis=2)
+    entry_cells = np.floor(entries_px / stride)
+    apart = np.hypot(xs.ravel()[:, None] - entry_cells[None, :, 0], ys.ravel()[:, None] - entry_cells[None, :, 1])
+    near = ((mm >= inner) & (mm <= outer)).any(axis=1)
+    clear = (mm >= inner).all(axis=1) & (apart >= RING_CLEAR_CELLS).all(axis=1)
+    ring.ravel()[:] = near & clear & ahead
+    return ring
 
 
 class KeypointDataset(torch.utils.data.Dataset):
-    def __init__(self, samples: list[Sample], size: int, augment: bool = False) -> None:
+    def __init__(self, samples: list[Sample], size: int, augment: bool = False, entry_stride: int = ENTRY_STRIDE,
+                 ring_mm: tuple[float, float] = (RING_INNER_MM, RING_OUTER_MM)) -> None:
         self.samples = samples
         self.size = size
         self.augment = augment
+        self.entry_stride = entry_stride
+        self.ring_mm = ring_mm
 
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, Targets]:
         sample = self.samples[index]
+        to_photo = sample.board_to_photo() if len(sample.calibration) >= MIN_POINTS else None
         with Image.open(sample.photo) as photo:
             photo = photo.convert("RGB")
             if self.augment:
                 rng = np.random.default_rng(int(torch.randint(0, 2**62, ())))
-                matrix = random_matrix(sample.board_to_photo(), self.size, rng)
+                matrix = random_matrix(to_photo, self.size, rng)
                 image = photometric(warp(photo, matrix, self.size), rng)
             else:
                 matrix = np.diag([self.size / photo.width, self.size / photo.height, 1.0])
                 image = photo.resize((self.size, self.size), Image.BILINEAR)
-        points = [(channel, x, y, w) for channel, x, y, w in sample.calibration]
-        points += [(ENTRY_CHANNEL, x, y, 1.0) for x, y in sample.entries]
-        moved = project(matrix, [(x, y) for _, x, y, _ in points]) if points else []
-        arrays = targets([(c, x, y, w) for (c, _, _, w), (x, y) in zip(points, moved, strict=True)], self.size)
-        return (normalise(image), *map(torch.from_numpy, arrays))
+        made = framed_targets(sample, matrix, self.size, self.entry_stride, self.ring_mm, to_photo)
+        return normalise(image), Targets(*map(torch.from_numpy, made))
+
+
+def framed_targets(sample: Sample, matrix: np.ndarray, size: int, entry_stride: int = ENTRY_STRIDE,
+                   ring_mm: tuple[float, float] = (RING_INNER_MM, RING_OUTER_MM),
+                   to_photo: np.ndarray | None = None) -> Targets:
+    """The targets of a sample whose Photo the matrix maps onto a size × size input; to_photo, the sample's
+    Board-to-Photo homography, places the ring, and without it the ring is empty."""
+    points = [(channel, x, y, w) for channel, x, y, w in sample.calibration]
+    points += [(ENTRY_POINT, x, y, 1.0) for x, y in sample.entries]
+    moved = project(matrix, [(x, y) for _, x, y, _ in points]) if points else []
+    return targets([(c, x, y, w) for (c, _, _, w), (x, y) in zip(points, moved, strict=True)], size, entry_stride,
+                   None if to_photo is None else invert(matrix @ to_photo), ring_mm)
 
 
 def _splat(heatmap: np.ndarray, cx: float, cy: float, sigma: float) -> None:

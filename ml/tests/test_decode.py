@@ -5,17 +5,22 @@ import numpy as np
 from darts_ml.board import CALIBRATION_POINTS
 from darts_ml.decode import MIN_INLIERS, THRESHOLD, EntryRule, decode, kept_entries, ransac
 from darts_ml.homography import project
-from darts_ml.model import ENTRY_CHANNEL
+from darts_ml.model import BOARD_STRIDE, ENTRY_POINT, ENTRY_STRIDE, Heads
 from darts_ml.training_data import targets
 from synthetic import camera
 
 SIZE = 512
 
 
-def logits_of(points, size=SIZE):
-    heatmaps, _, calibration_offsets, _, entry_offsets, _ = targets(points, size)
-    clipped = np.clip(heatmaps, 1e-6, 1 - 1e-6)
-    return np.concatenate([np.log(clipped / (1 - clipped)), calibration_offsets, entry_offsets])
+def logits_of(points, size=SIZE, entry_stride=ENTRY_STRIDE) -> Heads:
+    made = targets(points, size, entry_stride)
+
+    def logit(heat):
+        clipped = np.clip(heat, 1e-6, 1 - 1e-6)
+        return np.log(clipped / (1 - clipped))
+
+    return Heads(np.concatenate([logit(made.board_heat), made.board_offsets]),
+                 np.concatenate([logit(made.entry_heat[None]), made.entry_offsets]))
 
 
 class DecodeTest(unittest.TestCase):
@@ -28,20 +33,31 @@ class DecodeTest(unittest.TestCase):
             self.assertLess(abs(peak.x - x), 0.05)
             self.assertLess(abs(peak.y - y), 0.05)
 
-    def test_every_entry_point_in_a_channel_holding_three(self):
+    def test_every_entry_point_in_a_channel_holding_three_at_either_stride(self):
         known = [(200.3, 210.9), (209.7, 214.2), (350.55, 120.1)]
-        decoded = decode(logits_of([(ENTRY_CHANNEL, x, y, 1.0) for x, y in known]))
-        self.assertEqual(len(decoded.entries), 3)
-        found = sorted((p.x, p.y) for p in decoded.entries)
-        for (x, y), (fx, fy) in zip(sorted(known), found, strict=True):
-            self.assertLess(abs(fx - x), 0.05)
-            self.assertLess(abs(fy - y), 0.05)
+        for stride in (ENTRY_STRIDE, BOARD_STRIDE):
+            with self.subTest(stride=stride):
+                heads = logits_of([(ENTRY_POINT, x, y, 1.0) for x, y in known], entry_stride=stride)
+                self.assertEqual(heads.entry.shape[-1], SIZE // stride)
+                decoded = decode(heads)
+                self.assertEqual(len(decoded.entries), 3)
+                found = sorted((p.x, p.y) for p in decoded.entries)
+                for (x, y), (fx, fy) in zip(sorted(known), found, strict=True):
+                    self.assertLess(abs(fx - x), 0.05)
+                    self.assertLess(abs(fy - y), 0.05)
+
+    def test_two_entry_points_three_pixels_apart_are_two_only_at_stride_two(self):
+        known = [(200.5, 200.5), (203.5, 200.5)]
+        points = [(ENTRY_POINT, x, y, 1.0) for x, y in known]
+        self.assertEqual(len(decode(logits_of(points, entry_stride=ENTRY_STRIDE)).entries), 2)
+        self.assertEqual(len(decode(logits_of(points, entry_stride=BOARD_STRIDE)).entries), 1)
 
     def test_a_channel_below_the_threshold_returns_nothing(self):
-        logits = logits_of([(3, 100.0, 100.0, 1.0), (ENTRY_CHANNEL, 200.0, 200.0, 1.0)])
+        heads = logits_of([(3, 100.0, 100.0, 1.0), (ENTRY_POINT, 200.0, 200.0, 1.0)])
         below = np.log(THRESHOLD * 0.9 / (1 - THRESHOLD * 0.9))
-        logits[[3, ENTRY_CHANNEL]] = np.minimum(logits[[3, ENTRY_CHANNEL]], below)
-        decoded = decode(logits)
+        for heat in (heads.board[3], heads.entry[0]):
+            np.minimum(heat, below, out=heat)
+        decoded = decode(heads)
         self.assertNotIn(3, decoded.calibration)
         self.assertEqual(decoded.entries, ())
 
