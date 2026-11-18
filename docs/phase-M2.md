@@ -249,6 +249,10 @@ default: `train`, `predict` and `deepdarts score` point MIOpen at `$DARTS_DATA/m
 runs at batch 16's speed, so 16 stays. The model is two passes at 512 pixels until C's first run
 says otherwise.
 
+**C keeps 512 pixels (read 2026-11-18, R2).** Its wire medians, 0.27 to 0.40 mm on val and test,
+are about a third of an input pixel on an 800-pixel crop, and inside B1's 0.5 mm. A larger input
+buys nothing C can measure; E reads the phone's side of the trade.
+
 **bfloat16 does not run here from a fresh start (read 2026-11-18).** `--bf16` stays a flag, off, and
 is not to be turned on for a run. Its row above came from a kernel search that happened to succeed
 once and was cached in MIOpen's default `~/.config/miopen/`. Any fresh search fails on the first
@@ -261,7 +265,8 @@ about 40% slower than float32 on the tuned kernels
 (`runs/probes/gpu-512-16-200steps-bf16-20261118-073643.json`). Its kernels also print about 15
 debugging lines per step to standard output from inside the ROCm library, which nothing turns off.
 
-**From scratch** (D2). Weights start random; nothing pretrained is downloaded.
+**From scratch** (D2). Weights start random; nothing pretrained is downloaded. C's reading clears
+B1's median at both wires on val and test, so D2 does not come back to the owner.
 
 ## 3. The data the model sees
 
@@ -293,6 +298,18 @@ same warp on every point of a Photo when one click is off. Training on all 80 te
 inner wires DeepDarts never clicked; weighting them at half lets the clicked points win where they
 disagree. C reads whether that holds: its error at the treble wires, where only projected labels
 exist, against its error at the double wires.
+
+**Read at C, 2026-11-18: the projected labels cost the treble wires nothing visible.** The treble
+wires, labelled only by projection, read lower than the double wires, the wire the four clicked
+points sit on: median 0.274 against 0.303 mm on val, 0.324 against 0.396 mm on test (R2). The half
+weight stays. What this cannot show is the projection's own error: val and test are labelled the
+same way, so a model that reproduced four-click projection exactly would read zero against them. The
+owner's labels, checked at every crossing, measure that in F.
+
+The best epoch was 12 of 30. After it the training loss fell from 0.126 to 0.098 while val's treble
+median wandered between 0.28 and 0.35 mm without improving on 0.274, so 30 epochs is not short for the
+Board. C trains no Entry points, so its grouped share (0 of 27 val pairs, 0 of 74 test) is D's to
+read.
 
 **DeepDarts' four are on the outer edge of the double wire, at 170.0 mm**, not on this repo's crossing
 centres at 169.25 mm (phase-M1.md §4). The record keeps them there; the training target for those
@@ -410,7 +427,7 @@ with the command that took them. Each training reading names its run folder.
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | **The gate.** Epoch time on the GPU (ROCm) and on the CPU; the first 200 losses compared | `darts-ml train --probe --device gpu`, then `--device cpu` | **Verdict 1, 2026-11-17.** GPU (Radeon 8050S, ROCm 7.14): 9.7 min an epoch, 22.0 Photos/s. CPU: 20.9 min, 10.2 Photos/s. Loss over steps 151–200: 0.180 against 0.183, 1.7% apart; both from about 2.40 over steps 1–10. 512 px, batch 16, seed 0, `runs/probes/` |
-| R2 | The Board on DeepDarts: found share, and median / 95th percentile error at the treble and double wires, on val and on test | `darts-ml evaluate`-style figures on DeepDarts, from the chosen C run | *(C)* |
+| R2 | The Board on DeepDarts: found share, and median / 95th percentile error at the treble and double wires, on val and on test | `darts-ml evaluate`-style figures on DeepDarts, from the chosen C run | **2026-11-18**, run `2026-11-18-board-512`: `--board-only`, 512 px, batch 16, float32, augmented, 30 epochs in 4.6 h, `best.pt` from epoch 12. **Val:** Board found 1070/1070; treble wires median 0.274 mm, 95th 0.623; double wires median 0.303, 95th 0.711. **Test:** 2150/2150; treble 0.324 / 0.815; double 0.396 / 0.892. `darts-ml deepdarts score --run 2026-11-18-board-512 --split val`, then `--split test` |
 | R3 | The Darts on DeepDarts: share of the face-on (`d1_`) and of the angled (`d2_`) test Photos scored right, the paper's way (total), beside 94.7% and 84.0%; and Dart by Dart | the chosen D run | *(D)* |
 | R4 | Export, per runtime tried: model size, runtime size per ABI, parity in mm over 1,070 val Photos, emulator latency of both passes, operations that failed | `darts-ml export` and its report | *(E)* |
 | R5 | The owner's Photos: B1 and B2 on the Validation sessions for the chosen F run | the chosen F run | *(F)* |
