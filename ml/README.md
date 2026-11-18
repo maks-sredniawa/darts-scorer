@@ -157,20 +157,26 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
 
 `--device` is `auto` (the GPU if PyTorch sees one, else the CPU), `gpu` or `cpu`. A GPU is an AMD one
 through ROCm or an NVIDIA one through CUDA; PyTorch names both `cuda`, and the run prints the real
-name. `--bf16` (bfloat16 autocast) and `--channels-last` are for the GPU; leave both off. On the
-Radeon 8050S, `--bf16` stops on its first step with `miopenStatusUnknownError` unless MIOpen's kernel
-search for it is already cached, and under `MIOPEN_FIND_MODE=FAST` it runs about 40% slower than
-float32 (phase-M2.md §2). A fresh search can fail the same way in float32: a batch of 6, the test
-split's last, did. Inference therefore pads a short last batch to the run's batch size and drops the
-padding's output, so it only ever runs shapes training has already searched.
+name. `--bf16` (bfloat16 autocast) and `--channels-last` are for the GPU; leave both off. `--bf16`
+needs its kernels in MIOpen's database first (below). Tuned, it read 9% faster than float32 over 200
+steps, and no run has been trained in it (phase-M2.md §2).
 
 MIOpen ships no tuned kernels for gfx1151. `train`, `predict` and `deepdarts score` keep its user
 database in `$DARTS_DATA/miopen/` (an `MIOPEN_USER_DB_PATH` already set wins), and one probe fills it
-for a new input or batch size:
+for a new input size, batch size or precision:
 
 ```bash
-MIOPEN_FIND_ENFORCE=SEARCH uv run --directory ml darts-ml train --probe   # slow once; later runs ~12% faster
+MIOPEN_FIND_ENFORCE=SEARCH uv run --directory ml darts-ml train --probe          # slow once; later runs ~12% faster
+MIOPEN_FIND_ENFORCE=SEARCH uv run --directory ml darts-ml train --probe --bf16   # the same for bfloat16, about 3.5 min
 ```
+
+**Run a search only after a restart, before the laptop sleeps.** MIOpen chooses a kernel for a shape
+it has not run before by timing each candidate, and on the Radeon 8050S the GPU's timer reads zero
+once the laptop has been suspended and resumed. Every search then stops with
+`miopenStatusUnknownError`, in float32 as much as in bfloat16, until the next restart (phase-M2.md
+§2), and the step that hit it says so. A shape already in the database runs in any session.
+Inference pads a short last batch to the run's batch size and drops the padding's output, so it only
+ever runs shapes training has already searched.
 
 ## The Held-out set and the bar
 

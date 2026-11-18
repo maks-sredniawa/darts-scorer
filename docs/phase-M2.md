@@ -248,15 +248,15 @@ measured it. The speed-ups were each read with the probe and its parity check (5
 | Change | Photos/s | Epoch | Loss 151–200 against the CPU's 0.777 |
 | --- | --- | --- | --- |
 | none (float32) | 22.5 | 9.5 min | +0.8% |
-| bfloat16 autocast (a cached kernel search; see below) | 23.6 | 9.0 min | +1.3% |
+| bfloat16 autocast (untuned; tuned, see below) | 23.6 | 9.0 min | +1.3% |
 | channels-last | 22.5 | 9.5 min | +0.8% |
-| both (the same cached search) | 23.4 | 9.1 min | +1.3% |
+| both | 23.4 | 9.1 min | +1.3% |
 | both, batch 32 | 22.9 | 9.3 min | — |
 | **MIOpen's tuned kernels** (user database filled once under `MIOPEN_FIND_ENFORCE=SEARCH`) | **25.3** | **8.5 min** | −0.5% |
 
 Every row passes parity and both curves fall. The GPU shares the laptop's memory, and MobileNet's
-depthwise layers wait on memory rather than arithmetic, which is why halving the number width (where
-bfloat16 runs at all) or doubling the batch buys little. Only the tuned kernels are kept, as the
+depthwise layers wait on memory rather than arithmetic, which is why halving the number width or
+doubling the batch buys little. Only the tuned kernels are kept, as the
 default: `train`, `predict` and `deepdarts score` point MIOpen at `$DARTS_DATA/miopen/`. Batch 32
 runs at batch 16's speed, so 16 stays. The model is two passes at 512 pixels until C's first run
 says otherwise.
@@ -266,17 +266,57 @@ are a third to a half of an input pixel (about 0.875 mm at 512 pixels on an 800-
 inside B1's 0.5 mm. A larger input buys nothing C can measure; E reads the phone's side of the
 trade.
 
-**bfloat16 does not run here from a fresh start (read 2026-11-18).** `--bf16` stays a flag, off, and
-is not to be turned on for a run. Its row above came from a kernel search that happened to succeed
-once and was cached in MIOpen's default `~/.config/miopen/`. Any fresh search fails on the first
-convolution: MIOpen times every bfloat16 candidate as taking no time at all, rejects them all, and
-stops with `miopenStatusUnknownError` ("No suitable algorithm was found"). That holds with an empty
-database and with the tuned one in `$DARTS_DATA/miopen/`. `MIOPEN_FIND_MODE=FAST`, which picks
-kernels without timing them, does run, with a falling loss (0.787 at step 200) that passes parity:
-its mean over steps 151–200 was 0.786, 1.2% above the CPU's 0.777. It runs at 14.3 Photos/s, though,
-about 40% slower than float32 on the tuned kernels
-(`runs/probes/gpu-512-16-200steps-bf16-20261118-073643.json`). Its kernels also print about 15
-debugging lines per step to standard output from inside the ROCm library, which nothing turns off.
+**MIOpen cannot search for kernels once the laptop has slept (read 2026-11-18).** This paragraph
+first said that bfloat16 does not run from a fresh start. The cause is wider and is not bfloat16:
+after a suspend every kernel search fails, in float32 as well, and before one every search works.
+MIOpen chooses a kernel for a shape it has not run before by timing each candidate. After a resume
+the GPU's firmware restarts the clock it stamps each kernel launch with, while the kernel driver's
+GPU clock, which the ROCm runtime uses to turn those stamps into times, keeps counting from boot.
+The runtime then reads every launch as time zero, so MIOpen sees every candidate take no time
+("Invalid elapsed time detected in EvaluateInvokers"), rejects them all and stops with
+`miopenStatusUnknownError`. Read on the GPU after the 2026-11-18 07:25 resume: 600 of 600 timed
+intervals came back zero or negative, the runtime's own log showed the raw stamps advancing and
+every translated time as 0, and the two clocks stood 12.8 hours apart, the time from the boot to
+that resume. Every search that worked was run on 2026-11-17 before the 22:12 suspend. Every one that
+failed came after the resume: bfloat16 at batch 16, float32 at a batch of 6, and float32 at batch 16
+itself against an empty database. With the driver's clock shifted by that offset as the runtime
+reads it (a preload shim, for this reading only and not in the repository), searches for all three
+succeeded in the same session. A shape already in the database needs no timing and runs in any
+session, which is why training and the padded inference batches were never stopped. So a search (a
+new input size, batch size or precision) is run after a restart, before the laptop sleeps, and
+`darts-ml` says so when one fails. `MIOPEN_FIND_MODE=FAST`, which picks kernels without timing
+them, runs in any session but slowly: bfloat16 under it read 14.3 Photos/s, with a loss that passes
+parity (0.786 over steps 151–200, 1.2% above the CPU's 0.777;
+`runs/probes/gpu-512-16-200steps-bf16-20261118-073643.json`).
+
+**bfloat16, once tuned, reads 9% faster than float32, and `--bf16` stays a flag, off (read
+2026-11-18).** Read in one session, alternating, at 512 px, batch 16 and 200 steps, each from a
+trial copy of the database; `$DARTS_DATA/miopen/` was not written:
+
+| Probe | Photos/s | Epoch | Loss 151–200 against the CPU's 0.777 |
+| --- | --- | --- | --- |
+| float32 on the tuned kernels (three readings) | 24.4 | 8.8 min | −0.5% |
+| bfloat16 from 2026-11-17's untuned search (two readings) | 19.3–20.0 | 10.7–11.1 min | +1.3% |
+| **bfloat16 tuned** (`MIOPEN_FIND_ENFORCE=SEARCH`, about 3.5 min once; two readings from the database it filled) | **26.6–26.7** | **8.0 min** | +0.8% |
+
+The files are `runs/probes/gpu-512-16-200steps[-bf16]-20261118-2136…` to `-2207…`. Four of them ran
+under the shim and are not in the table: the tuning run itself (`-215322`, 26.6 Photos/s) and one
+repeat of each row (`-220031`, `-220250`, `-220752`).
+
+MIOpen offers no Winograd kernel for bfloat16. By its own timings the convolutions of one batch
+take 424 ms in float32 on the tuned kernels, 491 ms in bfloat16 untuned and 395 ms in bfloat16
+tuned. The tuned gain is in the weight-gradient pass (198 ms against float32's 304); the
+backward-data pass stays slower (139 against 61). The untuned bfloat16 and the float32 figures are
+both lower than 2026-11-17's from the same database entries (23.6 and 25.3). The shimmed clock does
+not bring them back (20.0 and 24.4), so the timer is not why, and neither has been read again on a
+boot that has not slept. bfloat16's kernels also print 15 to 21 debugging lines per step to standard
+output from inside the ROCm library, which nothing turns off.
+
+`--bf16` stays off. No run has been trained in bfloat16, so what it costs in millimetres at the
+wires is unread; 200 steps of loss parity say only that it learns. What it buys is 0.75 min an
+epoch, about 22 min of a 30-epoch run. Turning it on for a run needs its tuned kernels in
+`$DARTS_DATA/miopen/` first (one probe after a restart, `ml/README.md`) and a run in it read against
+the same run in float32.
 
 **From scratch** (D2). Weights start random; nothing pretrained is downloaded. C's reading clears
 B1's median at both wires on val and test, so D2 does not come back to the owner.
