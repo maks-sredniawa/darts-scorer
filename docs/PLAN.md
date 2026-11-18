@@ -36,16 +36,22 @@ was extracted from and the first app built from it settled on exactly this split
   still taken with the phone, and nothing about that path changes. A player who adds one to three
   cameras fixed around the board has the phone drive them over the local network or Bluetooth, take
   the photos after a Visit and score them on the phone, offline, through phase 2's merge. It ships
-  in 1.0.0. The camera is not chosen yet: a cheap
-  network camera that serves a still image over a standard protocol (RTSP or ONVIF), a spare phone,
-  and a GoPro through Open GoPro are the candidates, chosen on a test of one of each kind on a real
-  board (sharpness at a Dart's tip, lens bending, how the photo is fetched, price). Its ADR comes
-  first and settles that choice, the permissions (Bluetooth, Wi-Fi, and `INTERNET` for the local
-  link, shared with phase S's), how several cameras are reached at once, and the lens (straightened
-  in the camera or on the phone, since the homography assumes straight lines). The model is read on
-  photos from the cameras' own positions, from capture sessions taken with them, before the phase
-  closes; one camera first, more once those sessions show how often a Dart is hidden from one.
-  **Before the door**
+  in 1.0.0. The camera is not chosen yet: a cheap network camera that serves a still image over a
+  standard protocol (RTSP or ONVIF), a spare phone, and a GoPro through Open GoPro are the
+  candidates, chosen on a test of one of each kind on a real board (sharpness at a Dart's tip, lens
+  bending, how the photo is fetched, price). Its ADR comes first and settles that choice, the
+  permissions (Bluetooth, Wi-Fi, and `INTERNET` for the local link), how several cameras are reached
+  at once, and the lens (straightened in the camera or on the phone, since the homography assumes
+  straight lines). It amends ADR-0008 (its "no fixed camera" context and its rejected fixed-camera
+  alternative). Whichever of phases G and S is built first brings `INTERNET` back for the whole app
+  and carries the amendments phase S lists for that: what the billing library's usage logging could
+  then send, ADR-0007, `scripts/aab-permissions.py`'s `INTERNET` rule, the privacy policy (live
+  before any build carries it) and the Data safety answers; the other phase adds only its own part.
+  A **Capture session** is one phone, one kind of light, one day, so the phase owes CONTEXT.md a change
+  for sessions taken with mounted cameras: the term widened to a camera rig, or such a session given
+  its own name. Before the phase closes the model is read on photos from the cameras' own positions,
+  from Capture sessions taken with them, against the same bar M1 wrote for phone photos; one camera
+  first, more once those sessions show how often a Dart is hidden from one. **Before the door**
 - [ ] **Phase S** — Sharing a photo, by choice: a player can send a photo with its corrected score
   to help train the model. Off by default and asked per photo; it ships in 1.0.0. Scoring is the
   same whether or not a player shares, and the new privacy policy is live before any build carries
@@ -54,8 +60,10 @@ was extracted from and the first app built from it settled on exactly this split
   player, opted in or not, plus a place to receive photos, consent and deletion. It amends ADR-0007,
   ADR-0008 (its "photos never leave the phone" context and its training-data list),
   `scripts/aab-permissions.py`'s `INTERNET` rule, the privacy policy and `docs/play-app-content.md`'s
-  Data safety answers, and adds CONTEXT.md terms for a shared photo and the consent. **Before the
-  door**, so testers and Play's Data safety answers see it from the first build
+  Data safety answers, and adds CONTEXT.md terms for a shared photo and the consent. If phase G is
+  built first, its ADR has already brought `INTERNET` back with those amendments, and phase S adds
+  only the sharing's own part. **Before the door**, so testers and Play's Data safety answers see it
+  from the first build
 - [ ] **Phase 3** — *(safe to hand to a stranger)* ← **the door: closed testing opens here**. The
   first-run path, the DeepDarts attribution on the licences screen
 - [ ] **Phase N** — Ship shape: listing, screenshots, the App content answers
@@ -181,7 +189,7 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
 | --- | --- | --- |
 | Camera (through the system camera, so no `CAMERA` permission) | the first tap on *Take a photo* | phase 1 |
 | Sending a photo to train the model (off by default) | when the player first chooses to send one, then for each photo | phase S |
-| Nearby devices (Bluetooth), if the chosen camera needs it | the first tap on adding a camera | phase G |
+| Bluetooth, if the chosen camera needs it: Nearby devices on Android 12 and later; on Android 8 to 11 the location permission, with location switched on, for the Bluetooth scan | the first tap on adding a camera | phase G |
 
 ## Not in this plan
 
