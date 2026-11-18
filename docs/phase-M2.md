@@ -250,8 +250,9 @@ runs at batch 16's speed, so 16 stays. The model is two passes at 512 pixels unt
 says otherwise.
 
 **C keeps 512 pixels (read 2026-11-18, R2).** Its wire medians, 0.27 to 0.40 mm on val and test,
-are about a third of an input pixel on an 800-pixel crop, and inside B1's 0.5 mm. A larger input
-buys nothing C can measure; E reads the phone's side of the trade.
+are a third to a half of an input pixel (about 0.875 mm at 512 pixels on an 800-pixel crop), and
+inside B1's 0.5 mm. A larger input buys nothing C can measure; E reads the phone's side of the
+trade.
 
 **bfloat16 does not run here from a fresh start (read 2026-11-18).** `--bf16` stays a flag, off, and
 is not to be turned on for a run. Its row above came from a kernel search that happened to succeed
@@ -407,14 +408,16 @@ phase; phase 1, which ships the model, owes the DeepDarts credit on the licences
   only the owner's 450 or so training Photos teach the Angles players stand at. If F misses at steep
   Angles, more training Capture sessions are the fix, at about 2 owner hours each.
 - **The projected labels.** Training on DeepDarts' 76 projected points teaches whatever error four
-  clicks carry. C's reading measures it; the owner's labels, clicked or checked at every crossing,
-  correct it in F.
+  clicks carry. C cannot measure it, since val and test are projected the same way (R2 shows only
+  that the treble wires read no worse than the double); the owner's labels, clicked or checked at
+  every crossing, measure it and correct it in F.
 - **The whole-Photo pass learns mostly from the owner's Photos.** DeepDarts' Photos are already
   crops, so the first pass, which finds the Board in a whole Photo, has only the owner's 450 or so
   training Photos showing a real room around a Board. DeepDarts crops shrunk onto a padded canvas
   help a little, but their background is not a room.
 - **From scratch is slower to learn.** D2 trades accuracy, possibly, for a licence that is clean. C
-  shows the cost.
+  showed from-scratch clears B1's median at both wires (R2); no pretrained run was compared, so what
+  it costs against one is unmeasured.
 - **One Board.** As in M1: the Held-out set measures new Capture sessions, not new homes.
 - **The emulator is not a phone.** E's latency chooses a runtime; it is not the app's speed. Phase 1
   reads that.
@@ -427,7 +430,7 @@ with the command that took them. Each training reading names its run folder.
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | **The gate.** Epoch time on the GPU (ROCm) and on the CPU; the first 200 losses compared | `darts-ml train --probe --device gpu`, then `--device cpu` | **Verdict 1, 2026-11-17.** GPU (Radeon 8050S, ROCm 7.14): 9.7 min an epoch, 22.0 Photos/s. CPU: 20.9 min, 10.2 Photos/s. Loss over steps 151–200: 0.180 against 0.183, 1.7% apart; both from about 2.40 over steps 1–10. 512 px, batch 16, seed 0, `runs/probes/` |
-| R2 | The Board on DeepDarts: found share, and median / 95th percentile error at the treble and double wires, on val and on test | `darts-ml evaluate`-style figures on DeepDarts, from the chosen C run | **2026-11-18**, run `2026-11-18-board-512`: `--board-only`, 512 px, batch 16, float32, augmented, 30 epochs in 4.6 h, `best.pt` from epoch 12. **Val:** Board found 1070/1070; treble wires median 0.274 mm, 95th 0.623; double wires median 0.303, 95th 0.711. **Test:** 2150/2150; treble 0.324 / 0.815; double 0.396 / 0.892. `darts-ml deepdarts score --run 2026-11-18-board-512 --split val`, then `--split test` |
+| R2 | The Board on DeepDarts: found share, and median / 95th percentile error at the treble and double wires, on val and on test | `darts-ml evaluate`-style figures on DeepDarts, from the chosen C run | **2026-11-18**, run `2026-11-18-board-512`: `--board-only`, 512 px, batch 16, float32, augmented, 30 epochs in 4.7 h, `best.pt` from epoch 12. **Val:** Board found 1070/1070; treble wires median 0.274 mm, 95th 0.623; double wires median 0.303, 95th 0.711. **Test:** 2150/2150; treble 0.324 / 0.815; double 0.396 / 0.892. `darts-ml deepdarts score --run 2026-11-18-board-512 --split val`, then `--split test` |
 | R3 | The Darts on DeepDarts: share of the face-on (`d1_`) and of the angled (`d2_`) test Photos scored right, the paper's way (total), beside 94.7% and 84.0%; and Dart by Dart | the chosen D run | *(D)* |
 | R4 | Export, per runtime tried: model size, runtime size per ABI, parity in mm over 1,070 val Photos, emulator latency of both passes, operations that failed | `darts-ml export` and its report | *(E)* |
 | R5 | The owner's Photos: B1 and B2 on the Validation sessions for the chosen F run | the chosen F run | *(F)* |
