@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from darts_ml.board import CALIBRATION_POINTS
-from darts_ml.decode import MIN_INLIERS, THRESHOLD, decode, ransac
+from darts_ml.decode import MIN_INLIERS, THRESHOLD, EntryRule, decode, kept_entries, ransac
 from darts_ml.homography import project
 from darts_ml.model import ENTRY_CHANNEL
 from darts_ml.training_data import targets
@@ -61,6 +61,25 @@ class DecodeTest(unittest.TestCase):
         to_image = camera()
         pixels = project(to_image, [p.mm for p in CALIBRATION_POINTS[:MIN_INLIERS - 1]])
         self.assertIsNone(ransac({c: tuple(xy) for c, xy in enumerate(pixels)}))
+
+
+class EntryRuleTest(unittest.TestCase):
+    BOARD_MM = np.array([[0.0, 100.0], [0.0, 96.0], [40.0, 0.0], [48.0, 0.0], [-90.0, 0.0]])
+    CONFIDENCES = [0.9, 0.4, 0.8, 0.7, 0.3]
+
+    def test_the_default_keeps_every_peak(self):
+        self.assertEqual(kept_entries(self.BOARD_MM, self.CONFIDENCES, EntryRule(threshold=0.0)), [0, 1, 2, 3, 4])
+
+    def test_a_weaker_peak_close_to_a_stronger_one_is_dropped(self):
+        kept = kept_entries(self.BOARD_MM, self.CONFIDENCES, EntryRule(threshold=0.0, apart_mm=6.0))
+        self.assertEqual(kept, [0, 2, 3, 4])
+
+    def test_the_most_confident_are_kept_up_to_the_cap(self):
+        kept = kept_entries(self.BOARD_MM, self.CONFIDENCES, EntryRule(threshold=0.0, apart_mm=6.0, most=3))
+        self.assertEqual(kept, [0, 2, 3])
+
+    def test_peaks_under_the_threshold_are_dropped(self):
+        self.assertEqual(kept_entries(self.BOARD_MM, self.CONFIDENCES, EntryRule(threshold=0.5)), [0, 2, 3])
 
 
 if __name__ == "__main__":
