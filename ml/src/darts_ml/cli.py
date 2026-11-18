@@ -11,6 +11,7 @@ from .deepdarts import RECORDS as DEEPDARTS_RECORDS, convert, overlay_sample
 from .evaluate import LABELS, evaluate, report
 from .heldout import MANIFEST, HeldOutError, HeldOutSet, freeze, frozen_before, verify
 from .ingest import ingest, jpegtran_version
+from .kernel_search import explain_failed_search, seconds_asleep
 from .overlay import overlay
 from .paths import DataDir, Round, repo_roots
 from .prefill import prefill
@@ -33,6 +34,12 @@ def main(argv: list[str] | None = None) -> int:
         return args.handler(args)
     except DartsMlError as error:
         print(f"darts-ml {args.step}: {error}", file=sys.stderr)
+        return 2
+    except RuntimeError as error:
+        explained = explain_failed_search(error, seconds_asleep())
+        if explained is None:
+            raise
+        print(f"darts-ml {args.step}: {explained}", file=sys.stderr)
         return 2
 
 
