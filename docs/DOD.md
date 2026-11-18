@@ -55,6 +55,10 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       fences and their tests; the Entry channel stays at stride 4 (`phase-M2.md` §2).
 - [x] **The Board (C):** found on every val and test Photo, wire medians 0.27 to 0.40 mm; 512 px
       and from-scratch weights stay. R2 in `phase-M2.md`.
+- [x] **The Darts (D):** read on test the paper's way, 75.8% face-on and 39.3% angled against the
+      paper's 94.7% and 84.0%, with at most three Entry points kept per Photo. R3 in `phase-M2.md`.
+- [ ] **Close D's gap before E:** a run with the Entry output at stride 2, a penalty on false tips
+      around real ones, and 640 px, read the same way.
 
 ## Before the first upload
 

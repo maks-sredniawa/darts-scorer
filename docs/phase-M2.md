@@ -333,6 +333,16 @@ judged.
 `darts-ml predict --run <run>` writes the predictions file `evaluate` reads. It is
 the only way a model's output reaches the Held-out set, and it records in the file which run made it.
 
+**Read at D, 2026-11-18: which Entry peaks are kept.** Every local maximum over 0.25 was a Dart, and
+most extra ones sat on a real Dart's barrel or flight a few millimetres from its tip, flagged unsure
+(seen drawn over 20 val Photos). So a Photo is now scored from at most three Entry points, the most
+confident, each over 0.34. `darts-ml deepdarts tune` chose that on val alone, over thresholds 0.25 to
+0.55, caps of three or none, and a merge of peaks closer than 0 to 12 mm: exactly right rose from
+39.1% to 58.8%. Merging peaks within 8 mm added 1.2 points more, but it drops a real second Dart
+landing that close, which is the grouped case M1 captures on purpose, so the merge stays at 0 and
+remains a setting. The cost is real Darts with low confidence: Darts right fell from 90.5% to 82.1%.
+That, and close pairs found as two in 5 of 27, are training's to fix, not decoding's.
+
 ## 5. Export and the runtime
 
 E converts the chosen model to D4's runtime and reads, per runtime tried:
@@ -431,7 +441,7 @@ with the command that took them. Each training reading names its run folder.
 | --- | --- | --- | --- |
 | R1 | **The gate.** Epoch time on the GPU (ROCm) and on the CPU; the first 200 losses compared | `darts-ml train --probe --device gpu`, then `--device cpu` | **Verdict 1, 2026-11-17.** GPU (Radeon 8050S, ROCm 7.14): 9.7 min an epoch, 22.0 Photos/s. CPU: 20.9 min, 10.2 Photos/s. Loss over steps 151–200: 0.180 against 0.183, 1.7% apart; both from about 2.40 over steps 1–10. 512 px, batch 16, seed 0, `runs/probes/` |
 | R2 | The Board on DeepDarts: found share, and median / 95th percentile error at the treble and double wires, on val and on test | `darts-ml evaluate`-style figures on DeepDarts, from the chosen C run | **2026-11-18**, run `2026-11-18-board-512`: `--board-only`, 512 px, batch 16, float32, augmented, 30 epochs in 4.7 h, `best.pt` from epoch 12. **Val:** Board found 1070/1070; treble wires median 0.274 mm, 95th 0.623; double wires median 0.303, 95th 0.711. **Test:** 2150/2150; treble 0.324 / 0.815; double 0.396 / 0.892. `darts-ml deepdarts score --run 2026-11-18-board-512 --split val`, then `--split test` |
-| R3 | The Darts on DeepDarts: share of the face-on (`d1_`) and of the angled (`d2_`) test Photos scored right, the paper's way (total), beside 94.7% and 84.0%; and Dart by Dart | the chosen D run | *(D)* |
+| R3 | The Darts on DeepDarts: share of the face-on (`d1_`) and of the angled (`d2_`) test Photos scored right, the paper's way (total), beside 94.7% and 84.0%; and Dart by Dart | the chosen D run | **2026-11-18**, run `2026-11-18-darts-512`: `--init` from C, 512 px, 30 epochs, `best.pt` from epoch 22; at most three Entry points over 0.34 (§4). **Test, Visit total right the paper's way:** face-on 1517/2000 (**75.8%**, paper 94.7%), angled 59/150 (**39.3%**, paper 84.0%). Exactly right: 68.1% and 38.0%; Darts right 3722/4383 (84.9%); close pairs as two 16/74. Board found 2150/2150, wire medians 0.332 / 0.397 mm. Before the three-point rule the same weights read 62.4% and 22.7% the paper's way. `darts-ml deepdarts score --run 2026-11-18-darts-512 --split test` |
 | R4 | Export, per runtime tried: model size, runtime size per ABI, parity in mm over 1,070 val Photos, emulator latency of both passes, operations that failed | `darts-ml export` and its report | *(E)* |
 | R5 | The owner's Photos: B1 and B2 on the Validation sessions for the chosen F run | the chosen F run | *(F)* |
 | R6 | **The bar**, each reading: date, commit, weights SHA-256, then every row of `evaluate` | `darts-ml evaluate --predictions <file>` | *(G)* |

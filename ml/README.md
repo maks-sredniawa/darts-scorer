@@ -108,6 +108,7 @@ passes, and the commands that train it and turn it into predictions.
 uv run --directory ml darts-ml train --name board-512 --board-only   # C: Calibration points only
 uv run --directory ml darts-ml train --name darts-512 --init <run>   # D: Entry points added, from C's weights
 uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, R3: a run's figures on DeepDarts
+uv run --directory ml darts-ml deepdarts tune --run <run>            # each rule for keeping Entry points, on val only
 uv run --directory ml darts-ml deepdarts grouped                     # pairs under 10 mm the targets decode as two
 uv run --directory ml darts-ml predict --run <run>                   # the predictions file, on the Held-out set
 uv run --directory ml darts-ml train --probe                         # gate A: time 200 steps (--device cpu for parity)
