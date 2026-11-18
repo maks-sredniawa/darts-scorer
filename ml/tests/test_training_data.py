@@ -15,12 +15,16 @@ from darts_ml.board import CALIBRATION_BY_NAME, CALIBRATION_POINTS
 from darts_ml.deepdarts import ORDER, PROJECTED, RECORDS, SOURCE, deepdarts_mm
 from darts_ml.homography import project
 from darts_ml.cli import main
-from darts_ml.model import ENTRY_CHANNEL, HEATMAPS, OUTPUTS, STRIDE, KeypointNet
+from darts_ml.model import (BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_POINT, ENTRY_STRIDE, PRIOR_LOGIT, KeypointNet,
+                            entry_stride_of, load_matching)
 from darts_ml.heldout import FrozenPhoto, FrozenSession, HeldOutSet, file_sha256
 from darts_ml.records import RECORDS as OWNER_RECORDS
-from darts_ml.train import WARMUP, Probe, RunConfig, loss_terms, probe, probe_path, resolve_device, save, train
+from darts_ml.train import (RING_WEIGHT, WARMUP, Probe, RunConfig, load_weights, loss_terms, probe, probe_path,
+                            resolve_device, save, train)
 from darts_ml.training_data import (
     PROJECTED_WEIGHT,
+    RING_INNER_MM,
+    RING_OUTER_MM,
     TRAIN,
     VALIDATION,
     KeypointDataset,
@@ -29,6 +33,7 @@ from darts_ml.training_data import (
     deepdarts_reading_samples,
     deepdarts_samples,
     owner_samples,
+    targets,
 )
 from synthetic import TemporaryData, board_image, camera
 
@@ -85,35 +90,37 @@ class TrainingDataTest(unittest.TestCase):
     def test_a_point_lands_on_its_heatmap_peak_with_its_offset_in_its_own_kind(self):
         self._write(self._record("a", "train"))
         [sample] = deepdarts_samples(self.data, "train")
-        image, heatmaps, _, calibration_offsets, calibration_mask, entry_offsets, entry_mask = \
-            KeypointDataset([sample], 512)[0]
+        image, made = KeypointDataset([sample], 512)[0]
         self.assertEqual(tuple(image.shape), (3, 512, 512))
-        scale = 512 / SIZE[0] / STRIDE
+        self.assertEqual(tuple(made.board_heat.shape), (CALIBRATION_CHANNELS, 128, 128))
+        self.assertEqual(tuple(made.entry_heat.shape), (256, 256))
+        scale = 512 / SIZE[0] / BOARD_STRIDE
         for channel, x, y, _ in sample.calibration[:3]:
             cx, cy = x * scale, y * scale
-            iy, ix = np.unravel_index(int(heatmaps[channel].argmax()), heatmaps[channel].shape)
+            iy, ix = np.unravel_index(int(made.board_heat[channel].argmax()), made.board_heat[channel].shape)
             self.assertEqual((ix, iy), (int(cx), int(cy)))
-            self.assertEqual(float(heatmaps[channel, iy, ix]), 1.0)
-            np.testing.assert_allclose(calibration_offsets[:, iy, ix].numpy(), (cx - ix, cy - iy), atol=1e-5)
-            self.assertEqual(float(calibration_mask[iy, ix]), 1.0)
+            self.assertEqual(float(made.board_heat[channel, iy, ix]), 1.0)
+            np.testing.assert_allclose(made.board_offsets[:, iy, ix].numpy(), (cx - ix, cy - iy), atol=1e-5)
+            self.assertEqual(float(made.board_mask[iy, ix]), 1.0)
         [(x, y)] = sample.entries
-        cx, cy = x * scale, y * scale
+        cx, cy = x * 512 / SIZE[0] / ENTRY_STRIDE, y * 512 / SIZE[1] / ENTRY_STRIDE
         ix, iy = int(cx), int(cy)
-        self.assertEqual(float(heatmaps[ENTRY_CHANNEL, iy, ix]), 1.0)
-        np.testing.assert_allclose(entry_offsets[:, iy, ix].numpy(), (cx - ix, cy - iy), atol=1e-5)
-        self.assertEqual(float(entry_mask.sum()), 1.0)
-        self.assertEqual(float(entry_mask[iy, ix]), 1.0)
+        self.assertEqual(float(made.entry_heat[iy, ix]), 1.0)
+        self.assertAlmostEqual(float(made.entry_heat[iy, ix + 1]), float(np.exp(-0.5)), places=6)
+        np.testing.assert_allclose(made.entry_offsets[:, iy, ix].numpy(), (cx - ix, cy - iy), atol=1e-5)
+        self.assertEqual(float(made.entry_mask.sum()), 1.0)
+        self.assertEqual(float(made.entry_mask[iy, ix]), 1.0)
 
     def test_an_entry_point_in_a_crossings_cell_leaves_the_crossings_offset(self):
         photo = self.data.root / "cell.jpg"
         board_image(self.to_image, size=SIZE).save(photo, "JPEG", quality=90)
         sample = Sample(photo, ((0, 401.0, 403.0, 1.0),), ((403.0, 401.0),))
-        _, _, _, calibration_offsets, calibration_mask, entry_offsets, entry_mask = KeypointDataset([sample], 800)[0]
-        cell = 400 // STRIDE
-        np.testing.assert_allclose(calibration_offsets[:, cell, cell].numpy(), (0.25, 0.75))
-        np.testing.assert_allclose(entry_offsets[:, cell, cell].numpy(), (0.75, 0.25))
-        self.assertEqual(float(calibration_mask[cell, cell]), 1.0)
-        self.assertEqual(float(entry_mask[cell, cell]), 1.0)
+        _, made = KeypointDataset([sample], 800, entry_stride=BOARD_STRIDE)[0]
+        cell = 400 // BOARD_STRIDE
+        np.testing.assert_allclose(made.board_offsets[:, cell, cell].numpy(), (0.25, 0.75))
+        np.testing.assert_allclose(made.entry_offsets[:, cell, cell].numpy(), (0.75, 0.25))
+        self.assertEqual(float(made.board_mask[cell, cell]), 1.0)
+        self.assertEqual(float(made.entry_mask[cell, cell]), 1.0)
 
 
 class OwnerFenceTest(unittest.TestCase):
@@ -179,19 +186,102 @@ class OwnerFenceTest(unittest.TestCase):
             owner_samples(self.data, held, TRAIN)
 
 
+def _random_state(model: KeypointNet, seed: int) -> dict:
+    generator = torch.Generator().manual_seed(seed)
+    state = {}
+    for name, value in model.state_dict().items():
+        if name.endswith("running_var"):
+            value = torch.rand(value.shape, generator=generator) + 0.5
+        elif value.is_floating_point():
+            value = torch.randn(value.shape, generator=generator) * 0.1
+        state[name] = value
+    return state
+
+
 class ModelTest(unittest.TestCase):
-    def test_output_shape_and_a_finite_loss(self):
+    def test_the_board_head_at_stride_four_and_the_entry_head_at_its_own(self):
         torch.manual_seed(0)
-        output = KeypointNet().eval()(torch.zeros(1, 3, 256, 256))
-        self.assertEqual(tuple(output.shape), (1, OUTPUTS, 256 // STRIDE, 256 // STRIDE))
-        cells = 256 // STRIDE
-        heatmaps = torch.zeros(1, HEATMAPS, cells, cells)
-        heatmaps[0, 0, 5, 5] = 1.0
-        mask = torch.zeros(1, cells, cells)
-        mask[0, 5, 5] = 1.0
-        offsets = torch.zeros(1, 2, cells, cells)
-        terms = loss_terms(output, heatmaps, torch.ones(1, HEATMAPS), offsets, mask, offsets, mask)
-        self.assertTrue(all(torch.isfinite(t) for t in terms))
+        for stride in (ENTRY_STRIDE, BOARD_STRIDE):
+            model = KeypointNet(stride).eval()
+            for size in (512, 640):
+                with self.subTest(stride=stride, size=size), torch.no_grad():
+                    heads = model(torch.zeros(1, 3, size, size))
+                    self.assertEqual(tuple(heads.board.shape), (1, CALIBRATION_CHANNELS + 2, size // 4, size // 4))
+                    self.assertEqual(tuple(heads.entry.shape), (1, 3, size // stride, size // stride))
+                    self.assertEqual(entry_stride_of(heads), stride)
+
+    def test_the_entry_heatmap_starts_at_the_prior(self):
+        self.assertAlmostEqual(KeypointNet().entry_out.bias[0].item(), PRIOR_LOGIT, places=6)
+
+    def test_a_finite_loss_and_the_ring_raises_only_the_entry_negatives(self):
+        torch.manual_seed(0)
+        size = 256
+        with torch.no_grad():
+            heads = KeypointNet().eval()(torch.zeros(2, 3, size, size))
+        made = targets([(0, 41.0, 41.0, 1.0), (ENTRY_POINT, 100.0, 100.0, 1.0)], size,
+                       to_board=np.diag([0.5, 0.5, 1.0]))
+        batch = type(made)(*(torch.from_numpy(np.stack([a, a])) for a in made))
+        plain = loss_terms(heads, batch, ring_weight=0.0)
+        ringed = loss_terms(heads, batch, ring_weight=RING_WEIGHT)
+        self.assertTrue(all(torch.isfinite(t) for t in plain + ringed))
+        self.assertGreater(float(ringed[0]), float(plain[0]))
+        self.assertEqual(float(ringed[1]), float(plain[1]))
+        board_only = loss_terms(heads, batch, entries=False, ring_weight=RING_WEIGHT)
+        self.assertEqual([float(t) for t in board_only],
+                         [float(t) for t in loss_terms(heads, batch, entries=False, ring_weight=0.0)])
+
+    def test_a_stride_four_runs_weights_start_a_stride_two_model_with_the_same_board(self):
+        old = KeypointNet(BOARD_STRIDE)
+        old.load_state_dict(_random_state(old, 1))
+        new = KeypointNet(ENTRY_STRIDE)
+        fresh = load_matching(new, old.state_dict())
+        self.assertTrue(fresh)
+        self.assertTrue(all(name.startswith("entry_") for name in fresh), fresh)
+        self.assertEqual(set(fresh), {k for k in new.state_dict() if k.startswith("entry_")})
+        image = torch.rand(1, 3, 128, 128, generator=torch.Generator().manual_seed(2))
+        with torch.no_grad():
+            torch.testing.assert_close(new.eval()(image).board, old.eval()(image).board)
+
+    def test_loading_a_run_builds_the_layout_its_weights_were_saved_in(self):
+        td = TemporaryData()
+        self.addCleanup(td.cleanup)
+        for stride in (BOARD_STRIDE, ENTRY_STRIDE):
+            path = td.data.root / f"{stride}.pt"
+            torch.save({"model": KeypointNet(stride).state_dict(), "epoch": 1}, path)
+            self.assertEqual(load_weights(path, "cpu").entry_stride, stride)
+
+
+class RingTest(unittest.TestCase):
+    """At 2 input pixels to the Board millimetre and stride 2, a cell is 1 mm of Board."""
+
+    SIZE = 256
+    TO_BOARD = np.diag([0.5, 0.5, 1.0])
+
+    def _ring(self, entries_mm):
+        points = [(ENTRY_POINT, 2 * x, 2 * y, 1.0) for x, y in entries_mm]
+        return targets(points, self.SIZE, ENTRY_STRIDE, self.TO_BOARD).ring
+
+    def test_the_ring_spans_inner_to_outer_millimetres(self):
+        ring = self._ring([(60.0, 60.0)])
+        ys, xs = np.nonzero(ring)
+        mm = np.hypot(xs + 0.5 - 60.0, ys + 0.5 - 60.0)
+        self.assertGreaterEqual(mm.min(), RING_INNER_MM)
+        self.assertLessEqual(mm.max(), RING_OUTER_MM)
+        self.assertEqual(float(ring[60, 60 + 10]), 1.0)
+        self.assertEqual(float(ring[60, 60 + int(RING_OUTER_MM) + 2]), 0.0)
+
+    def test_the_ring_leaves_out_every_positive_and_a_close_neighbours_tip(self):
+        made = targets([(ENTRY_POINT, 120.0, 120.0, 1.0), (ENTRY_POINT, 132.0, 120.0, 1.0)], self.SIZE, ENTRY_STRIDE,
+                       self.TO_BOARD)
+        self.assertEqual(float((made.ring * made.entry_mask).sum()), 0.0)
+        self.assertEqual(float(made.ring[made.entry_heat > np.exp(-2)].sum()), 0.0)
+        neighbour = np.hypot(*np.mgrid[0:128, 0:128][::-1] + 0.5 - np.array([66.0, 60.0])[:, None, None])
+        self.assertEqual(float(made.ring[neighbour < RING_INNER_MM].sum()), 0.0)
+        self.assertEqual(float(made.ring[60, 60 - 10]), 1.0)
+
+    def test_no_ring_without_the_boards_homography(self):
+        points = [(ENTRY_POINT, 120.0, 120.0, 1.0)]
+        self.assertEqual(float(targets(points, self.SIZE, ENTRY_STRIDE).ring.sum()), 0.0)
 
 
 class _Stub(torch.utils.data.Dataset):
@@ -218,7 +308,8 @@ class ProbeBoundsTest(unittest.TestCase):
             self._probe(WARMUP + 1)
 
     def test_size_off_the_stride_and_negative_workers_are_refused_by_the_parser(self):
-        for argv in (["--size", "500"], ["--size", "0"], ["--workers", "-1"]):
+        for argv in (["--size", "500"], ["--size", "0"], ["--workers", "-1"], ["--entry-stride", "3"],
+                     ["--ring-weight", "-1"]):
             with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()) as error:
                 with self.assertRaises(SystemExit) as exit_:
                     main(["train", "--probe", *argv])
@@ -253,6 +344,21 @@ class RunTest(unittest.TestCase):
         self.assertEqual(json.loads((folder / "config.json").read_text())["validation_photos"], 1)
         with self.assertRaisesRegex(DartsMlError, "never overwritten"):
             train(self.data, config, today)
+
+    def test_a_run_starts_from_a_stride_four_run_and_records_its_entry_settings(self):
+        earlier = self.data.runs() / "2026-11-18-darts-512"
+        earlier.mkdir(parents=True)
+        torch.save({"model": KeypointNet(BOARD_STRIDE).state_dict(), "epoch": 1}, earlier / "best.pt")
+        config = RunConfig("s2", device="cpu", epochs=1, size=64, batch=2, warmup_steps=1, workers=0,
+                           init=earlier.name)
+        log = io.StringIO()
+        folder = train(self.data, config, dt.date(2026, 11, 19), log)
+        self.assertIn("entry_out.weight", log.getvalue())
+        self.assertNotIn("backbone", log.getvalue())
+        recorded = json.loads((folder / "config.json").read_text())
+        self.assertEqual((recorded["entry_stride"], recorded["ring_weight"]), (ENTRY_STRIDE, RING_WEIGHT))
+        self.assertEqual((recorded["ring_inner_mm"], recorded["ring_outer_mm"]), (RING_INNER_MM, RING_OUTER_MM))
+        self.assertEqual(load_weights(folder / "best.pt", "cpu").entry_stride, ENTRY_STRIDE)
 
     def test_a_run_name_is_a_plain_slug(self):
         with self.assertRaisesRegex(DartsMlError, "--name"):

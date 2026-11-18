@@ -16,33 +16,41 @@ from torch.nn import functional as F
 
 from . import DartsMlError
 from .locate import Inference, Speed, figures, locate
-from .model import CALIBRATION_OFFSETS, ENTRY_CHANNEL, ENTRY_OFFSETS, HEATMAPS, KeypointNet
+from .model import (BOARD_OFFSETS, CALIBRATION_CHANNELS, ENTRY_HEAT, ENTRY_OFFSETS, ENTRY_STRIDE, Heads,
+                    KeypointNet, load_matching, stride_of_weights)
 from .paths import DataDir
-from .training_data import KeypointDataset, deepdarts_samples
+from .training_data import RING_INNER_MM, RING_OUTER_MM, KeypointDataset, Targets, deepdarts_samples
 
 FOCAL_ALPHA = 2.0
 FOCAL_BETA = 4.0
 OFFSET_WEIGHT = 1.0
+RING_WEIGHT = 4.0
 WARMUP = 10
 _RUN_NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
 
 
-def loss_terms(output: torch.Tensor, heatmaps, weights, calibration_offsets, calibration_mask, entry_offsets,
-               entry_mask, entries: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
-    if not entries:
-        weights = weights.clone()
-        weights[:, ENTRY_CHANNEL] = 0
-    predicted = torch.sigmoid(output[:, :HEATMAPS].float()).clamp(1e-4, 1 - 1e-4)
-    positive = heatmaps.eq(1).float()
-    positive_loss = torch.log(predicted) * (1 - predicted) ** FOCAL_ALPHA * positive
-    negative_loss = torch.log(1 - predicted) * predicted**FOCAL_ALPHA * (1 - heatmaps) ** FOCAL_BETA * (1 - positive)
-    per_channel = (positive_loss + negative_loss).sum(dim=(2, 3)) * weights
-    counted = (positive.sum(dim=(2, 3)) * weights.gt(0)).sum()
-    heatmap_loss = -per_channel.sum() / counted.clamp(min=1)
-    offset_loss = _offset_loss(output[:, CALIBRATION_OFFSETS], calibration_offsets, calibration_mask)
+def loss_terms(heads: Heads, target: Targets, entries: bool = True,
+               ring_weight: float = RING_WEIGHT) -> tuple[torch.Tensor, torch.Tensor]:
+    positive, negative, counted = _focal(heads.board[:, :CALIBRATION_CHANNELS], target.board_heat,
+                                         target.board_weights[:, :, None, None])
     if entries:
-        offset_loss = offset_loss + _offset_loss(output[:, ENTRY_OFFSETS], entry_offsets, entry_mask)
+        entry_positive, entry_negative, entry_counted = _focal(heads.entry[:, ENTRY_HEAT], target.entry_heat,
+                                                               1 + ring_weight * target.ring)
+        positive, negative, counted = positive + entry_positive, negative + entry_negative, counted + entry_counted
+    heatmap_loss = -(positive + negative) / counted.clamp(min=1)
+    offset_loss = _offset_loss(heads.board[:, BOARD_OFFSETS], target.board_offsets, target.board_mask)
+    if entries:
+        offset_loss = offset_loss + _offset_loss(heads.entry[:, ENTRY_OFFSETS], target.entry_offsets, target.entry_mask)
     return heatmap_loss, offset_loss
+
+
+def _focal(logits: torch.Tensor, heat: torch.Tensor, weight: torch.Tensor):
+    """weight scales every cell's term: a Calibration channel's weight, or 1 + the ring's, which is 0 on positives."""
+    predicted = torch.sigmoid(logits.float()).clamp(1e-4, 1 - 1e-4)
+    positive = heat.eq(1).float()
+    positive_loss = torch.log(predicted) * (1 - predicted) ** FOCAL_ALPHA * positive
+    negative_loss = torch.log(1 - predicted) * predicted**FOCAL_ALPHA * (1 - heat) ** FOCAL_BETA * (1 - positive)
+    return positive_loss.mul(weight).sum(), negative_loss.mul(weight).sum(), (positive * weight.gt(0)).sum()
 
 
 def _offset_loss(predicted: torch.Tensor, offsets: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -65,11 +73,13 @@ def resolve_device(choice: str) -> tuple[str, str]:
     return "cuda", f"{torch.cuda.get_device_name(0)} ({backend})"
 
 
-def _step(model, optimiser, batch, device: str, speed: Speed, entries: bool = True) -> tuple[float, float, float]:
-    image, *rest = (t.to(device, non_blocking=True) for t in batch)
+def _step(model, optimiser, batch, device: str, speed: Speed, entries: bool = True,
+          ring_weight: float = RING_WEIGHT) -> tuple[float, float, float]:
+    image, target = batch
+    target = Targets(*(t.to(device, non_blocking=True) for t in target))
     with speed.autocast(device):
-        output = model(image.contiguous(memory_format=speed.memory))
-    heatmap_loss, offset_loss = loss_terms(output, *rest, entries=entries)
+        heads = model(image.to(device, non_blocking=True).contiguous(memory_format=speed.memory))
+    heatmap_loss, offset_loss = loss_terms(heads, target, entries, ring_weight)
     loss = heatmap_loss + OFFSET_WEIGHT * offset_loss
     optimiser.zero_grad(set_to_none=True)
     loss.backward()
@@ -77,8 +87,8 @@ def _step(model, optimiser, batch, device: str, speed: Speed, entries: bool = Tr
     return float(loss.detach()), float(heatmap_loss.detach()), float(offset_loss.detach())
 
 
-def _model(device: str, speed: Speed) -> torch.nn.Module:
-    return KeypointNet().to(device, memory_format=speed.memory)
+def _model(device: str, speed: Speed, entry_stride: int = ENTRY_STRIDE) -> torch.nn.Module:
+    return KeypointNet(entry_stride).to(device, memory_format=speed.memory)
 
 
 @dataclass
@@ -96,10 +106,13 @@ class Probe:
     channels_last: bool = False
     commit: str = ""
     miopen: dict[str, str] | None = None
+    entry_stride: int = ENTRY_STRIDE
+    ring_weight: float = RING_WEIGHT
 
 
 def probe(data: DataDir, choice: str, steps: int = 200, size: int = 512, batch: int = 16, workers: int = 8,
-          seed: int = 0, speed: Speed = Speed()) -> Probe:
+          seed: int = 0, speed: Speed = Speed(), entry_stride: int = ENTRY_STRIDE,
+          ring_weight: float = RING_WEIGHT) -> Probe:
     if steps <= WARMUP:
         raise DartsMlError(f"--steps {steps} leaves nothing to time after the {WARMUP} warm-up steps; pass more than {WARMUP}")
     device, hardware = resolve_device(choice)
@@ -107,14 +120,14 @@ def probe(data: DataDir, choice: str, steps: int = 200, size: int = 512, batch: 
     torch.manual_seed(seed)
     samples = deepdarts_samples(data, "train")
     generator = torch.Generator().manual_seed(seed)
-    loader = torch.utils.data.DataLoader(KeypointDataset(samples, size), batch_size=batch, shuffle=True,
-                                         generator=generator, num_workers=workers, drop_last=True,
+    loader = torch.utils.data.DataLoader(KeypointDataset(samples, size, entry_stride=entry_stride), batch_size=batch,
+                                         shuffle=True, generator=generator, num_workers=workers, drop_last=True,
                                          persistent_workers=workers > 0)
     if steps > len(loader):
         raise DartsMlError(f"--steps {steps} is more than one epoch, {len(loader)} batches of {batch} from "
                            f"{len(samples)} Photos; pass at most {len(loader)}")
     use_tuned_kernels(data)
-    model = _model(device, speed)
+    model = _model(device, speed, entry_stride)
     optimiser = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     model.train()
     losses = []
@@ -124,12 +137,12 @@ def probe(data: DataDir, choice: str, steps: int = 200, size: int = 512, batch: 
         if step == WARMUP:
             _sync(device)
             started = time.perf_counter()
-        losses.append(_step(model, optimiser, next(batches), device, speed)[0])
+        losses.append(_step(model, optimiser, next(batches), device, speed, ring_weight=ring_weight)[0])
     _sync(device)
     rate = (steps - WARMUP) * batch / (time.perf_counter() - started)
     miopen = {k: v for k, v in sorted(os.environ.items()) if k.startswith("MIOPEN_")}
     return Probe(device, hardware, size, batch, steps, rate, len(samples) / rate / 60, len(samples), losses,
-                 speed.bf16, speed.channels_last, commit(), miopen)
+                 speed.bf16, speed.channels_last, commit(), miopen, entry_stride, ring_weight)
 
 
 def probe_path(data: DataDir, result: Probe, now: dt.datetime) -> Path:
@@ -179,6 +192,10 @@ class RunConfig:
     bf16: bool = False
     channels_last: bool = False
     init: str | None = None
+    entry_stride: int = ENTRY_STRIDE
+    ring_weight: float = RING_WEIGHT
+    ring_inner_mm: float = RING_INNER_MM
+    ring_outer_mm: float = RING_OUTER_MM
 
     @property
     def speed(self) -> Speed:
@@ -200,11 +217,24 @@ def run_config(data: DataDir, run: str) -> tuple[Path, dict]:
 
 
 def load_weights(path: Path, device: str) -> torch.nn.Module:
+    state = _state(path)
+    model = KeypointNet(stride_of_weights(state))
+    model.load_state_dict(state)
+    return model.to(device)
+
+
+def _state(path: Path) -> dict[str, torch.Tensor]:
     if not path.exists():
         raise DartsMlError(f"no weights at {path}")
-    model = KeypointNet()
-    model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True)["model"])
-    return model.to(device)
+    return torch.load(path, map_location="cpu", weights_only=True)["model"]
+
+
+def initial_model(path: Path, entry_stride: int, log) -> KeypointNet:
+    model = KeypointNet(entry_stride)
+    fresh = load_matching(model, _state(path))
+    print(f"--init {path.parent.name}: every parameter loaded but {len(fresh)}, which start fresh"
+          + "".join(f"\n  {name}" for name in fresh), file=log, flush=True)
+    return model
 
 
 def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=None) -> Path:
@@ -219,15 +249,17 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
     training = deepdarts_samples(data, "train")
     validation = deepdarts_samples(data, "val")
     loader = torch.utils.data.DataLoader(
-        KeypointDataset(training, config.size, augment=config.augment), batch_size=config.batch, shuffle=True,
+        KeypointDataset(training, config.size, config.augment, config.entry_stride,
+                        (config.ring_inner_mm, config.ring_outer_mm)), batch_size=config.batch, shuffle=True,
         generator=torch.Generator().manual_seed(config.seed), num_workers=config.workers, drop_last=True,
         persistent_workers=config.workers > 0)
     if not len(loader):
         raise DartsMlError(f"{len(training)} training Photos make no batch of {config.batch}")
     if config.init:
-        model = load_weights(data.runs() / config.init / "best.pt", device).to(memory_format=config.speed.memory)
+        model = initial_model(data.runs() / config.init / "best.pt", config.entry_stride, log)
+        model = model.to(device, memory_format=config.speed.memory)
     else:
-        model = _model(device, config.speed)
+        model = _model(device, config.speed, config.entry_stride)
     optimiser = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
     total = config.epochs * len(loader)
     schedule = torch.optim.lr_scheduler.LambdaLR(optimiser, lambda step: _rate(step, config.warmup_steps, total))
@@ -248,7 +280,8 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
             model.train()
             running = []
             for batch in loader:
-                loss, heatmap, offset = _step(model, optimiser, batch, device, config.speed, not config.board_only)
+                loss, heatmap, offset = _step(model, optimiser, batch, device, config.speed, not config.board_only,
+                                              config.ring_weight)
                 schedule.step()
                 step += 1
                 running.append(loss)

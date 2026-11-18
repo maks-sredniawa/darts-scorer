@@ -8,7 +8,7 @@ import numpy as np
 from . import DartsMlError
 from .board import CALIBRATION_POINTS
 from .homography import _normaliser, fit, project
-from .model import CALIBRATION_CHANNELS, CALIBRATION_OFFSETS, ENTRY_CHANNEL, ENTRY_OFFSETS, STRIDE
+from .model import BOARD_OFFSETS, BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_HEAT, ENTRY_OFFSETS, Heads, entry_stride_of
 
 THRESHOLD = 0.25
 ENTRY_THRESHOLD = 0.34
@@ -49,18 +49,20 @@ def sigmoid(logits: np.ndarray) -> np.ndarray:
     return 1 / (1 + np.exp(-logits))
 
 
-def decode(logits: np.ndarray, threshold: float = THRESHOLD, entry_threshold: float | None = None) -> Decoded:
-    heat = sigmoid(logits[:ENTRY_CHANNEL + 1].astype(np.float64))
-    calibration_offsets, entry_offsets = logits[CALIBRATION_OFFSETS], logits[ENTRY_OFFSETS]
+def decode(heads: Heads, threshold: float = THRESHOLD, entry_threshold: float | None = None) -> Decoded:
+    """heads holds one Photo's logits, without the batch axis."""
+    heat = sigmoid(heads.board[:CALIBRATION_CHANNELS].astype(np.float64))
+    calibration_offsets = heads.board[BOARD_OFFSETS]
     calibration = {}
     for channel in range(CALIBRATION_CHANNELS):
         iy, ix = np.unravel_index(int(heat[channel].argmax()), heat[channel].shape)
         if heat[channel, iy, ix] >= threshold:
-            calibration[channel] = _peak(ix, iy, heat[channel, iy, ix], calibration_offsets)
-    entry = heat[ENTRY_CHANNEL]
+            calibration[channel] = _peak(ix, iy, heat[channel, iy, ix], calibration_offsets, BOARD_STRIDE)
+    entry = sigmoid(heads.entry[ENTRY_HEAT].astype(np.float64))
+    entry_offsets, stride = heads.entry[ENTRY_OFFSETS], entry_stride_of(heads)
     floor = threshold if entry_threshold is None else entry_threshold
     ys, xs = np.nonzero((entry >= floor) & (entry >= _neighbourhood_max(entry)))
-    entries = tuple(_peak(ix, iy, entry[iy, ix], entry_offsets) for iy, ix in zip(ys, xs, strict=True))
+    entries = tuple(_peak(ix, iy, entry[iy, ix], entry_offsets, stride) for iy, ix in zip(ys, xs, strict=True))
     return Decoded(calibration, entries)
 
 
@@ -74,8 +76,8 @@ def kept_entries(board_mm: np.ndarray, confidences: list[float], rule: EntryRule
     return sorted(kept)
 
 
-def _peak(ix: int, iy: int, confidence: float, offsets: np.ndarray) -> Peak:
-    return Peak(float((ix + offsets[0, iy, ix]) * STRIDE), float((iy + offsets[1, iy, ix]) * STRIDE), float(confidence))
+def _peak(ix: int, iy: int, confidence: float, offsets: np.ndarray, stride: int) -> Peak:
+    return Peak(float((ix + offsets[0, iy, ix]) * stride), float((iy + offsets[1, iy, ix]) * stride), float(confidence))
 
 
 def _neighbourhood_max(heat: np.ndarray) -> np.ndarray:

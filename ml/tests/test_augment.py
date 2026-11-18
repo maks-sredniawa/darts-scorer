@@ -67,9 +67,13 @@ class AugmentTest(unittest.TestCase):
         pixels = project(self.to_image, self.board)
         sample = Sample(photo, tuple((i, float(x), float(y), 1.0) for i, (x, y) in enumerate(pixels)),
                         tuple(map(tuple, project(self.to_image, [DART_MM]))))
-        image, heatmaps, *_ = KeypointDataset([sample], SIZE, augment=True)[0]
+        image, made = KeypointDataset([sample], SIZE, augment=True)[0]
         self.assertEqual(tuple(image.shape), (3, SIZE, SIZE))
-        self.assertEqual(heatmaps.shape[-1], SIZE // 4)
+        self.assertEqual(made.board_heat.shape[-1], SIZE // 4)
+        self.assertEqual(made.entry_heat.shape[-1], SIZE // 2)
+        if made.entry_mask.sum():
+            self.assertGreater(float(made.ring.sum()), 0.0)
+            self.assertEqual(float((made.ring * made.entry_mask).sum()), 0.0)
 
 
 if __name__ == "__main__":

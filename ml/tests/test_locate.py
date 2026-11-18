@@ -14,6 +14,7 @@ from darts_ml.evaluate import Share
 from darts_ml.homography import project
 from darts_ml.decode import EntryRule
 from darts_ml.evaluate import PredictedEntry
+from darts_ml.model import BOARD_STRIDE, ENTRY_STRIDE, Heads
 from darts_ml.locate import Inference, Located, _logits, figures, located_from_targets, refiltered
 from darts_ml.training_data import Sample
 from synthetic import camera, dart_mm
@@ -39,9 +40,9 @@ class _Recording(torch.nn.Module):
         super().__init__()
         self.batches: list[int] = []
 
-    def forward(self, images: torch.Tensor) -> torch.Tensor:
+    def forward(self, images: torch.Tensor) -> Heads:
         self.batches.append(len(images))
-        return images[:, :1]
+        return Heads(images[:, :1], images[:, 1:2, ::2, ::2])
 
 
 class LocateTest(unittest.TestCase):
@@ -73,7 +74,8 @@ class LocateTest(unittest.TestCase):
             outputs = list(_logits(Inference(model, "cpu", 8, batch=2, workers=0), items))
         self.assertEqual(model.batches, [2, 2, 2])
         self.assertEqual(len(outputs), 5)
-        means = [float(o.mean()) for o in outputs]
+        means = [float(o.board.mean()) for o in outputs]
+        self.assertEqual([o.entry.shape for o in outputs], [(1, 4, 4)] * 5)
         self.assertEqual(means, sorted(means))
         self.assertEqual(len(set(means)), 5)
 
@@ -107,6 +109,16 @@ class LocateTest(unittest.TestCase):
         reading = figures([sample], [swapped])
         self.assertEqual(reading.exact, Share(0, 1))
         self.assertEqual(reading.total_by_folder, {"s01": Share(1, 1)})
+
+    def test_only_a_pair_closer_than_a_stride_four_cell_needs_stride_two_targets(self):
+        def found_as_two(apart_mm: float, stride: int) -> int:
+            return sum(len(located_from_targets(sample_of([(x, 40.0), (x + apart_mm, 40.0)]), SIZE, stride).entries) == 2
+                       for x in np.linspace(20.0, 23.0, 7))
+
+        self.assertEqual(found_as_two(2.0, ENTRY_STRIDE), 7)
+        self.assertLess(found_as_two(2.0, BOARD_STRIDE), 7)
+        self.assertEqual(found_as_two(6.0, ENTRY_STRIDE), 7)
+        self.assertEqual(found_as_two(6.0, BOARD_STRIDE), 7)
 
     def test_a_close_pair_counts_as_grouped_only_when_both_darts_are_matched(self):
         sample = sample_of(CLOSE_DARTS)

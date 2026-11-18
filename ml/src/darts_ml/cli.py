@@ -19,6 +19,7 @@ from .repeatability import repeatability
 from .review import review
 
 _INPUT_MULTIPLE = 32
+ENTRY_STRIDES = (2, 4)
 WEIGHTS = ("best", "last")
 TUNE_THRESHOLDS = (0.25, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40, 0.45, 0.55)
 TUNE_APART_MM = (0.0, 4.0, 6.0, 8.0, 10.0, 12.0)
@@ -93,7 +94,15 @@ def _parser() -> argparse.ArgumentParser:
     trainer.add_argument("--board-only", action="store_true", help="Calibration points only, no Entry points (checkpoint C)")
     trainer.add_argument("--bf16", action="store_true", help="bfloat16 autocast on the GPU")
     trainer.add_argument("--channels-last", action="store_true", help="channels-last memory layout")
-    trainer.add_argument("--init", metavar="RUN", help="start from that run's best weights instead of from scratch")
+    trainer.add_argument("--init", metavar="RUN",
+                         help="start from that run's best weights instead of from scratch; whatever does not fit starts fresh")
+    trainer.add_argument("--entry-stride", type=int, choices=ENTRY_STRIDES, default=2,
+                         help="the Entry heatmap's stride; 4 is C's and D's layout, one output with the Calibration points")
+    trainer.add_argument("--ring-weight", type=_non_negative_float, default=None,
+                         help="extra penalty on a false Entry peak in the ring around a real one, in units of the "
+                              "ordinary one; 0 turns the ring off; default 4")
+    trainer.add_argument("--ring-mm", type=_non_negative_float, nargs=2, metavar=("INNER", "OUTER"), default=None,
+                         help="the ring's edges in Board millimetres from the Entry point; default 4 20")
     predictor = step("predict", _predict, "the predictions file `evaluate` reads, from a run's weights, on the Held-out set",
                      capture_session=False)
     predictor.add_argument("--run", required=True, help="the run folder's name under $DARTS_DATA/runs/")
@@ -127,6 +136,7 @@ def _parser() -> argparse.ArgumentParser:
     grouped = actions.add_parser("grouped", help="the share of Dart pairs under 10 mm that the targets decode as two")
     grouped.add_argument("--split", choices=("train", "val"), default="val")
     grouped.add_argument("--size", type=_input_size, default=512)
+    grouped.add_argument("--entry-stride", type=int, choices=ENTRY_STRIDES, default=2)
     grouped.set_defaults(handler=_deepdarts_grouped)
     return parser
 
@@ -142,6 +152,13 @@ def _non_negative(text: str) -> int:
     value = int(text)
     if value < 0:
         raise argparse.ArgumentTypeError(f"{value} is negative")
+    return value
+
+
+def _non_negative_float(text: str) -> float:
+    value = float(text)
+    if not value >= 0:
+        raise argparse.ArgumentTypeError(f"{text} is not a non-negative number")
     return value
 
 
@@ -283,12 +300,18 @@ def _evaluate(args) -> int:
 
 def _train(args) -> int:
     from .locate import Speed
-    from .train import RunConfig, probe, probe_path, save, train
+    from .train import RING_WEIGHT, RunConfig, probe, probe_path, save, train
+    from .training_data import RING_INNER_MM, RING_OUTER_MM
 
     data = DataDir.from_environment()
     speed = Speed(args.bf16, args.channels_last)
+    ring_weight = RING_WEIGHT if args.ring_weight is None else args.ring_weight
+    inner, outer = (RING_INNER_MM, RING_OUTER_MM) if args.ring_mm is None else args.ring_mm
+    if inner >= outer:
+        raise DartsMlError(f"--ring-mm {inner:g} {outer:g}: the inner edge must be inside the outer")
     if args.probe:
-        result = probe(data, args.device, args.steps, args.size, args.batch, args.workers, args.seed, speed)
+        result = probe(data, args.device, args.steps, args.size, args.batch, args.workers, args.seed, speed,
+                       args.entry_stride, ring_weight)
         target = probe_path(data, result, dt.datetime.now())
         save(result, target)
         print(f"{result.hardware}: {result.images_per_second:.1f} Photos/s at {result.size} px, batch {result.batch}; "
@@ -299,7 +322,8 @@ def _train(args) -> int:
         raise DartsMlError("name the run with --name, or pass --probe")
     config = RunConfig(args.name, args.device, args.epochs, args.size, args.batch, args.lr, workers=args.workers,
                        seed=args.seed, augment=args.augment, board_only=args.board_only, bf16=args.bf16,
-                       channels_last=args.channels_last, init=args.init)
+                       channels_last=args.channels_last, init=args.init, entry_stride=args.entry_stride,
+                       ring_weight=ring_weight, ring_inner_mm=inner, ring_outer_mm=outer)
     folder = train(data, config)
     print(f"written to {folder}")
     return 0
@@ -378,8 +402,9 @@ def _deepdarts_grouped(args) -> int:
 
     samples = [s for s in deepdarts_samples(DataDir.from_environment(), args.split) if len(s.entries) > 1]
     print(f"{len(samples)} DeepDarts {args.split} Photos with two or more Darts ...", file=sys.stderr, flush=True)
-    reading = figures(samples, [located_from_targets(s, args.size) for s in samples])
-    print(f"targets at {args.size} px decode {reading.grouped} of the Dart pairs under 10 mm as two Darts")
+    reading = figures(samples, [located_from_targets(s, args.size, args.entry_stride) for s in samples])
+    print(f"targets at {args.size} px, Entry stride {args.entry_stride}, decode {reading.grouped} of the Dart pairs "
+          "under 10 mm as two Darts")
     return 0
 
 
