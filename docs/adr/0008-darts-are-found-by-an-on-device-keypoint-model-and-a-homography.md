@@ -76,7 +76,7 @@ and the app is on Play with a tip purchase:
   published, because the owner's photos show their home. The one thing that leaves `ml/` is the
   exported model file that ships inside the app, so scoring needs no network, and Play services
   does not supply the runtime. Which framework and which runtime is settled in phase M2 by
-  measurement, not here.
+  measurement, not here (settled 2026-11-19, below).
 - **Training data:**
   - the DeepDarts dataset, credited on the open-source licences screen;
   - the owner's own handheld photos from several angles, labelled. No public handheld set exists,
@@ -165,3 +165,33 @@ the CPU), to allow this case:
   reaches the app. The GPL governs distributing the library; `ml/` is never distributed, and the
   exported weights are the model's, not a work based on a sparse solver.
 - A GPL library that the training *does* call, or one that would ship, is still out.
+
+## Amendment — 2026-11-19: the model, the runtime, and MPL-2.0 inside it
+
+Phase M2's checkpoint E ([`phase-M2.md`](../phase-M2.md) §5, R4) settles what this ADR left to M2 by
+measurement. The runtime it chose compiles in MPL-2.0 code, which the rule above did not allow.
+
+- **The model** is a heatmap keypoint network written in `ml/` in PyTorch, on torchvision's
+  MobileNetV3-Large, trained from random weights (phase-M2.md D1, D2 and §2).
+- **The runtime is ONNX Runtime, bundled in the app:** `com.microsoft.onnxruntime:onnxruntime-android`
+  from Maven Central, read at 1.32.0, on its CPU execution provider. It scores every DeepDarts val
+  Visit as PyTorch does and runs about as fast as LiteRT on the emulator, with no Google Play dependency
+  and no change to the manifest.
+- **LiteRT, tried first as phase M2 planned (D4), is set aside.** 2.3.2's `litert-api` depends on
+  `com.google.android.play:ai-delivery`, under the Play Core terms, which brings WorkManager and Room
+  (against ADR-0003 and the app's no-database rule) and adds `FOREGROUND_SERVICE` and
+  `FOREGROUND_SERVICE_DATA_SYNC` to the manifest. 1.4.2 has none of that but is the older line.
+  **ncnn stays the fallback.**
+- **The cost is size, accepted by the owner.** ONNX Runtime's native library is 34.74 MiB on
+  arm64-v8a, about 13 MiB deflated, against LiteRT 2.3.2's 5.87 MiB. The model file is 13.1 MB. The
+  5–20 MB under Consequences counted the model alone.
+- **MPL-2.0 is allowed for a library bundled unmodified and credited in the app's Credits**, with a
+  link to its source. Its copyleft covers changes to its own files, and none are made. ONNX
+  Runtime's ThirdPartyNotices list Eigen (MPL-2.0), compiled in, and Mbed TLS (Apache-2.0 OR
+  GPL-2.0-or-later), taken under Apache-2.0. LiteRT carries Eigen too. A modified MPL-2.0 file is
+  still out. MPL-2.0 packages that only run in `ml/`, tqdm in the `export` extra and certifi in
+  `litert`, never ship and are listed in `ml/README.md`'s licence table like the rest.
+- **Phase 1 owes two things from this.** The licences screen names ONNX Runtime, Eigen and Mbed TLS
+  from the first build that ships the model, beside DeepDarts. And inference sets its thread count:
+  ONNX Runtime's default read 49–51 ms against 32–35 ms at four threads on the emulator, and the
+  count is chosen on the phone's reading.
