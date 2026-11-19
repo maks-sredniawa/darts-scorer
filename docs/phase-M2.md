@@ -359,7 +359,8 @@ That, and close pairs found as two in 5 of 27, are training's to fix, not decodi
 
 **Read after the stride-2 run, 2026-11-19: the threshold falls to 0.24.** The stride-2 head is less
 confident per peak, and tune's best sat on the floor of its grid at 0.25, so the grid now starts at
-0.12. With the cap at three and no merge, exactly right is flat at 61.4% from 0.24 to 0.26 and falls
+0.12 and holds every threshold from 0.22 to 0.30 in steps of 0.01, the finer pass read here. With the
+cap at three and no merge, exactly right is flat at 61.4% from 0.24 to 0.26 and falls
 on both sides (60.2% at 0.22, 61.1% at 0.29); 0.24 is kept because, at the same exactly right, it
 gets the most Darts right (84.8% against 83.9% at 0.25) and close pairs as two (4 of 27 against 3).
 The same rule at D's 0.34 reads 58.2%.
