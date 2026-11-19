@@ -14,7 +14,8 @@ import torch
 from darts_ml import DartsMlError
 from darts_ml.cli import main
 from darts_ml.evaluate import PredictedEntry
-from darts_ml.export import PARITY_MM, export, exported_path, parity, runtime
+from darts_ml.heldout import file_sha256
+from darts_ml.export import PARITY_MM, Exported, export, exported_path, parity, runtime
 from darts_ml.export_format import Format
 from darts_ml.locate import Located
 from darts_ml.model import ENTRY_STRIDES, KeypointNet
@@ -72,9 +73,11 @@ class ExportTest(unittest.TestCase):
         self._round_trip(Format.LITERT, 1e-4)
 
     @unittest.skipIf(importlib.util.find_spec("litert_torch"), "the LiteRT converter is installed")
-    def test_litert_without_its_converter_names_the_extra(self):
-        with self.assertRaisesRegex(DartsMlError, "--extra litert"):
+    def test_litert_without_its_converter_names_its_own_venv(self):
+        with self.assertRaises(DartsMlError) as raised:
             export(_model(2), SIZE, Format.LITERT, self.folder / "best.tflite")
+        for part in ("conflicts with both `cpu` and `rocm`", "UV_PROJECT_ENVIRONMENT=", "--extra litert --extra export"):
+            self.assertIn(part, str(raised.exception))
 
 
 class ParityTest(unittest.TestCase):
@@ -134,6 +137,22 @@ class ExportCliTest(unittest.TestCase):
         code, _, err = self.run_cli("export-parity", "--run", RUN, "--format", "onnx")
         self.assertEqual(code, 2)
         self.assertIn("no exported model", err)
+
+    def test_the_record_names_the_weights_loaded_not_ones_saved_during_conversion(self):
+        self.write_run(0)
+        loaded = file_sha256(self.folder / "best.pt")
+        path = exported_path(self.folder, "best", Format.ONNX)
+
+        def convert_while_training_saves(*_):
+            self.write_run(1)
+            path.write_bytes(b"model")
+            return Exported(path, 5, {})
+        with mock.patch("darts_ml.export.export", side_effect=convert_while_training_saves):
+            code, _, _ = self.run_cli("export", "--run", RUN, "--format", "onnx")
+        self.assertEqual(code, 0)
+        record = json.loads(path.with_name(path.name + ".json").read_text(encoding="utf-8"))
+        self.assertEqual(record["weights_sha256"], loaded)
+        self.assertNotEqual(file_sha256(self.folder / "best.pt"), loaded)
 
     @unittest.skipUnless(ONNX, "needs --extra export")
     def test_export_writes_into_the_run_and_parity_refuses_weights_changed_since(self):
