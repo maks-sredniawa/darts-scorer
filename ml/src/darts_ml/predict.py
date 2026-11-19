@@ -6,8 +6,8 @@ from pathlib import Path
 
 from .heldout import MANIFEST, file_sha256, verified
 from .locate import Inference, Located, Speed, locate
-from .paths import DataDir
-from .train import load_weights, resolve_device, run_config, use_tuned_kernels
+from .paths import DataDir, run_config
+from .train import load_weights, resolve_device, use_tuned_kernels
 
 HELD_OUT = "held-out"
 

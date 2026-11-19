@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -125,3 +126,11 @@ class DataDir:
     def _fenced(self, path: Path) -> Path:
         refuse_inside_repo(path, self.roots, f"{path.relative_to(self.root)} under DARTS_DATA")
         return path
+
+
+def run_config(data: DataDir, run: str) -> tuple[Path, dict]:
+    folder = data.runs() / run
+    path = folder / "config.json"
+    if not path.exists():
+        raise DartsMlError(f"no run at {folder}; `darts-ml train` writes one")
+    return folder, json.loads(path.read_text(encoding="utf-8"))

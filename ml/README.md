@@ -173,8 +173,10 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
   `runtime_bench.py` (LiteRT 2.3.2 from Google Maven, `litert` and `litert-api`; ONNX Runtime 1.32.0
   from Maven Central), into `$DARTS_DATA/runtimes/`, and prints the native libraries each would add
   per ABI, uncompressed and deflated. With `--run` and one device in `adb devices` (or the one
-  `ANDROID_SERIAL` names), it times each exported model there, the warm-up excluded, at each
-  `--threads` count (0 is the runtime's default): LiteRT through Google's prebuilt `benchmark_model`
+  `ANDROID_SERIAL` names), it times each exported model there whose record matches the run's
+  weights (a format never exported, or exported from other weights, is named and left out), the
+  warm-up excluded, at each `--threads` count (0 is the runtime's default): LiteRT through Google's
+  prebuilt `benchmark_model`
   2.3.1 (no 2.3.2 build is published), ONNX Runtime through `android/OrtBench.java`, compiled with
   `javac` and the SDK's `d8` against the AAR's own classes and run under `app_process`, since ONNX
   Runtime publishes no Android `onnxruntime_perf_test`. It cleans up after itself on the device and

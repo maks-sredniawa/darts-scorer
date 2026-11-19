@@ -13,7 +13,6 @@ import torch
 from . import DartsMlError
 from .board import score
 from .export_format import Format
-from .heldout import file_sha256
 from .homography import project
 from .locate import Located, matched_pairs
 from .model import Heads
@@ -46,10 +45,6 @@ class _Raw(torch.nn.Module):
         return tuple(self.model(image))
 
 
-def exported_path(folder: Path, weights: str, format_: Format) -> Path:
-    return folder / f"{weights}{format_.suffix}"
-
-
 def export(model: torch.nn.Module, size: int, format_: Format, path: Path) -> Exported:
     raw = _Raw(model.cpu().eval()).eval()
     example = (torch.zeros(1, 3, size, size),)
@@ -70,16 +65,6 @@ def write_record(exported: Exported, run: str, weights: str, weights_sha256: str
                                   "size": size, "bytes": exported.size_bytes, "operations": exported.operations},
                                  indent=1), encoding="utf-8")
     return record
-
-
-def check_record(path: Path, weights_path: Path) -> None:
-    record = path.with_name(path.name + ".json")
-    if not path.exists() or not record.exists():
-        raise DartsMlError(f"no exported model at {path}; `darts-ml export` writes one")
-    if not weights_path.exists():
-        raise DartsMlError(f"no weights at {weights_path}")
-    if json.loads(record.read_text(encoding="utf-8"))["weights_sha256"] != file_sha256(weights_path):
-        raise DartsMlError(f"{weights_path} has changed since {path.name} was exported from it; export it again")
 
 
 def _require(module: str, extra: str):

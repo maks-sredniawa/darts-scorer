@@ -15,8 +15,8 @@ from darts_ml import DartsMlError
 from darts_ml.cli import main
 from darts_ml.evaluate import PredictedEntry
 from darts_ml.heldout import file_sha256
-from darts_ml.export import PARITY_MM, Exported, export, exported_path, parity, runtime, write_record
-from darts_ml.export_format import Format
+from darts_ml.export import PARITY_MM, Exported, export, parity, runtime, write_record
+from darts_ml.export_format import Format, exported_path
 from darts_ml.locate import Located
 from darts_ml.model import ENTRY_STRIDES, KeypointNet
 from darts_ml.train import RunConfig
