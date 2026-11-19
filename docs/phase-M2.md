@@ -255,20 +255,20 @@ measured it. The speed-ups were each read with the probe and its parity check (5
 | **MIOpen's tuned kernels** (user database filled once under `MIOPEN_FIND_ENFORCE=SEARCH`) | **25.3** | **8.5 min** | −0.5% |
 
 Every row passes parity and both curves fall. The GPU shares the laptop's memory, and MobileNet's
-depthwise layers wait on memory rather than arithmetic, which is why halving the number width or
-doubling the batch buys little. Only the tuned kernels are kept, as the
-default: `train`, `predict` and `deepdarts score` point MIOpen at `$DARTS_DATA/miopen/`. Batch 32
-runs at batch 16's speed, so 16 stays. The model is two passes at 512 pixels until C's first run
-says otherwise.
+depthwise layers wait on memory rather than arithmetic, which is why, on the untuned kernels in
+this table, halving the number width or doubling the batch buys little; tuned bfloat16 reads
+faster (below). Only the tuned kernels are kept, as the default: `train`, `predict` and `deepdarts
+score` point MIOpen at `$DARTS_DATA/miopen/`. Batch 32 runs at batch 16's speed, so 16 stays. The
+model is two passes at 512 pixels until C's first run says otherwise.
 
 **C keeps 512 pixels (read 2026-11-18, R2).** Its wire medians, 0.27 to 0.40 mm on val and test,
 are a third to a half of an input pixel (about 0.875 mm at 512 pixels on an 800-pixel crop), and
 inside B1's 0.5 mm. A larger input buys nothing C can measure; E reads the phone's side of the
 trade.
 
-**MIOpen cannot search for kernels once the laptop has slept (read 2026-11-18).** This paragraph
-first said that bfloat16 does not run from a fresh start. The cause is wider and is not bfloat16:
-after a suspend every kernel search fails, in float32 as well, and before one every search works.
+**MIOpen cannot search for kernels once the laptop has slept (read 2026-11-18).** The failure is
+not bfloat16's: after a suspend every kernel search fails, in float32 as well, and before one every
+search works.
 MIOpen chooses a kernel for a shape it has not run before by timing each candidate. After a resume
 the GPU's firmware restarts the clock it stamps each kernel launch with, while the kernel driver's
 GPU clock, which the ROCm runtime uses to turn those stamps into times, keeps counting from boot.
