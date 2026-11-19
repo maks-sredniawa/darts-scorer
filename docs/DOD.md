@@ -61,9 +61,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 - [x] **Close D's gap before E:** the Entry output at stride 2, a penalty on false tips around
       real ones, and 640 px, read the same way: 81.8% face-on and 48.0% angled on test against D's
       75.8% and 39.3%, close pairs as two 18 of 74 (R3, 2026-11-19).
-      E converts `2026-11-19-darts-640-s2-ring` (val exactly right 66.5% against the 512 px stride-2
-      run's 61.4%, `phase-M2.md` §4), unless `2026-11-19-darts-640-s2-ring-ext` beats it on val after
-      the same tune.
+      E converts `2026-11-19-darts-640-s2-ring-ext`, 30 more epochs from that run: val exactly right
+      69.2% against 66.5% (`phase-M2.md` §4); on test it reads level with it (R3).
 
 ## Before the first upload
 
