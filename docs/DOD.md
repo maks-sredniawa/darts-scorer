@@ -59,6 +59,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       paper's 94.7% and 84.0%, with at most three Entry points kept per Photo. R3 in `phase-M2.md`.
 - [ ] **Close D's gap before E:** a run with the Entry output at stride 2, a penalty on false tips
       around real ones, and 640 px, read the same way.
+      Stride 2 and the ring at 512 px read 81.0% face-on and 44.0% angled on test, close pairs
+      still 15 of 74 (R3, 2026-11-19); the 640 px run is next.
 
 ## Before the first upload
 
