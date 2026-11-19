@@ -321,8 +321,8 @@ an extra they lack would run: ONNX without `export`, LiteRT without `litert`.
 
 ## Dependencies and their licences
 
-Re-read this table whenever the lockfile gains a package. The rule is ADR-0008's, with its 2026-11-13
-and 2026-11-17 amendments; the table lists every bundled library that rule covers, in its last column.
+Re-read this table whenever the lockfile gains a package. The rule is ADR-0008's, with its 2026-11-13,
+2026-11-17 and 2026-11-19 amendments; the table lists every bundled library that rule covers, in its last column.
 
 | Package | Licence | Bundled in the Linux wheel |
 | --- | --- | --- |
@@ -335,7 +335,7 @@ and 2026-11-17 amendments; the table lists every bundled library that rule cover
 | PyTorch 2.14.1 (`cpu` and `rocm` extras) | BSD-3-Clause, with Apache-2.0, MIT, BSD-2-Clause and BSL-1.0 third-party parts | libgomp (GPL-3.0 with the GCC Runtime Library Exception) |
 | torchvision 0.29.1 | BSD-3-Clause | — |
 | onnx 1.23.2, onnx-ir 1.1.0 (`export` extra) | Apache-2.0 | — |
-| onnxscript 0.7.2, onnxruntime 1.31.1 (`export` extra) | MIT | **Eigen (MPL-2.0)**, statically linked; no GPL or LGPL component in onnxruntime's ThirdPartyNotices |
+| onnxscript 0.7.2, onnxruntime 1.31.1 (`export` extra) | MIT | **Eigen (MPL-2.0)**, statically linked; Mbed TLS (Apache-2.0 OR GPL-2.0-or-later), which its ThirdPartyNotices take under Apache-2.0; nothing under the GPL or LGPL alone |
 | ai-edge-litert 2.3.0, flatbuffers 25.12.19, ml-dtypes 0.6.0 (`export` extra) | Apache-2.0 | the LiteRT runtime, with **Eigen (MPL-2.0)** compiled in, which its licence file does not list |
 | protobuf 7.36.2 | BSD-3-Clause | — |
 | packaging 26.3 | Apache-2.0 or BSD-2-Clause | — |
