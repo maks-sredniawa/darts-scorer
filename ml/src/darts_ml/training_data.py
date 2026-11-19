@@ -168,8 +168,7 @@ def targets(points_px, size: int, entry_stride: int = ENTRY_STRIDE, to_board: np
 
 def ring_mask(entries_px, cells: int, stride: int, to_board: np.ndarray | None,
               ring_mm: tuple[float, float]) -> np.ndarray:
-    """The Entry cells whose false peaks cost more: between ring_mm[0] and ring_mm[1] of Board from a labelled
-    Entry point, where its own barrel and flight show, but never within ring_mm[0] or RING_CLEAR_CELLS of any."""
+    """ml/README.md, *The ring*."""
     ring = np.zeros((cells, cells), dtype=np.float32)
     if not entries_px or to_board is None:
         return ring
@@ -223,8 +222,7 @@ class KeypointDataset(torch.utils.data.Dataset):
 def framed_targets(sample: Sample, matrix: np.ndarray, size: int, entry_stride: int = ENTRY_STRIDE,
                    ring_mm: tuple[float, float] = (RING_INNER_MM, RING_OUTER_MM),
                    to_photo: np.ndarray | None = None) -> Targets:
-    """The targets of a sample whose Photo the matrix maps onto a size × size input; to_photo, the sample's
-    Board-to-Photo homography, places the ring, and without it the ring is empty."""
+    """matrix maps the sample's Photo onto the size × size input; to_photo is its Board-to-Photo homography."""
     points = [(channel, x, y, w) for channel, x, y, w in sample.calibration]
     points += [(ENTRY_POINT, x, y, 1.0) for x, y in sample.entries]
     moved = project(matrix, [(x, y) for _, x, y, _ in points]) if points else []
