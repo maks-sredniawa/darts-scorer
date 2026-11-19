@@ -134,6 +134,14 @@ def _parser() -> argparse.ArgumentParser:
     parity.add_argument("--split", choices=("train", "val"), default="val")
     parity.add_argument("--workers", type=_non_negative, default=4)
     parity.add_argument("--threads", type=_positive, help="CPU threads for each runtime; default: each runtime's own")
+    bench = step("runtime-bench", _runtime_bench, "each runtime's native libraries per ABI, from its pinned AAR; with a "
+                 "device attached, the exported models' latency on it (phase-M2.md §5)", capture_session=False)
+    bench.add_argument("--run", help="the run whose exported models to time; without it, sizes only")
+    bench.add_argument("--weights", choices=WEIGHTS, default="best")
+    bench.add_argument("--threads", type=_non_negative, nargs="+", default=[0, 4],
+                       help="CPU thread counts to time, 0 for the runtime's default; default: 0 4")
+    bench.add_argument("--warmup", type=_non_negative, default=5)
+    bench.add_argument("--runs", type=_positive, default=60)
     deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
@@ -402,6 +410,52 @@ def _export_parity(args) -> int:
     reading = parity(reference, exported)
     print("\n".join(reading.lines()))
     return 0 if reading.same else 1
+
+
+def _runtime_bench(args) -> int:
+    import json
+    import shutil
+    import subprocess
+
+    from .runtime_bench import (RUNTIMES, Device, attached_devices, bench, choose_device, fetch, latency_lines,
+                                native_libraries, size_lines)
+
+    sys.stdout.reconfigure(line_buffering=True)
+    data = DataDir.from_environment()
+    cache = data.runtimes()
+    aars = {format_: [fetch(a, cache) for a in runtime.aars] for format_, runtime in RUNTIMES.items()}
+    for runtime in RUNTIMES.values():
+        print(f"{runtime.label}: " + ", ".join(f"{a.url} sha256 {a.sha256}" for a in runtime.aars))
+    print("\n".join(size_lines({RUNTIMES[f].label: [lib for aar in found for lib in native_libraries(aar)]
+                                for f, found in aars.items()})))
+    print("deflated: raw deflate at zlib's default level, near what a compressed APK or Play's download carries; "
+          "an APK built with AGP's default packaging stores them uncompressed")
+    if not args.run:
+        return 0
+    folder = data.runs() / args.run
+    config = folder / "config.json"
+    if not config.exists():
+        raise DartsMlError(f"no run at {folder}; `darts-ml train` writes one")
+    size = json.loads(config.read_text(encoding="utf-8"))["size"]
+    models = {f: folder / f"{args.weights}{f.suffix}" for f in RUNTIMES if (folder / f"{args.weights}{f.suffix}").exists()}
+    if not models:
+        raise DartsMlError(f"no exported model in {folder}; `darts-ml export --run {args.run} --format <format>` writes one")
+    for path in models.values():
+        print(f"model {path.name}: {path.stat().st_size} bytes")
+    if shutil.which("adb") is None:
+        print("adb is not on PATH: latency not read")
+        return 0
+    listed = subprocess.run(["adb", "devices"], capture_output=True, text=True, check=True).stdout
+    serial = choose_device(attached_devices(listed))
+    if serial is None:
+        print("no device attached (adb devices): latency not read")
+        return 0
+    device = Device(serial)
+    print("\n".join(device.description()))
+    readings, skipped = bench(device, cache, aars, models, size, args.threads, args.warmup, args.runs)
+    print(f"1×3×{size}×{size} float32 per inference; a Photo runs it twice (phase-M2.md §2)")
+    print("\n".join(latency_lines(readings) + skipped))
+    return 0
 
 
 def _deepdarts_score(args) -> int:
