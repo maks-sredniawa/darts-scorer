@@ -13,7 +13,8 @@ uv sync --locked --directory ml --extra rocm   # PyTorch for an AMD GPU (ROCm); 
 uv run --directory ml darts-ml paths        # prints DARTS_DATA, refuses one inside the repo, checks jpegtran
 ```
 
-PyTorch comes in one of two builds, the `rocm` and `cpu` extras, which cannot be installed together.
+PyTorch comes in one of two builds, the `rocm` and `cpu` extras, which cannot be installed together
+(`litert`, below, is a third).
 Sync once with the one this machine wants: a later `uv sync` without it removes PyTorch, while `uv run`
 leaves it alone. The `rocm` build carries the whole ROCm runtime (about 17 GB installed) and needs only
 the kernel's `amdgpu` driver. The lock covers Linux on x86-64 only, and holds PyPI packages to releases
@@ -112,6 +113,8 @@ uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, 
 uv run --directory ml darts-ml deepdarts tune --run <run>            # each rule for keeping Entry points, on val only
 uv run --directory ml darts-ml deepdarts grouped                     # pairs under 10 mm the targets decode as two
 uv run --directory ml darts-ml predict --run <run>                   # the predictions file, on the Held-out set
+uv run --directory ml darts-ml export --run <run> --format onnx      # E: the model in a runtime's format, into the run folder
+uv run --directory ml darts-ml export-parity --run <run> --format onnx   # E: its points against PyTorch's, on val
 uv run --directory ml darts-ml train --probe                         # gate A: time 200 steps (--device cpu for parity)
 ```
 
@@ -152,6 +155,19 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
   outright when one belongs to a held-out Capture session, by name or by the bytes of its Photo or
   label, and the Validation sessions (`s09`, `s14`) are never in the training split. An inferred
   Entry point, a Dart hidden in that Photo, is never a training target.
+- **`export`** writes `<weights>.onnx` (`--format onnx`, through `torch.onnx.export`) or
+  `<weights>.tflite` (`--format litert`, through Google's `litert-torch`) into the run folder, beside a
+  `.json` naming the weights' SHA-256, and prints its size in bytes, its operations and any left
+  outside the runtime's own set. It takes one 1×3×size×size float32 image and returns the raw heads;
+  decoding stays in Python, and in Kotlin later. **`export-parity`** runs that file in its own runtime
+  (ONNX Runtime, the LiteRT interpreter) and the weights in PyTorch, both on the CPU, through both
+  passes on DeepDarts' `val` Photos, and prints how far each point moved in Board millimetres against
+  phase-M2.md §5's 0.05 mm, the points only one runtime kept, and the Photos scored differently. It
+  refuses a file whose weights have changed since it was exported. The `export` extra (ONNX's tools
+  and both runtimes) syncs beside `cpu` or `rocm`. The LiteRT converter is the `litert` extra, a third
+  PyTorch flavour (the CPU build plus the converter), because its `xdsl` holds typing-extensions below
+  4.13; give it a venv of its own and run with the same variable:
+  `UV_PROJECT_ENVIRONMENT=~/.venvs/darts-ml-litert uv sync --locked --directory ml --extra litert --extra export`.
 - **`--probe`** writes `runs/probes/<device>-<size>-<batch>-<steps>steps[-bf16][-cl]-<time>.json`, never
   over an earlier one, with the commit and any `MIOPEN_*` settings it ran under.
 
@@ -286,7 +302,8 @@ uv run --directory ml python -m unittest discover -s tests
 ```
 
 They need `jpegtran`, PyTorch from either extra synced as in Setup (`uv run` alone installs neither),
-and no data: the Photos and labels are built from `board.py` in the test.
+and no data: the Photos and labels are built from `board.py` in the test. The export tests skip what
+an extra they lack would run: ONNX without `export`, LiteRT without `litert`.
 
 ## Dependencies and their licences
 
@@ -303,12 +320,27 @@ and 2026-11-17 amendments; the table lists every bundled library that rule cover
 | tzdata 2026.6 | Apache-2.0 | — |
 | PyTorch 2.14.1 (`cpu` and `rocm` extras) | BSD-3-Clause, with Apache-2.0, MIT, BSD-2-Clause and BSL-1.0 third-party parts | libgomp (GPL-3.0 with the GCC Runtime Library Exception) |
 | torchvision 0.29.1 | BSD-3-Clause | — |
+| onnx 1.23.2, onnx-ir 1.1.0 (`export` extra) | Apache-2.0 | — |
+| onnxscript 0.7.2, onnxruntime 1.31.1 (`export` extra) | MIT | **Eigen (MPL-2.0)**, statically linked; no GPL or LGPL component in onnxruntime's ThirdPartyNotices |
+| ai-edge-litert 2.3.0, flatbuffers 25.12.19, ml-dtypes 0.6.0 (`export` extra) | Apache-2.0 | the LiteRT runtime, with **Eigen (MPL-2.0)** compiled in, which its licence file does not list |
+| protobuf 7.36.2 | BSD-3-Clause | — |
+| packaging 26.3 | Apache-2.0 or BSD-2-Clause | — |
+| backports-strenum 1.3.1 | MIT | — |
+| **tqdm 4.70.1** (`export` extra, through ai-edge-litert) | **MPL-2.0 AND MIT** | — |
+| litert-torch 0.10.0, litert-converter 0.5.0, litert-lm-builder 0.19.0, ai-edge-quantizer 0.10.1 (`litert` extra) | Apache-2.0 | — |
+| jax 0.12.0.1, jaxlib 0.12.0.1, transformers 5.22.1, tokenizers 0.23.3, safetensors 0.8.0, huggingface-hub 2.4.0, hf-xet 1.8.0, kagglehub 1.0.3, kagglesdk 0.1.38, sentencepiece 0.2.2, absl-py 2.5.1, fire 0.7.1, requests 2.34.2, wadler-lindig 0.1.8 (`litert` extra) | Apache-2.0 | — |
+| torchao 0.18.0, scipy 1.18.1, click 8.5.0, idna 3.20, httpx2 2.16.0, httpcore2 2.16.0, multipledispatch 1.0.0 (`litert` extra) | BSD-3-Clause | scipy: OpenBLAS, libgfortran and libquadmath, as NumPy |
+| regex 2026.9.29 (`litert` extra) | Apache-2.0 AND CNRI-Python | — |
+| pygments 2.21.0 (`litert` extra) | BSD-2-Clause | — |
+| xdsl 0.28.0, jaxtyping 0.3.11, lark 1.3.1, rich 15.0.0, markdown-it-py 4.2.0, mdurl 0.1.2, pyyaml 6.0.3, typer 0.27.3, tabulate 0.10.0, termcolor 3.3.0, tomli 2.5.0, opt-einsum 3.4.0, ordered-set 4.1.0, immutabledict 4.2.1, anyio 4.14.2, h11 0.16.0, charset-normalizer 3.5.2, urllib3 2.8.0, truststore 0.10.5, annotated-doc 0.0.5 (`litert` extra) | MIT | — |
+| shellingham 1.5.4 (`litert` extra) | ISC | — |
+| **certifi 2026.10.23** (`litert` extra, through requests) | **MPL-2.0** | — |
 | ROCm 7.14.1 runtime (`rocm`, `rocm-sdk-core`, `rocm-sdk-libraries`, `rocm-sdk-device-*`; `rocm` extra only) | MIT and Apache-2.0, per component | under the LGPL: elfutils' libelf, libdw and libasm (LGPL-3.0-or-later, or GPL-2.0-or-later), libnuma, libnl, libmnl, util-linux's libblkid and libmount (LGPL-2.1-or-later), GMP and MPFR (LGPL-3.0-or-later). **Under the GPL**: SuiteSparse's libcholmod with its Supernodal and Modify modules (GPL-2.0-or-later), loaded with the runtime's sparse solvers and never called by training (ADR-0008, 2026-11-17). The rest permissive: libdrm, ncurses, SQLite, zstd, zlib, LLVM and others |
 | triton-rocm 3.8.0 (`rocm` extra only) | MIT | — |
 | sympy 1.14.0, mpmath 1.3.0 | BSD-3-Clause | — |
 | networkx 3.7, fsspec 2026.9.0, Jinja2 3.1.6, MarkupSafe 3.0.4 | BSD-3-Clause | — |
 | filelock 4.2.7, setuptools 84.2.1 | MIT | — |
-| typing-extensions 4.16.0 | PSF-2.0 | — |
+| typing-extensions 4.16.0 (4.12.2 under `litert`) | PSF-2.0 | — |
 
 Outside the lockfile: **labelme** (GPL-3.0) runs beside it through `uvx` and never ships;
 **jpegtran** (libjpeg-turbo, IJG and BSD-style) is a system tool. **OpenCV is not used**: nothing in
