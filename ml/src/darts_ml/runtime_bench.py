@@ -9,6 +9,7 @@ import shutil
 import statistics
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 import zipfile
 import zlib
@@ -82,8 +83,12 @@ def fetch(artifact: Artifact, cache: Path) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     partial = target.with_name(target.name + ".part")
     print(f"downloading {artifact.url} ...", file=sys.stderr, flush=True)
-    with urllib.request.urlopen(artifact.url, timeout=60) as response, partial.open("wb") as out:
-        shutil.copyfileobj(response, out)
+    try:
+        with urllib.request.urlopen(artifact.url, timeout=60) as response, partial.open("wb") as out:
+            shutil.copyfileobj(response, out)
+    except (urllib.error.URLError, TimeoutError) as error:
+        partial.unlink(missing_ok=True)
+        raise DartsMlError(f"could not download {artifact.url}: {error}") from error
     found = file_sha256(partial)
     if found != artifact.sha256:
         partial.unlink()
@@ -272,10 +277,16 @@ def harness_dex(cache: Path, ort_aar: Path) -> Path:
     classes = folder / "classes.jar"
     with zipfile.ZipFile(ort_aar) as archive:
         classes.write_bytes(archive.read("classes.jar"))
-    subprocess.run([javac, "--release", "11", "-cp", str(classes), "-d", str(folder), str(HARNESS)], check=True)
-    subprocess.run([str(d8), "--min-api", "26", "--output", str(folder), str(folder / "OrtBench.class"), str(classes)],
-                   check=True)
+    run_tool([javac, "--release", "11", "-cp", str(classes), "-d", str(folder), str(HARNESS)])
+    run_tool([str(d8), "--min-api", "26", "--output", str(folder), str(folder / "OrtBench.class"), str(classes)])
     return dex
+
+
+def run_tool(command: list[str]) -> str:
+    done = subprocess.run(command, capture_output=True, text=True)
+    if done.returncode != 0:
+        raise DartsMlError(f"{Path(command[0]).name} exited {done.returncode}:\n{done.stdout}{done.stderr}")
+    return done.stdout
 
 
 def _d8() -> Path:

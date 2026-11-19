@@ -1,15 +1,24 @@
 import contextlib
 import hashlib
 import io
+import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
+import urllib.error
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 from darts_ml import DartsMlError
-from darts_ml.runtime_bench import (Artifact, attached_devices, choose_device, cpuinfo, delegation, fetch,
-                                    native_libraries, parse_benchmark_model, parse_ort_bench, size_lines, timing)
+from darts_ml.cli import main
+from darts_ml.export_format import Format
+from darts_ml.paths import DataDir
+from darts_ml.runtime_bench import (DEVICE_DIR, Artifact, Device, attached_devices, bench, choose_device, cpuinfo,
+                                    delegation, fetch, native_libraries, parse_benchmark_model, parse_ort_bench,
+                                    run_tool, size_lines, timing)
 
 LITERT_OUTPUT = """\
 INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
@@ -140,6 +149,136 @@ class FetchTest(unittest.TestCase):
             fetch(self._artifact("0" * 64), self.cache)
         self.assertIn("not the pinned", str(caught.exception))
         self.assertEqual(list((self.cache / "runtime-1.0").iterdir()), [])
+
+    def test_a_failed_download_is_named_not_a_traceback(self):
+        with (mock.patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no route")),
+              contextlib.redirect_stderr(io.StringIO()), self.assertRaises(DartsMlError) as caught):
+            fetch(self._artifact("0" * 64), self.cache)
+        self.assertIn("could not download", str(caught.exception))
+        self.assertEqual(list((self.cache / "runtime-1.0").iterdir()), [])
+
+
+class RunToolTest(unittest.TestCase):
+    def test_a_failing_tool_is_named_with_its_output(self):
+        with self.assertRaises(DartsMlError) as caught:
+            run_tool([sys.executable, "-c", "import sys; print('bad flag', file=sys.stderr); sys.exit(3)"])
+        self.assertIn("exited 3", str(caught.exception))
+        self.assertIn("bad flag", str(caught.exception))
+
+
+class FakeAdb:
+    def __init__(self, abi: str, ort_output: str = "") -> None:
+        self.abi, self.ort_output, self.commands = abi, ort_output, []
+
+    def __call__(self, command, capture_output, text):
+        args = command[3:]
+        self.commands.append(args)
+        output = ""
+        if args == ["shell", "getprop ro.product.cpu.abi"]:
+            output = self.abi + "\n"
+        elif args[0] == "shell" and "benchmark_model --graph" in args[1]:
+            output = LITERT_OUTPUT
+        elif args[0] == "shell" and "OrtBench" in args[1]:
+            output = self.ort_output
+        return subprocess.CompletedProcess(command, 0, output, "")
+
+    def shell(self, needle: str) -> list[str]:
+        return [args[1] for args in self.commands if args[0] == "shell" and needle in args[1]]
+
+
+class BenchTest(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.model = self.folder / "best.tflite"
+        self.model.write_bytes(b"model")
+        self.enterContext(contextlib.redirect_stderr(io.StringIO()))
+
+    def test_the_device_is_cleaned_when_a_timing_fails(self):
+        aar = self.folder / "onnxruntime.aar"
+        with zipfile.ZipFile(aar, "w") as archive:
+            archive.writestr("jni/x86/libonnxruntime.so", b"lib")
+        dex = self.folder / "harness" / "classes.dex"
+        dex.parent.mkdir()
+        dex.write_bytes(b"dex")
+        adb = FakeAdb("x86", ort_output="init_us=1\n")
+        with mock.patch("darts_ml.runtime_bench.harness_dex", return_value=dex), self.assertRaises(DartsMlError):
+            bench(Device("emulator-5554", adb), self.folder, {Format.ONNX: [aar]}, {Format.ONNX: self.folder / "best.onnx"},
+                  64, [0], 1, 2)
+        self.assertEqual(adb.commands[-1], ["shell", f"rm -rf {DEVICE_DIR}"])
+
+    def test_an_abi_without_benchmark_model_skips_litert_by_name(self):
+        adb = FakeAdb("x86")
+        readings, skipped = bench(Device("emulator-5554", adb), self.folder, {}, {Format.LITERT: self.model}, 64, [0],
+                                  1, 2)
+        self.assertEqual((readings, skipped), ([], ["LiteRT: Google publishes no benchmark_model for x86"]))
+        self.assertFalse([args for args in adb.commands if args[0] == "push"])
+        self.assertEqual(adb.commands[-1], ["shell", f"rm -rf {DEVICE_DIR}"])
+
+    def test_thread_count_zero_leaves_the_count_to_the_runtime(self):
+        adb = FakeAdb("arm64-v8a")
+        binary = self.folder / "benchmark_model"
+        binary.write_bytes(b"tool")
+        with mock.patch("darts_ml.runtime_bench.fetch", return_value=binary):
+            readings, _ = bench(Device("0123abc", adb), self.folder, {}, {Format.LITERT: self.model}, 64, [0, 4], 1, 2)
+        default, four = adb.shell("benchmark_model --graph")
+        self.assertNotIn("--num_threads", default)
+        self.assertIn("--num_threads=4", four)
+        self.assertEqual([r.threads for r in readings], [0, 4])
+
+
+class RuntimeBenchCliTest(unittest.TestCase):
+    RUN = "2026-11-19-tiny"
+
+    def setUp(self):
+        self.data = DataDir(Path(self.enterContext(tempfile.TemporaryDirectory())).resolve())
+        self.folder = self.data.runs() / self.RUN
+        self.folder.mkdir(parents=True)
+        (self.folder / "config.json").write_text(json.dumps({"size": 64}), encoding="utf-8")
+        (self.folder / "best.pt").write_bytes(b"weights")
+        aar = self.data.root / "empty.aar"
+        with zipfile.ZipFile(aar, "w") as archive:
+            archive.writestr("classes.jar", b"x")
+        self.enterContext(mock.patch("darts_ml.runtime_bench.fetch", return_value=aar))
+        self.enterContext(mock.patch("shutil.which", return_value=None))
+
+    def export(self, name: str, weights: bytes) -> None:
+        (self.folder / name).write_bytes(b"model")
+        (self.folder / f"{name}.json").write_text(json.dumps({"weights_sha256": hashlib.sha256(weights).hexdigest()}),
+                                                  encoding="utf-8")
+
+    def run_cli(self) -> tuple[int, str, str]:
+        out, err = io.TextIOWrapper(io.BytesIO(), encoding="utf-8"), io.StringIO()
+        with (mock.patch.dict("os.environ", {"DARTS_DATA": str(self.data.root)}),
+              contextlib.redirect_stdout(out), contextlib.redirect_stderr(err)):
+            code = main(["runtime-bench", "--run", self.RUN])
+        out.flush()
+        return code, out.buffer.getvalue().decode("utf-8"), err.getvalue()
+
+    def test_an_export_from_other_weights_is_not_timed_and_says_why(self):
+        self.export("best.onnx", b"weights")
+        self.export("best.tflite", b"older weights")
+        code, out, _ = self.run_cli()
+        self.assertEqual(code, 0)
+        self.assertIn("model best.onnx: 5 bytes", out)
+        self.assertNotIn("model best.tflite", out)
+        self.assertIn("litert not timed: " + str(self.folder / "best.pt") + " has changed since best.tflite", out)
+
+    def test_a_format_never_exported_is_named(self):
+        self.export("best.tflite", b"weights")
+        code, out, _ = self.run_cli()
+        self.assertEqual(code, 0)
+        self.assertIn(f"onnx not timed: no exported model at {self.folder / 'best.onnx'}", out)
+
+    def test_no_export_to_time_is_named_not_a_traceback(self):
+        code, _, err = self.run_cli()
+        self.assertEqual(code, 2)
+        self.assertIn("no exported model to time", err)
+
+    def test_a_missing_run_is_named(self):
+        self.RUN = "nope"
+        code, _, err = self.run_cli()
+        self.assertEqual(code, 2)
+        self.assertIn("no run at", err)
 
 
 if __name__ == "__main__":

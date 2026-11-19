@@ -9,12 +9,12 @@ from . import DartsMlError, labelme
 from .check import check
 from .deepdarts import RECORDS as DEEPDARTS_RECORDS, convert, overlay_sample
 from .evaluate import LABELS, evaluate, report
-from .export_format import Format
-from .heldout import MANIFEST, HeldOutError, HeldOutSet, freeze, frozen_before, verify
+from .export_format import Format, check_record, exported_path
+from .heldout import MANIFEST, HeldOutError, HeldOutSet, file_sha256, freeze, frozen_before, verify
 from .ingest import ingest, jpegtran_version
 from .kernel_search import explain_failed_search, seconds_asleep
 from .overlay import overlay
-from .paths import DataDir, Round, repo_roots
+from .paths import DataDir, Round, repo_roots, run_config
 from .prefill import prefill
 from .records import RECORDS, build
 from .repeatability import repeatability
@@ -371,9 +371,8 @@ def _predict(args) -> int:
 
 
 def _export(args) -> int:
-    from .export import export, exported_path, write_record
-    from .heldout import file_sha256
-    from .train import load_weights, run_config
+    from .export import export, write_record
+    from .train import load_weights
 
     folder, config = run_config(DataDir.from_environment(), args.run)
     weights, size = folder / f"{args.weights}.pt", config["size"]
@@ -391,9 +390,9 @@ def _export(args) -> int:
 def _export_parity(args) -> int:
     import torch
 
-    from .export import check_record, exported_path, parity, runtime
+    from .export import parity, runtime
     from .locate import Inference, locate
-    from .train import load_weights, run_config
+    from .train import load_weights
     from .training_data import deepdarts_samples
 
     data = DataDir.from_environment()
@@ -413,12 +412,10 @@ def _export_parity(args) -> int:
 
 
 def _runtime_bench(args) -> int:
-    import json
     import shutil
-    import subprocess
 
     from .runtime_bench import (RUNTIMES, Device, attached_devices, bench, choose_device, fetch, latency_lines,
-                                native_libraries, size_lines)
+                                native_libraries, run_tool, size_lines)
 
     sys.stdout.reconfigure(line_buffering=True)
     data = DataDir.from_environment()
@@ -432,21 +429,27 @@ def _runtime_bench(args) -> int:
           "an APK built with AGP's default packaging stores them uncompressed")
     if not args.run:
         return 0
-    folder = data.runs() / args.run
-    config = folder / "config.json"
-    if not config.exists():
-        raise DartsMlError(f"no run at {folder}; `darts-ml train` writes one")
-    size = json.loads(config.read_text(encoding="utf-8"))["size"]
-    models = {f: folder / f"{args.weights}{f.suffix}" for f in RUNTIMES if (folder / f"{args.weights}{f.suffix}").exists()}
+    folder, config = run_config(data, args.run)
+    size, weights = config["size"], folder / f"{args.weights}.pt"
+    models, refused = {}, []
+    for format_ in RUNTIMES:
+        path = exported_path(folder, args.weights, format_)
+        try:
+            check_record(path, weights)
+        except DartsMlError as error:
+            refused.append(f"{format_} not timed: {error}")
+            continue
+        models[format_] = path
     if not models:
-        raise DartsMlError(f"no exported model in {folder}; `darts-ml export --run {args.run} --format <format>` writes one")
+        raise DartsMlError("no exported model to time:\n" + "\n".join(refused))
+    for line in refused:
+        print(line)
     for path in models.values():
         print(f"model {path.name}: {path.stat().st_size} bytes")
     if shutil.which("adb") is None:
         print("adb is not on PATH: latency not read")
         return 0
-    listed = subprocess.run(["adb", "devices"], capture_output=True, text=True, check=True).stdout
-    serial = choose_device(attached_devices(listed))
+    serial = choose_device(attached_devices(run_tool(["adb", "devices"])))
     if serial is None:
         print("no device attached (adb devices): latency not read")
         return 0
@@ -460,7 +463,7 @@ def _runtime_bench(args) -> int:
 
 def _deepdarts_score(args) -> int:
     from .locate import Inference, Speed, figures, locate
-    from .train import load_weights, resolve_device, run_config, use_tuned_kernels
+    from .train import load_weights, resolve_device, use_tuned_kernels
     from .training_data import deepdarts_reading_samples
 
     data = DataDir.from_environment()
@@ -480,7 +483,7 @@ def _deepdarts_score(args) -> int:
 def _deepdarts_tune(args) -> int:
     from .decode import EntryRule
     from .locate import Inference, Speed, figures, locate, refiltered
-    from .train import load_weights, resolve_device, run_config, use_tuned_kernels
+    from .train import load_weights, resolve_device, use_tuned_kernels
     from .training_data import deepdarts_reading_samples
 
     data = DataDir.from_environment()

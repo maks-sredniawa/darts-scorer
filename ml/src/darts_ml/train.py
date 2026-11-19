@@ -208,14 +208,6 @@ def run_folder(data: DataDir, name: str, today: dt.date) -> Path:
     return data.runs() / f"{today:%Y-%m-%d}-{name}"
 
 
-def run_config(data: DataDir, run: str) -> tuple[Path, dict]:
-    folder = data.runs() / run
-    path = folder / "config.json"
-    if not path.exists():
-        raise DartsMlError(f"no run at {folder}; `darts-ml train` writes one")
-    return folder, json.loads(path.read_text(encoding="utf-8"))
-
-
 def load_weights(path: Path, device: str) -> torch.nn.Module:
     state = _state(path)
     model = KeypointNet(stride_of_weights(state))
