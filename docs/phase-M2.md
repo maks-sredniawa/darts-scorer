@@ -415,11 +415,13 @@ and 66.2% at 0.23, with close pairs as two in 8 of 27.
 
 **The 640 px continuation, 2026-11-19: the threshold moves to 0.25.** `2026-11-19-darts-640-s2-ring-ext`
 trains 30 more epochs from that run's `best.pt` at a learning rate of 3e-4, because its exactly right
-was still rising at the end (best epoch 28, epochs 26 to 30 above 21 to 25). On the same grid,
+was still rising at the end: best epoch 28, and epochs 26 to 30 averaged 704.8 of 1070 against 695.4
+over 21 to 25. On the same grid,
 exactly right is highest at 0.25 and 0.26, at 69.2% (740 of 1070), against 68.9% at 0.24; 0.25 is
 kept because it gets more Darts right (87.8% against 87.4% at 0.26), with close pairs as two in 10
 of 27. It beats the run it started from on val by 2.7 points, so it is the chosen D run. On test the
-gain does not carry over: the two read level (R3), within what 2,150 Photos can separate.
+gain does not carry over (R3): face-on reads 1631 of 2,000 Photos against 1635, and angled 75 of 150
+against 72, a three-Photo gain that 150 Photos cannot tell from noise.
 
 ## 5. Export and the runtime
 
