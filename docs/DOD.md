@@ -57,10 +57,9 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       and from-scratch weights stay. R2 in `phase-M2.md`.
 - [x] **The Darts (D):** read on test the paper's way, 75.8% face-on and 39.3% angled against the
       paper's 94.7% and 84.0%, with at most three Entry points kept per Photo. R3 in `phase-M2.md`.
-- [ ] **Close D's gap before E:** a run with the Entry output at stride 2, a penalty on false tips
-      around real ones, and 640 px, read the same way.
-      Stride 2 and the ring at 512 px read 81.0% face-on and 44.0% angled on test, close pairs
-      still 15 of 74 (R3, 2026-11-19); the 640 px run is next.
+- [x] **Close D's gap before E:** the Entry output at stride 2, a penalty on false tips around
+      real ones, and 640 px, read the same way: 81.8% face-on and 48.0% angled on test against D's
+      75.8% and 39.3%, close pairs as two 18 of 74 (R3, 2026-11-19).
 
 ## Before the first upload
 
