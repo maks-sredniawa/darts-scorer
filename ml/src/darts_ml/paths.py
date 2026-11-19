@@ -116,6 +116,9 @@ class DataDir:
     def miopen(self) -> Path:
         return self._fenced(self.root / "miopen")
 
+    def runtimes(self) -> Path:
+        return self._fenced(self.root / "runtimes")
+
     def deepdarts_overlays(self) -> Path:
         return self._fenced(self.root / "overlays" / "deepdarts")
 

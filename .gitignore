@@ -35,6 +35,7 @@ fastlane/metadata/
 /ml/**
 !/ml/**/
 !/ml/**/*.py
+!/ml/**/*.java
 !/ml/**/*.toml
 !/ml/**/*.yaml
 !/ml/**/*.yml
