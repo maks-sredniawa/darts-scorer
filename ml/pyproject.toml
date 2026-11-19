@@ -12,6 +12,13 @@ dependencies = [
 
 [project.optional-dependencies]
 cpu = ["torch==2.14.1", "torchvision==0.29.1"]
+export = [
+    "onnx==1.23.2",
+    "onnxscript==0.7.2",
+    "onnxruntime==1.31.1",
+    "ai-edge-litert==2.3.0",
+]
+litert = ["torch==2.14.1", "torchvision==0.29.1", "litert-torch==0.10.0"]
 rocm = [
     "torch==2.14.1",
     "torchvision==0.29.1",
@@ -54,7 +61,7 @@ requires = ["uv_build>=0.12,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv]
-conflicts = [[{ extra = "cpu" }, { extra = "rocm" }]]
+conflicts = [[{ extra = "cpu" }, { extra = "rocm" }, { extra = "litert" }]]
 environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
 [tool.uv.exclude-newer-package]
@@ -74,10 +81,78 @@ environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
 "setuptools" = "2026-11-03T00:00:00Z"
 "sympy" = "2026-11-03T00:00:00Z"
 "typing-extensions" = "2026-11-03T00:00:00Z"
+"absl-py" = "2026-11-03T00:00:00Z"
+"ai-edge-litert" = "2026-11-03T00:00:00Z"
+"ai-edge-quantizer" = "2026-11-03T00:00:00Z"
+"annotated-doc" = "2026-11-03T00:00:00Z"
+"anyio" = "2026-11-03T00:00:00Z"
+"backports-strenum" = "2026-11-03T00:00:00Z"
+"certifi" = "2026-11-03T00:00:00Z"
+"charset-normalizer" = "2026-11-03T00:00:00Z"
+"click" = "2026-11-03T00:00:00Z"
+"fire" = "2026-11-03T00:00:00Z"
+"flatbuffers" = "2026-11-03T00:00:00Z"
+"h11" = "2026-11-03T00:00:00Z"
+"hf-xet" = "2026-11-03T00:00:00Z"
+"httpcore2" = "2026-11-03T00:00:00Z"
+"httpx2" = "2026-11-03T00:00:00Z"
+"huggingface-hub" = "2026-11-03T00:00:00Z"
+"idna" = "2026-11-03T00:00:00Z"
+"immutabledict" = "2026-11-03T00:00:00Z"
+"jax" = "2026-11-03T00:00:00Z"
+"jaxlib" = "2026-11-03T00:00:00Z"
+"jaxtyping" = "2026-11-03T00:00:00Z"
+"kagglehub" = "2026-11-03T00:00:00Z"
+"kagglesdk" = "2026-11-03T00:00:00Z"
+"lark" = "2026-11-03T00:00:00Z"
+"litert-converter" = "2026-11-03T00:00:00Z"
+"litert-lm-builder" = "2026-11-03T00:00:00Z"
+"litert-torch" = "2026-11-03T00:00:00Z"
+"markdown-it-py" = "2026-11-03T00:00:00Z"
+"mdurl" = "2026-11-03T00:00:00Z"
+"ml-dtypes" = "2026-11-03T00:00:00Z"
+"multipledispatch" = "2026-11-03T00:00:00Z"
+"onnx" = "2026-11-03T00:00:00Z"
+"onnx-ir" = "2026-11-03T00:00:00Z"
+"onnxruntime" = "2026-11-03T00:00:00Z"
+"onnxscript" = "2026-11-03T00:00:00Z"
+"opt-einsum" = "2026-11-03T00:00:00Z"
+"ordered-set" = "2026-11-03T00:00:00Z"
+"packaging" = "2026-11-03T00:00:00Z"
+"protobuf" = "2026-11-03T00:00:00Z"
+"pygments" = "2026-11-03T00:00:00Z"
+"pyyaml" = "2026-11-03T00:00:00Z"
+"regex" = "2026-11-03T00:00:00Z"
+"requests" = "2026-11-03T00:00:00Z"
+"rich" = "2026-11-03T00:00:00Z"
+"safetensors" = "2026-11-03T00:00:00Z"
+"scipy" = "2026-11-03T00:00:00Z"
+"sentencepiece" = "2026-11-03T00:00:00Z"
+"shellingham" = "2026-11-03T00:00:00Z"
+"tabulate" = "2026-11-03T00:00:00Z"
+"termcolor" = "2026-11-03T00:00:00Z"
+"tokenizers" = "2026-11-03T00:00:00Z"
+"tomli" = "2026-11-03T00:00:00Z"
+"torchao" = "2026-11-03T00:00:00Z"
+"tqdm" = "2026-11-03T00:00:00Z"
+"transformers" = "2026-11-03T00:00:00Z"
+"truststore" = "2026-11-03T00:00:00Z"
+"typer" = "2026-11-03T00:00:00Z"
+"urllib3" = "2026-11-03T00:00:00Z"
+"wadler-lindig" = "2026-11-03T00:00:00Z"
+"xdsl" = "2026-11-03T00:00:00Z"
 
 [tool.uv.sources]
-torch = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-rocm", extra = "rocm" }]
-torchvision = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-rocm", extra = "rocm" }]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "litert" },
+    { index = "pytorch-rocm", extra = "rocm" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "litert" },
+    { index = "pytorch-rocm", extra = "rocm" },
+]
 rocm = { index = "pytorch-rocm" }
 rocm-sdk-core = { index = "pytorch-rocm" }
 rocm-sdk-libraries = { index = "pytorch-rocm" }

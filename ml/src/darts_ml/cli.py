@@ -9,6 +9,7 @@ from . import DartsMlError, labelme
 from .check import check
 from .deepdarts import RECORDS as DEEPDARTS_RECORDS, convert, overlay_sample
 from .evaluate import LABELS, evaluate, report
+from .export_format import Format
 from .heldout import MANIFEST, HeldOutError, HeldOutSet, freeze, frozen_before, verify
 from .ingest import ingest, jpegtran_version
 from .kernel_search import explain_failed_search, seconds_asleep
@@ -119,7 +120,21 @@ def _parser() -> argparse.ArgumentParser:
     predictor.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
     predictor.add_argument("--out", type=Path, help="default: predictions-held-out-<weights>-<time>.json in the run folder")
     predictor.add_argument("--workers", type=_non_negative, default=4)
-    deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
+    formats = {"type": Format, "choices": list(Format), "required": True, "dest": "format_"}
+    exporter = step("export", _export, "a run's model in an on-device runtime's format, written into the run folder "
+                    "(phase-M2.md §5)", capture_session=False)
+    exporter.add_argument("--run", required=True, help="the run folder's name under $DARTS_DATA/runs/")
+    exporter.add_argument("--weights", choices=WEIGHTS, default="best")
+    exporter.add_argument("--format", **formats)
+    parity = step("export-parity", _export_parity, "the exported model's points against PyTorch's, both on the CPU, "
+                  "through both passes on DeepDarts' Photos", capture_session=False)
+    parity.add_argument("--run", required=True)
+    parity.add_argument("--weights", choices=WEIGHTS, default="best")
+    parity.add_argument("--format", **formats)
+    parity.add_argument("--split", choices=("train", "val"), default="val")
+    parity.add_argument("--workers", type=_non_negative, default=4)
+    parity.add_argument("--threads", type=_positive, help="CPU threads for each runtime; default: each runtime's own")
+    deepdarts =steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
     actions.add_parser("convert", help="labels.pkl → deepdarts/records.jsonl, through the restricted unpickler"
@@ -345,6 +360,44 @@ def _predict(args) -> int:
     print(f"written to {target}")
     print("Reading it with `darts-ml evaluate` is one of phase M2's three readings of the bar (D6)")
     return 0
+
+
+def _export(args) -> int:
+    from .export import export, exported_path, write_record
+    from .train import load_weights, run_config
+
+    folder, config = run_config(DataDir.from_environment(), args.run)
+    weights, size = folder / f"{args.weights}.pt", config["size"]
+    exported = export(load_weights(weights, "cpu"), size, args.format_, exported_path(folder, args.weights, args.format_))
+    write_record(exported, args.run, weights, size)
+    print(f"{exported.path}: {exported.size_bytes} bytes; input 1×3×{size}×{size} float32, the raw heads out")
+    print("operations: " + ", ".join(f"{name} {count}" for name, count in exported.operations.items()))
+    print(f"left outside {args.format_}'s own operations: {', '.join(exported.outside) or 'none'}")
+    return 0
+
+
+def _export_parity(args) -> int:
+    import torch
+
+    from .export import check_record, exported_path, parity, runtime
+    from .locate import Inference, locate
+    from .train import load_weights, run_config
+    from .training_data import deepdarts_samples
+
+    data = DataDir.from_environment()
+    folder, config = run_config(data, args.run)
+    weights, size = folder / f"{args.weights}.pt", config["size"]
+    path = exported_path(folder, args.weights, args.format_)
+    check_record(path, weights)
+    if args.threads:
+        torch.set_num_threads(args.threads)
+    photos = [s.photo for s in deepdarts_samples(data, args.split)]
+    print(f"{len(photos)} DeepDarts {args.split} Photos through PyTorch, then {args.format_} ...", file=sys.stderr, flush=True)
+    reference = locate(Inference(load_weights(weights, "cpu"), "cpu", size, config["batch"], args.workers), photos)
+    exported = locate(Inference(runtime(args.format_, path, args.threads), "cpu", size, 1, args.workers), photos)
+    reading = parity(reference, exported)
+    print("\n".join(reading.lines()))
+    return 0 if reading.same else 1
 
 
 def _deepdarts_score(args) -> int:
