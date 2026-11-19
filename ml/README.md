@@ -139,9 +139,11 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
   off and `--ring-mm INNER OUTER` moves it; `config.json` records all three.
 - **Two passes** (phase-M2.md §2): the whole Photo, letterboxed, finds the Board; a square around the
   outer double ring, the ring filling 80% of it, gives the points kept. A Calibration point is its
-  channel's peak, an Entry point every local maximum of its channel, both from 0.25 up, refined by
-  their offsets; an Entry point under 0.5 is `low_confidence`. RANSAC keeps the crossings within
-  3 mm of a four-point fit, and a Board needs eight of them.
+  channel's peak from 0.25 up, an Entry point every local maximum of its channel from the decode
+  floor (the `EntryRule` threshold; `deepdarts tune` decodes from its grid's lowest), both refined by
+  their offsets. A Photo keeps at most three Entry points, the most confident, each over the
+  `EntryRule` threshold, 0.24, chosen with `deepdarts tune`; one under 0.5 is `low_confidence`.
+  RANSAC keeps the crossings within 3 mm of a four-point fit, and a Board needs eight of them.
 - **`predict`** reads the frozen manifest, refuses a Held-out set that fails `verify-held-out`, and
   writes `predictions-held-out-<weights>-<time>.json` into the run folder, naming the run and the
   SHA-256 of its weights. Reading it with `evaluate` is one of phase M2's three readings (D6).
