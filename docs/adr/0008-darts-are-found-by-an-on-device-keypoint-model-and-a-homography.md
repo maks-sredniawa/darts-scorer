@@ -78,7 +78,7 @@ and the app is on Play with a tip purchase:
   does not supply the runtime. Which framework and which runtime is settled in phase M2 by
   measurement, not here (settled 2026-11-19, below).
 - **Training data:**
-  - the DeepDarts dataset, credited on the open-source licences screen;
+  - the DeepDarts dataset, credited on the app's Credits screen;
   - the owner's own handheld photos from several angles, labelled. No public handheld set exists,
     and these are what the accuracy bar is measured on.
   
@@ -112,7 +112,7 @@ and the app is on Play with a tip purchase:
   unsure, says so, and lets the player correct a dart by tapping the board.
 - Steel-tip regulation boards only. A soft-tip board has different geometry and needs its own ADR.
 - The app ships the model, which adds roughly 5–20 MB.
-- CC BY 4.0 requires attribution. The DeepDarts dataset's credit belongs on the licences screen from
+- CC BY 4.0 requires attribution. The DeepDarts dataset's credit belongs on the Credits screen from
   the first build that ships a model trained on it.
 
 ## Amendment — 2026-11-13: the Calibration points, DeepDarts' labels and the licence rule
@@ -168,30 +168,43 @@ the CPU), to allow this case:
 
 ## Amendment — 2026-11-19: the model, the runtime, and MPL-2.0 inside it
 
-Phase M2's checkpoint E ([`phase-M2.md`](../phase-M2.md) §5, R4) settles what this ADR left to M2 by
-measurement. The runtime it chose compiles in MPL-2.0 code, which the rule above did not allow.
+Phase M2's checkpoint E ([`phase-M2.md`](../phase-M2.md) §5, R4) settles what this ADR left to M2.
+The readings put no runtime behind, so the choice fell to what each brings into the app. The
+runtime chosen compiles in MPL-2.0 code, which the rule above did not allow.
 
 - **The model** is a heatmap keypoint network written in `ml/` in PyTorch, on torchvision's
   MobileNetV3-Large, trained from random weights (phase-M2.md D1, D2 and §2).
-- **The runtime is ONNX Runtime, bundled in the app:** `com.microsoft.onnxruntime:onnxruntime-android`
-  from Maven Central, read at 1.32.0, on its CPU execution provider. It scores every DeepDarts val
-  Visit as PyTorch does and runs about as fast as LiteRT on the emulator, with no Google Play dependency
-  and no change to the manifest.
-- **LiteRT, tried first as phase M2 planned (D4), is set aside.** 2.3.2's `litert-api` depends on
+- **The runtime is LiteRT 1.4.2, bundled in the app, through its Interpreter API:**
+  `com.google.ai.edge.litert:litert:1.4.2` from Google's Maven, on the CPU. It depends on nothing
+  but its own `litert-api`, carries no Play part, and leaves the merged manifest unchanged. In a
+  spike on emulator `urgent-api26` (Android 8) it ran the model in an instrumented test. The model
+  file is `best.tflite`, 12.8 MB, which scores every DeepDarts val Visit as PyTorch does; parity and
+  latency were read on LiteRT 2.x, which runs the same kernels (`phase-M2.md` R4).
+- **ONNX Runtime is set aside for what its AAR merges.** 1.32.0 declares `INTERNET`,
+  `ACCESS_NETWORK_STATE` and a provider, `ai.onnxruntime.TelemetryInitializer`, that starts at app
+  launch, loads the native library and builds an HTTP client, its library carrying Microsoft's
+  OneCollector telemetry endpoint; ADR-0007's removal keeps `INTERNET` out, but the
+  provider would still merge, and phase S's opt-in upload would hand it a network.
+- **LiteRT 2.x is set aside for its Play dependency.** 2.3.2's `litert-api` depends on
   `com.google.android.play:ai-delivery`, under the Play Core terms, which brings WorkManager and Room
   (against ADR-0003 and the app's no-database rule) and adds `FOREGROUND_SERVICE` and
-  `FOREGROUND_SERVICE_DATA_SYNC` to the manifest. 1.4.2 has none of that but is the older line.
-  **ncnn stays the fallback.**
-- **The cost is size, accepted by the owner.** ONNX Runtime's native library is 34.74 MiB on
-  arm64-v8a, about 13 MiB deflated, against LiteRT 2.3.2's 5.87 MiB. The model file is 13.1 MB. The
-  5–20 MB under Consequences counted the model alone.
-- **MPL-2.0 is allowed for a library bundled unmodified and credited in the app's Credits**, with a
-  link to its source. Its copyleft covers changes to its own files, and none are made. ONNX
-  Runtime's ThirdPartyNotices list Eigen (MPL-2.0), compiled in, and Mbed TLS (Apache-2.0 OR
-  GPL-2.0-or-later), taken under Apache-2.0. LiteRT carries Eigen too. A modified MPL-2.0 file is
-  still out. MPL-2.0 packages that only run in `ml/`, tqdm in the `export` extra and certifi in
-  `litert`, never ship and are listed in `ml/README.md`'s licence table like the rest.
-- **Phase 1 owes two things from this.** The licences screen names ONNX Runtime, Eigen and Mbed TLS
-  from the first build that ships the model, beside DeepDarts. And inference sets its thread count:
-  ONNX Runtime's default read 49–51 ms against 32–35 ms at four threads on the emulator, and the
-  count is chosen on the phone's reading.
+  `FOREGROUND_SERVICE_DATA_SYNC` to the manifest. **ncnn stays the fallback.**
+- **1.x is the older line, and the owner accepted that.** Code written against 1.x's
+  `org.tensorflow.lite.Interpreter` also runs on 2.x, which still ships that class in 2.3.2, so a
+  later move is a dependency change, not a rewrite.
+- **The size is small.** 1.4.2's native library is 4.27 MiB on arm64-v8a, 1.74 MiB deflated,
+  against ONNX Runtime's 34.74 MiB. The 5–20 MB under Consequences counted the model alone.
+- **MPL-2.0 is allowed for a library bundled unmodified and credited on the app's Credits screen**,
+  with a link to its source. Its copyleft covers changes to its own files, and none are made.
+  1.4.2's AAR carries one `LICENSE`, TensorFlow's Apache-2.0 with Caffe's BSD-2-Clause notice, and
+  nothing else; its native library also compiles in Eigen (MPL-2.0, as `EigenForTFLite`) and, by
+  their symbols, XNNPACK, ruy, gemmlowp, FlatBuffers, fft2d and cpuinfo, which that file does not
+  list. A modified MPL-2.0 file is still out. MPL-2.0 packages that only run in `ml/`, tqdm in the
+  `export` extra and certifi in `litert`, never ship and are listed in `ml/README.md`'s licence
+  table like the rest.
+- **Phase 1 owes two things from this.** The Credits screen names LiteRT, Eigen and the other
+  libraries compiled into LiteRT's native library, each under its own licence, from the first build
+  that ships the model, beside DeepDarts; the ones the build's dependency list cannot see go in
+  `SupportConfig.BUNDLED_CREDITS`. And inference sets its thread count: LiteRT's default is one
+  thread, which read about 93 ms against 29–31 ms at four on the emulator (`benchmark_model` 2.3.1),
+  and the count is chosen on the phone's reading.

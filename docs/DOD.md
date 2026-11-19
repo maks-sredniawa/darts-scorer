@@ -63,8 +63,10 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       75.8% and 39.3%, close pairs as two 18 of 74 (R3, 2026-11-19).
       E converts `2026-11-19-darts-640-s2-ring-ext`, 30 more epochs from that run: val exactly right
       69.2% against 66.5% (`phase-M2.md` §4); on test it reads level with it (R3).
-- [x] **Export (E):** ONNX Runtime, bundled; 0 of 1,070 val Visits scored differently from PyTorch.
-      ADR-0008 amended on 2026-11-19, MPL-2.0 allowed unmodified and credited. R4 in `phase-M2.md`.
+- [x] **Export (E):** LiteRT 1.4.2, bundled, through its Interpreter API; 0 of 1,070 val Visits
+      scored differently from PyTorch. Chosen over ONNX Runtime and LiteRT 2.3.2 for adding no Play
+      part and nothing to the manifest. ADR-0008 amended on 2026-11-19, MPL-2.0 allowed unmodified
+      and credited. R4 in `phase-M2.md`.
 
 ## Before the first upload
 
@@ -77,9 +79,10 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       only phone in the loop sits at the top of the range, every `SDK_INT` branch below it ships
       unvalidated — the first app built from this template raised 26 to 33 for exactly that reason. Move CI's floor legs with it,
       and write the reason beside `minSdk` in `app/build.gradle.kts`, where the next person to touch it reads it.
-- [ ] **Ship the runtime the way ADR-0008's 2026-11-19 amendment says.** Phase 1: ONNX Runtime,
-      Eigen and Mbed TLS on the licences screen beside DeepDarts, and a thread count set on the
-      phone's reading rather than ONNX Runtime's default, which read slower (`phase-M2.md` R4).
+- [ ] **Ship the runtime the way ADR-0008's 2026-11-19 amendment says.** Phase 1: LiteRT, Eigen
+      and the other libraries compiled into LiteRT's native library on the Credits screen beside
+      DeepDarts, and a thread count set on the phone's reading rather than LiteRT's default of one,
+      which read about three times slower (`phase-M2.md` R4).
 - [x] **Replace the placeholder mark.** The Fan, drawn in code in `art/mark.py` (no concept image),
       provenance in `art/README.md`; launcher, monochrome, notification and Play icons regenerated.
       Chosen 2026-11-12 from three Fable options.
