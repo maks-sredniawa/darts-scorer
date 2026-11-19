@@ -115,6 +115,7 @@ uv run --directory ml darts-ml deepdarts grouped                     # pairs und
 uv run --directory ml darts-ml predict --run <run>                   # the predictions file, on the Held-out set
 uv run --directory ml darts-ml export --run <run> --format onnx      # E: the model in a runtime's format, into the run folder
 uv run --directory ml darts-ml export-parity --run <run> --format onnx   # E: its points against PyTorch's, on val
+ANDROID_SERIAL=emulator-5610 uv run --directory ml darts-ml runtime-bench --run <run>   # E: each runtime's size per ABI, and the model's latency on a device
 uv run --directory ml darts-ml train --probe                         # gate A: time 200 steps (--device cpu for parity)
 ```
 
@@ -168,6 +169,17 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
   PyTorch flavour (the CPU build plus the converter), because its `xdsl` holds typing-extensions below
   4.13; give it a venv of its own and run with the same variable:
   `UV_PROJECT_ENVIRONMENT=~/.venvs/darts-ml-litert uv sync --locked --directory ml --extra litert --extra export`.
+- **`runtime-bench`** downloads each runtime's Android AAR, pinned by version and SHA-256 in
+  `runtime_bench.py` (LiteRT 2.3.2 from Google Maven, `litert` and `litert-api`; ONNX Runtime 1.32.0
+  from Maven Central), into `$DARTS_DATA/runtimes/`, and prints the native libraries each would add
+  per ABI, uncompressed and deflated. With `--run` and one device in `adb devices` (or the one
+  `ANDROID_SERIAL` names), it times each exported model there, the warm-up excluded, at each
+  `--threads` count (0 is the runtime's default): LiteRT through Google's prebuilt `benchmark_model`
+  2.3.1 (no 2.3.2 build is published), ONNX Runtime through `android/OrtBench.java`, compiled with
+  `javac` and the SDK's `d8` against the AAR's own classes and run under `app_process`, since ONNX
+  Runtime publishes no Android `onnxruntime_perf_test`. It cleans up after itself on the device and
+  never installs an app. An x86_64 emulator runs on the host's CPU with the emulator's virtual CPU
+  in front of it, so its figures say little about a phone's.
 - **`--probe`** writes `runs/probes/<device>-<size>-<batch>-<steps>steps[-bf16][-cl]-<time>.json`, never
   over an earlier one, with the commit and any `MIOPEN_*` settings it ran under.
 
