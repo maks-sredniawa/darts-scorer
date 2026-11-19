@@ -54,12 +54,16 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 - [x] **The training code (B):** `darts-ml train` and `predict`, the decoder and both passes, the
       fences and their tests; the Entry channel stays at stride 4 (`phase-M2.md` §2).
 - [x] **The Board (C):** found on every val and test Photo, wire medians 0.27 to 0.40 mm; 512 px
-      and from-scratch weights stay. R2 in `phase-M2.md`.
+      and from-scratch weights stay (D's gap work later moved the model to 640 px, R3). R2 in
+      `phase-M2.md`.
 - [x] **The Darts (D):** read on test the paper's way, 75.8% face-on and 39.3% angled against the
       paper's 94.7% and 84.0%, with at most three Entry points kept per Photo. R3 in `phase-M2.md`.
 - [x] **Close D's gap before E:** the Entry output at stride 2, a penalty on false tips around
       real ones, and 640 px, read the same way: 81.8% face-on and 48.0% angled on test against D's
       75.8% and 39.3%, close pairs as two 18 of 74 (R3, 2026-11-19).
+      E converts `2026-11-19-darts-640-s2-ring` (val exactly right 66.5% against the 512 px stride-2
+      run's 61.4%, `phase-M2.md` §4), unless `2026-11-19-darts-640-s2-ring-ext` beats it on val after
+      the same tune.
 
 ## Before the first upload
 
