@@ -266,6 +266,10 @@ are a third to a half of an input pixel (about 0.875 mm at 512 pixels on an 800-
 inside B1's 0.5 mm. A larger input buys nothing C can measure; E reads the phone's side of the
 trade.
 
+**D's gap work moves the model to 640 pixels (read 2026-11-19, R3).** The Board alone gains nothing
+from it, as C read; close Darts do, with the Entry head at stride 2: 18 of 74 test pairs found as two
+against 15 at 512 pixels, and every Dart figure up (§4).
+
 **MIOpen cannot search for kernels once the laptop has slept (read 2026-11-18).** The failure is
 not bfloat16's: after a suspend every kernel search fails, in float32 as well, and before one every
 search works.
@@ -406,8 +410,8 @@ gets the most Darts right (84.8% against 83.9% at 0.25) and close pairs as two (
 The same rule at D's 0.34 reads 58.2%.
 
 The 640 px run (`2026-11-19-darts-640-s2-ring`) keeps 0.24 on the same grid: with no merge and
-the cap at three, exactly right is highest at 0.24, at 66.5% (712 of 1070), against 66.4% at 0.25 and 66.2% at 0.23, with close pairs as two in 8
-of 27.
+the cap at three, exactly right is highest at 0.24, at 66.5% (712 of 1070), against 66.4% at 0.25
+and 66.2% at 0.23, with close pairs as two in 8 of 27.
 
 ## 5. Export and the runtime
 
