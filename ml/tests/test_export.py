@@ -15,7 +15,7 @@ from darts_ml import DartsMlError
 from darts_ml.cli import main
 from darts_ml.evaluate import PredictedEntry
 from darts_ml.heldout import file_sha256
-from darts_ml.export import PARITY_MM, Exported, export, exported_path, parity, runtime
+from darts_ml.export import PARITY_MM, Exported, export, exported_path, parity, runtime, write_record
 from darts_ml.export_format import Format
 from darts_ml.locate import Located
 from darts_ml.model import ENTRY_STRIDES, KeypointNet
@@ -136,6 +136,16 @@ class ExportCliTest(unittest.TestCase):
         self.write_run(0)
         (self.folder / "best.pt").unlink()
         code, _, err = self.run_cli("export", "--run", RUN, "--format", "onnx")
+        self.assertEqual(code, 2)
+        self.assertIn(f"no weights at {self.folder / 'best.pt'}", err)
+
+    def test_parity_names_weights_deleted_since_export(self):
+        self.write_run(0)
+        path = exported_path(self.folder, "best", Format.ONNX)
+        path.write_bytes(b"model")
+        write_record(Exported(path, 5, {}), RUN, "best.pt", file_sha256(self.folder / "best.pt"), SIZE)
+        (self.folder / "best.pt").unlink()
+        code, _, err = self.run_cli("export-parity", "--run", RUN, "--format", "onnx")
         self.assertEqual(code, 2)
         self.assertIn(f"no weights at {self.folder / 'best.pt'}", err)
 
