@@ -134,7 +134,7 @@ def _parser() -> argparse.ArgumentParser:
     parity.add_argument("--split", choices=("train", "val"), default="val")
     parity.add_argument("--workers", type=_non_negative, default=4)
     parity.add_argument("--threads", type=_positive, help="CPU threads for each runtime; default: each runtime's own")
-    deepdarts =steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
+    deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
     actions.add_parser("convert", help="labels.pkl → deepdarts/records.jsonl, through the restricted unpickler"
@@ -364,12 +364,14 @@ def _predict(args) -> int:
 
 def _export(args) -> int:
     from .export import export, exported_path, write_record
+    from .heldout import file_sha256
     from .train import load_weights, run_config
 
     folder, config = run_config(DataDir.from_environment(), args.run)
     weights, size = folder / f"{args.weights}.pt", config["size"]
+    weights_sha256 = file_sha256(weights)
     exported = export(load_weights(weights, "cpu"), size, args.format_, exported_path(folder, args.weights, args.format_))
-    write_record(exported, args.run, weights, size)
+    write_record(exported, args.run, weights.name, weights_sha256, size)
     print(f"{exported.path}: {exported.size_bytes} bytes; input 1×3×{size}×{size} float32, the raw heads out")
     print("operations: " + ", ".join(f"{name} {count}" for name, count in exported.operations.items()))
     print(f"left outside {args.format_}'s own operations: {', '.join(exported.outside) or 'none'}")

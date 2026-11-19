@@ -64,9 +64,9 @@ def export(model: torch.nn.Module, size: int, format_: Format, path: Path) -> Ex
     return Exported(path, path.stat().st_size, dict(sorted(_operations(format_, path).items())))
 
 
-def write_record(exported: Exported, run: str, weights_path: Path, size: int) -> Path:
+def write_record(exported: Exported, run: str, weights: str, weights_sha256: str, size: int) -> Path:
     record = exported.path.with_name(exported.path.name + ".json")
-    record.write_text(json.dumps({"run": run, "weights": weights_path.name, "weights_sha256": file_sha256(weights_path),
+    record.write_text(json.dumps({"run": run, "weights": weights, "weights_sha256": weights_sha256,
                                   "size": size, "bytes": exported.size_bytes, "operations": exported.operations},
                                  indent=1), encoding="utf-8")
     return record
@@ -84,9 +84,12 @@ def _require(module: str, extra: str):
     try:
         return importlib.import_module(module)
     except ImportError as error:
-        hint = (" (the CPU build of PyTorch with Google's converter; it cannot share a venv with `rocm`, "
-                "whose typing-extensions its xdsl dependency holds back)" if extra == "litert" else "")
-        raise DartsMlError(f"{module} is not installed: sync with --extra {extra}{hint}") from error
+        if extra == "litert":
+            raise DartsMlError(
+                f"{module} is not installed: the `litert` extra conflicts with both `cpu` and `rocm`, so give it a venv "
+                "of its own, `UV_PROJECT_ENVIRONMENT=~/.venvs/darts-ml-litert uv sync --locked --directory ml "
+                "--extra litert --extra export`, and run with the same variable") from error
+        raise DartsMlError(f"{module} is not installed: sync with --extra {extra}") from error
 
 
 def _operations(format_: Format, path: Path) -> Counter:
