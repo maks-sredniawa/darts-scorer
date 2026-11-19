@@ -369,6 +369,8 @@ def _export(args) -> int:
 
     folder, config = run_config(DataDir.from_environment(), args.run)
     weights, size = folder / f"{args.weights}.pt", config["size"]
+    if not weights.exists():
+        raise DartsMlError(f"no weights at {weights}")
     weights_sha256 = file_sha256(weights)
     exported = export(load_weights(weights, "cpu"), size, args.format_, exported_path(folder, args.weights, args.format_))
     write_record(exported, args.run, weights.name, weights_sha256, size)

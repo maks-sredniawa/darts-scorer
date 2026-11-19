@@ -132,6 +132,13 @@ class ExportCliTest(unittest.TestCase):
             self.assertEqual(code, 2, step)
             self.assertIn(f"no run at {self.td.data.runs() / 'nope'}", err)
 
+    def test_missing_weights_are_named_not_a_traceback(self):
+        self.write_run(0)
+        (self.folder / "best.pt").unlink()
+        code, _, err = self.run_cli("export", "--run", RUN, "--format", "onnx")
+        self.assertEqual(code, 2)
+        self.assertIn(f"no weights at {self.folder / 'best.pt'}", err)
+
     def test_parity_refuses_a_run_never_exported(self):
         self.write_run(0)
         code, _, err = self.run_cli("export-parity", "--run", RUN, "--format", "onnx")
