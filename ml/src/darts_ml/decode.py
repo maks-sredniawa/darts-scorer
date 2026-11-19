@@ -11,7 +11,7 @@ from .homography import _normaliser, fit, project
 from .model import BOARD_OFFSETS, BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_HEAT, ENTRY_OFFSETS, Heads, entry_stride_of
 
 THRESHOLD = 0.25
-ENTRY_THRESHOLD = 0.34
+ENTRY_THRESHOLD = 0.24
 ENTRIES_APART_MM = 0.0
 MOST_ENTRIES = 3
 CONFIDENT = 0.5
