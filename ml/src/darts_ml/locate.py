@@ -241,13 +241,19 @@ def _close_pairs(mm: np.ndarray) -> list[tuple[int, int]]:
 
 
 def _matched(truth: np.ndarray, guess: np.ndarray) -> set[int]:
-    pairs = sorted((float(np.linalg.norm(t - g)), i, j) for i, t in enumerate(truth) for j, g in enumerate(guess))
-    taken_truth, taken_guess = set(), set()
+    return {i for i, _, _ in matched_pairs(truth, guess)}
+
+
+def matched_pairs(first: np.ndarray, second: np.ndarray) -> list[tuple[int, int, float]]:
+    """Each point of `first` paired with the nearest free one of `second` within MATCH_MM, closest pairs first."""
+    pairs = sorted((float(np.linalg.norm(a - b)), i, j) for i, a in enumerate(first) for j, b in enumerate(second))
+    taken_first, taken_second, kept = set(), set(), []
     for distance, i, j in pairs:
-        if distance <= MATCH_MM and i not in taken_truth and j not in taken_guess:
-            taken_truth.add(i)
-            taken_guess.add(j)
-    return taken_truth
+        if distance <= MATCH_MM and i not in taken_first and j not in taken_second:
+            taken_first.add(i)
+            taken_second.add(j)
+            kept.append((i, j, distance))
+    return kept
 
 
 def located_from_targets(sample: Sample, size: int, entry_stride: int = ENTRY_STRIDE) -> Located:
