@@ -6,6 +6,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -69,7 +71,9 @@ fun VisitScreen(
         modifier = modifier,
         topBar = { TopAppBar(title = { Text(stringResource(R.string.tab_visit)) }) },
     ) { insets ->
-        Column(modifier = Modifier.fillMaxSize().padding(insets)) {
+        // fillMaxSize's minimum height reaches the scrolled Column, so the Spacer's weight keeps the
+        // buttons at the bottom whenever everything fits, and everything scrolls when it does not.
+        Column(modifier = Modifier.fillMaxSize().padding(insets).verticalScroll(rememberScrollState())) {
             val noticeSpacing = Modifier.padding(start = Spacing.base, end = Spacing.base, top = Spacing.base)
             when (state.notice) {
                 VisitNotice.NoCamera ->
@@ -86,14 +90,7 @@ fun VisitScreen(
                     )
                 null -> Unit
             }
-            Column(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(Spacing.base),
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(Spacing.base)) {
                 when (val phase = state.phase) {
                     VisitPhase.Empty -> EmptyVisit(state.showTipAsk, viewModel::answerTipAsk, onOpenSupport)
                     VisitPhase.Reading -> ReadingPhoto()
@@ -101,6 +98,7 @@ fun VisitScreen(
                     is VisitPhase.Scored -> ScoredVisit(phase)
                 }
             }
+            Spacer(Modifier.weight(1f))
             when (state.phase) {
                 VisitPhase.Empty ->
                     Actions(stringResource(R.string.visit_take_photo), takePhoto, choosePhoto)
@@ -132,7 +130,7 @@ private fun EmptyVisit(
     Text(
         text = stringResource(R.string.visit_empty_title),
         style = MaterialTheme.typography.headlineSmall,
-        modifier = Modifier.padding(top = Spacing.section),
+        modifier = Modifier.padding(top = Spacing.section).semantics { heading() },
     )
     Text(
         text = stringResource(R.string.visit_empty_body),
@@ -159,7 +157,6 @@ private fun ReadingPhoto() {
     }
 }
 
-/** Controls sit in the bottom third, so a Visit is one tap with the phone in one hand. */
 @Composable
 private fun Actions(
     takeLabel: String,

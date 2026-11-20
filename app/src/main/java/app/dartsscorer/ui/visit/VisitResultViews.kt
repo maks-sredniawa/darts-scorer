@@ -2,7 +2,10 @@ package app.dartsscorer.ui.visit
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +39,10 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
@@ -71,6 +76,9 @@ import coil3.size.Size as CoilSize
 @Composable
 private fun Modifier.focusOnArrival(arrival: Any): Modifier {
     val focus = remember { FocusRequester() }
+    val interactions = remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
+    val keyboard = LocalInputModeManager.current.inputMode == InputMode.Keyboard
     var placed by remember(arrival) { mutableStateOf(false) }
     val windowFocused = LocalWindowInfo.current.isWindowFocused
     LaunchedEffect(arrival, windowFocused) {
@@ -79,8 +87,16 @@ private fun Modifier.focusOnArrival(arrival: Any): Modifier {
             placed = focus.requestFocus()
         }
     }
-    return focusRequester(focus).focusable()
+    val ring =
+        if (focused && keyboard) {
+            Modifier.border(FOCUS_RING, MaterialTheme.colorScheme.onSurface, MaterialTheme.shapes.medium)
+        } else {
+            Modifier
+        }
+    return focusRequester(focus).focusable(interactionSource = interactions).then(ring)
 }
+
+private val FOCUS_RING = 3.dp
 
 private const val WINDOW_SETTLE_MS = 600L
 
@@ -269,8 +285,6 @@ private fun DrawScope.drawMarker(
     colors: ColorScheme,
 ) {
     val keyline = 2.dp.toPx()
-    // The font scale is capped so a marker grows with large text but never hides the Dart it marks;
-    // the chips carry the Score at full size.
     val markerDensity = Density(density, fontScale.coerceAtMost(MARKER_MAX_FONT_SCALE))
     val number = measurer.measure(dart.number.toString(), style.copy(color = colors.onSurface), density = markerDensity)
     val radius = maxOf(number.size.width, number.size.height) / 2f + Spacing.hair.toPx()
