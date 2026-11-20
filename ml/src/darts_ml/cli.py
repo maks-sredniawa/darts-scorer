@@ -79,7 +79,7 @@ def _parser() -> argparse.ArgumentParser:
     verifier.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
     builder = step("build", _build, "write the training records, refusing every held-out Photo", capture_session=False)
     builder.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
-    evaluator = step("evaluate", _evaluate, "the bar for opening phase 1 (phase-M1.md §7), read on the Held-out set",
+    evaluator = step("evaluate", _evaluate, "the bar for phase 1's model (phase-M1.md §7), read on the Held-out set",
                      capture_session=False)
     evaluator.add_argument("--predictions", required=True, metavar="{labels,FILE}",
                            help=f"`{LABELS}` to read the labels as the predictions, or a predictions JSON file (ml/README.md)")
