@@ -57,14 +57,7 @@ internal fun appEntryDecorators(): List<NavEntryDecorator<NavKey>> =
 
 /**
  * The app shell: a bottom bar over a [NavDisplay], or a rail beside it in a short window, where a
- * bar's height would come out of the Photo.
- *
- * The back stack is rooted at [Visit], so Back from any top-level destination returns there and
- * Back from there exits. That is one rule rather than per-screen behaviour, and it is why
- * [showTopLevel] rewrites the stack instead of pushing onto it — pushing would let a user walk
- * Visit → Settings → Visit → Settings and need four Backs to leave. Visit stays at the root under
- * Settings rather than being replaced, so the Visit being scored, held by its entry's ViewModel,
- * outlives a look at Settings.
+ * bar's height would come out of the Photo. [showTopLevel] keeps the stack rooted at [Visit].
  */
 @Composable
 fun MainNavigation(modifier: Modifier = Modifier) {
@@ -196,15 +189,11 @@ private fun AppNavigationBar(
  * never removed, so its ViewModel is not cleared.
  */
 internal fun NavBackStack<NavKey>.showTopLevel(destination: TopLevelDestination) {
-    if (firstOrNull() != Visit) {
-        clear()
-        add(Visit)
-    }
     while (size > 1) removeAt(lastIndex)
     if (destination.key != Visit) add(destination.key)
 }
 
-/** The tab shown as selected: the topmost tab in the stack, so a detail screen keeps its tab lit. */
+/** The tab shown as selected: the topmost tab in the stack. */
 internal fun List<NavKey>.currentTab(): TopLevelDestination =
     lastOrNull(::isTopLevel)?.let { key -> TopLevelDestination.entries.first { it.key == key } }
         ?: TopLevelDestination.VisitTab
