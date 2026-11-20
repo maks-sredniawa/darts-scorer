@@ -1,4 +1,5 @@
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -100,7 +101,23 @@ class CommittedFixturesTest(unittest.TestCase):
                 stored = json.loads(path.read_text(encoding="utf-8"))
                 matrix, heads = heads_from_record(stored)
                 again = json.loads(json.dumps(heads_case(stored["name"], matrix, heads)))
-                self.assertEqual(again, stored)
+                self.assert_same_record(again, stored)
+
+    def assert_same_record(self, actual, expected, where="record"):
+        # A homography refit differs from runner to runner around the tenth significant digit, so floats are
+        # held to a relative 1e-9 while everything discrete must match exactly.
+        if isinstance(expected, float) or isinstance(actual, float):
+            self.assertTrue(math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12), f"{where}: {actual} != {expected}")
+        elif isinstance(expected, dict):
+            self.assertEqual(sorted(actual), sorted(expected), where)
+            for key in expected:
+                self.assert_same_record(actual[key], expected[key], f"{where}.{key}")
+        elif isinstance(expected, list):
+            self.assertEqual(len(actual), len(expected), where)
+            for index, (a, e) in enumerate(zip(actual, expected, strict=True)):
+                self.assert_same_record(a, e, f"{where}[{index}]")
+        else:
+            self.assertEqual(actual, expected, where)
 
 
 class AsStoredTest(unittest.TestCase):
