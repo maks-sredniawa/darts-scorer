@@ -82,12 +82,14 @@ only on a model that met this phase's bar.
       `photos` kind's q85 re-encode, moved val's exactly right from 69.2% to 68.7% (R5): D2 holds.
 - [x] **A Visit scored from one Photo (B)**, with the Visit count: merged in PR #39, 2026-11-20
       (`phase-1.md` §4, *What moved while building B*).
-- [ ] **Correcting a Dart (C)** with the keypad sheet (D3) and *Enter the Score yourself* (D6).
-      Built, awaiting merge: the keypad from a marker or chip, change, confirm, remove with *Undo*,
+- [x] **Correcting a Dart (C)** with the keypad sheet (D3) and *Enter the Score yourself* (D6):
+      merged in PR #41, 2026-11-20. The keypad from a marker or chip, change, confirm, remove with *Undo*,
       add by *Add a Dart* or a tap on the Photo, a Visit entered by hand (counted once), focus into
       and out of the sheet, and the Photo beside the Score in landscape (`phase-1.md` *What moved
       while building C*). Read on `pixel-api36` and `urgent-api26`.
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
+      R4 taken 2026-11-20: about 0.36 s a Photo on a 2 GB, 2-core API 26 image at 4 threads and at
+      2, so `minSdk` stays 26. R2 and R3 wait on the owner's phone and Board.
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
 
 ## Before the first upload
@@ -95,7 +97,9 @@ only on a model that met this phase's bar.
 - [x] **Delete what the app does not need.** Phase 0: reminders, the custom backup and sharing, the
       Items and Room are gone; platform Auto Backup carries the preferences only. The tip and the
       photo plumbing stay. [`phase-0.md`](phase-0.md).
-- [ ] **Decide `minSdk` deliberately, before the door.** Phase 1 decides it, on the model runtime's
+- [x] **Decide `minSdk` deliberately, before the door.** Stays 26 (2026-11-20): LiteRT's floor is 21,
+      and R4 read both passes at about 0.36 s a Photo on a 2 GB, 2-core API 26 image
+      ([`phase-1.md`](phase-1.md) §5); CI's floor leg stays at 26. Phase 1 decided it, on the model runtime's
       own floor and an inference time on a low-end emulator image ([`phase-0.md`](phase-0.md)).
       The direction is asymmetric: raising it later strands existing installs on the last build that fitted them, lowering it later is free. If the
       only phone in the loop sits at the top of the range, every `SDK_INT` branch below it ships
