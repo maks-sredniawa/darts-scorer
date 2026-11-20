@@ -9,12 +9,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+from PIL import Image, UnidentifiedImageError
 
 from .board import Score, score
 from .evaluate import Share
 from .homography import project
 from .locate import Located, matched_pairs
 from .repeatability import Spread
+
+_EXIF_ORIENTATION = 0x0112
 
 NOTE = ("READ-ONCE: the owner's marked Visits are the real test set. Read a run here after it is chosen; never "
         "choose a run, a threshold or a setting on these figures, or they stop measuring anything.")
@@ -38,7 +41,7 @@ def marked_visits(captures: Path) -> tuple[list[MarkedVisit], list[tuple[str, st
             visits.append(_visit(path))
         except (KeyError, TypeError, ValueError) as error:
             skipped.append((path.name, f"not a marked Visit record ({error})"))
-        except FileNotFoundError as error:
+        except (FileNotFoundError, _Unusable) as error:
             skipped.append((path.name, str(error)))
     return visits, skipped
 
@@ -51,6 +54,7 @@ def _visit(path: Path) -> MarkedVisit:
     photo = path.parent / name
     if not photo.is_file():
         raise FileNotFoundError(f"its Photo {name} is missing")
+    _check_pixels(photo, (int(record["width"]), int(record["height"])))
     placed, accepted = [], []
     for dart in record["darts"]:
         if dart["at"] is None:
@@ -63,6 +67,24 @@ def _visit(path: Path) -> MarkedVisit:
     read = [d["read"] for d in record["darts"] if d["read"]] + [r["read"] for r in record["removed"]]
     return MarkedVisit(path.stem, photo, tuple(Score.parse(d["score"]) for d in record["darts"]), tuple(placed),
                        tuple(accepted), bool(record["boardFound"]), tuple(Score.parse(r["score"]) for r in read))
+
+
+class _Unusable(Exception):
+    pass
+
+
+def _check_pixels(photo: Path, recorded: tuple[int, int]) -> None:
+    """The Darts' points were kept in the record's width×height, on the Photo's pixels as stored."""
+    try:
+        with Image.open(photo) as image:
+            size, orientation = image.size, image.getexif().get(_EXIF_ORIENTATION, 1)
+    except (OSError, UnidentifiedImageError) as error:
+        raise _Unusable(f"its Photo {photo.name} cannot be read ({error})") from error
+    if size != recorded:
+        raise _Unusable(f"its Photo {photo.name} is {size[0]}×{size[1]}, the record says {recorded[0]}×{recorded[1]}")
+    if orientation != 1:
+        raise _Unusable(f"its Photo {photo.name} carries EXIF orientation {orientation}, and the Darts' points are "
+                        f"on the unrotated pixels")
 
 
 @dataclass(frozen=True)

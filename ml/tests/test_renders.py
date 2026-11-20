@@ -137,6 +137,11 @@ class ImportTest(unittest.TestCase):
         self.assertEqual([frame for frame, _ in imported.refused], ["000001", "000002"])
         self.assertTrue(all("fit one plane" in reason for _, reason in imported.refused))
         self.assertFalse((imported.folder / "rgb" / "000001.jpg").exists())
+        manifest = json.loads((imported.folder / MANIFEST).read_text())
+        self.assertLess(manifest["residual_px"]["max"], 0.5)
+        refused = {entry["frame"]: entry["residual_px"] for entry in manifest["refused"]}
+        self.assertEqual(set(refused), {"000001", "000002"})
+        self.assertTrue(all(residual > 0.5 for residual in refused.values()))
 
     def test_a_set_is_written_once_and_a_set_with_nothing_kept_not_at_all(self):
         self.output.frame("000000", self.to_image, ["S5"], place=old_radii_mm)

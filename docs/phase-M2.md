@@ -502,6 +502,8 @@ keep the Held-out set unseen and the bar honest:
 | --- | --- | --- |
 | ADR-0008 | dated amendment: a plain-GPL library bundled in a training tool's wheel, loaded and never called, never shipped, is allowed and listed (taken 2026-11-17, from A's licence finding) | A |
 | ADR-0008 | dated amendment: the model (D1), the runtime and its readings (D4, §5), where the weights start (D2) | E |
+| ADR-0008 | dated amendment, 2026-11-21: synthetic renders as a training source; the `maks-sredniawa/darts-render` licence row, from its PR #1 on | §7 escalation |
+| `ml/README.md`, `CLAUDE.md` | *Synthetic renders*: `renders import`, `train --renders` and `--render-weight`, `evaluate-marked` | §7 escalation |
 | `CONTEXT.md` | **Validation sessions**: the training Capture sessions set aside to choose between models, never the Held-out set | B |
 | `ml/README.md` | `train`, `predict`, the runs folder; PyTorch and torchvision, and every library the ROCm wheel bundles, in the licence table, with the libraries the ROCm runtime bundles under the LGPL, a runtime exception or, by ADR-0008's 2026-11-17 amendment, the GPL | A, B |
 | `CLAUDE.md` | the `train` and `predict` commands | B |
