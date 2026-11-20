@@ -9,6 +9,7 @@ import app.dartsscorer.scoring.LiteRtModel
 import app.dartsscorer.scoring.PhotoReader
 import app.dartsscorer.scoring.decodePhoto
 import app.dartsscorer.scoring.logReadTime
+import app.dartsscorer.scoring.readThreads
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -25,10 +26,9 @@ class DeviceVisitPhotos(
     private val photosDir = media.resolve(MediaKind.Photo.directory)
     private val authority = "${appContext.packageName}.fileprovider"
 
-    private val reader by lazy { PhotoReader(LiteRtModel(appContext)) }
-
     // LiteRtModel holds one interpreter and its buffers: one Photo at a time.
     private val reading = Mutex()
+    private var loaded: Loaded? = null
 
     override fun newCameraTarget(): String {
         cameraDir.mkdirs()
@@ -56,12 +56,28 @@ class DeviceVisitPhotos(
         withContext(Dispatchers.Default) {
             reading.withLock {
                 val image = decodePhoto(media.resolve(photo)) ?: return@withLock null
+                val threads = readThreads(appContext)
+                val reader = readerAt(threads)
                 val started = System.nanoTime()
                 val located = reader.read(image)
-                logReadTime((System.nanoTime() - started) / 1_000_000, LiteRtModel.DEFAULT_THREADS)
+                logReadTime((System.nanoTime() - started) / 1_000_000, threads)
                 PhotoReading(image.width, image.height, located)
             }
         }
+
+    /** A new interpreter only when the count changed, which only the debug build's Settings can do. */
+    private fun readerAt(threads: Int): PhotoReader {
+        loaded?.takeIf { it.model.threads == threads }?.let { return it.reader }
+        loaded?.model?.close()
+        loaded = null
+        return Loaded(LiteRtModel(appContext, threads)).also { loaded = it }.reader
+    }
+
+    private class Loaded(
+        val model: LiteRtModel,
+    ) {
+        val reader = PhotoReader(model)
+    }
 
     private fun uriOf(file: File): String = FileProvider.getUriForFile(appContext, authority, file).toString()
 

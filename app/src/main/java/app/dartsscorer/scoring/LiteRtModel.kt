@@ -19,7 +19,7 @@ import java.nio.channels.FileChannel
  */
 class LiteRtModel(
     context: Context,
-    threads: Int = DEFAULT_THREADS,
+    val threads: Int = DEFAULT_THREADS,
     asset: String = MODEL_ASSET,
 ) : KeypointModel,
     Closeable {

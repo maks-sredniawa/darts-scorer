@@ -17,4 +17,6 @@
 -->
 <resources>
     <string name="app_name" translatable="false">Darts Scorer debug</string>
+    <string name="debug_settings" translatable="false">Debug</string>
+    <string name="debug_read_threads" translatable="false">Threads per Photo read (R2)</string>
 </resources>
