@@ -76,6 +76,12 @@ class PredictTest(unittest.TestCase):
             self.assertEqual(code, 2, argv)
             self.assertIn(f"no run at {self.data.runs() / 'nope'}", err.getvalue())
 
+    def test_an_entry_threshold_outside_zero_to_one_is_refused(self):
+        for value in ("0", "1", "1.5", "-0.1"):
+            with self.subTest(value), contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+                main(["deepdarts", "score", "--run", "nope", "--entry-threshold", value])
+            self.assertIn("is not between 0 and 1", err.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
