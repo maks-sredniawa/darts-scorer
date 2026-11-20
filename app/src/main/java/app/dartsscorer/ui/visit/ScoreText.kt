@@ -35,7 +35,7 @@ internal fun Resources.chipDescription(dart: ShownDart): String {
 }
 
 /** What TalkBack reads for a result: the Score, the Darts, then which are unsure. */
-internal fun Resources.summary(result: VisitPhase.Scored): String {
+internal fun Resources.summary(result: VisitPhase.Shown): String {
     val darts =
         if (result.darts.isEmpty()) {
             getString(R.string.visit_summary_no_darts)
@@ -44,5 +44,5 @@ internal fun Resources.summary(result: VisitPhase.Scored): String {
             getQuantityString(R.plurals.visit_summary_darts, result.darts.size, result.darts.size, spoken)
         }
     val unsure = result.darts.filter { it.unsure }.map { getString(R.string.visit_summary_unsure, it.number) }
-    return (listOf(getString(R.string.visit_summary_score, result.total), darts) + unsure).joinToString(" ")
+    return (listOf(getString(R.string.visit_summary_score, result.darts.total), darts) + unsure).joinToString(" ")
 }

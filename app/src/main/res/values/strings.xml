@@ -61,6 +61,36 @@
     <string name="visit_no_camera_body">This phone has no camera app to take a Photo with. A Photo already on the phone can still be scored.</string>
     <string name="visit_unreadable_title">The Photo could not be opened</string>
     <string name="visit_unreadable_body">Try taking or choosing another Photo.</string>
+    <!-- Correcting a result (docs/phase-1.md §3, D6). "Enter the Score yourself" is offered when no
+         Board is found, and opens the keypad with no Darts; "Entered by hand" sits under that
+         Visit's Score. -->
+    <string name="visit_enter_score">Enter the Score yourself</string>
+    <string name="visit_entered_by_hand">Entered by hand</string>
+    <string name="visit_add_dart">Add a Dart</string>
+    <string name="visit_remove_dart">Remove Dart</string>
+    <!-- The snackbar after Remove Dart. %1$d is the Dart's number. -->
+    <string name="visit_removed">Dart %1$d removed</string>
+    <string name="visit_undo">Undo</string>
+    <!-- The keypad sheet's title: the Dart being changed (%1$d is its number), or a new one. -->
+    <string name="keypad_title_dart">Dart %1$d</string>
+    <string name="keypad_title_new">New Dart</string>
+    <!-- The keypad's two labelled groups: the ring (Single, Double, Treble), then the number, the
+         Bulls or Miss. -->
+    <string name="keypad_ring">Ring</string>
+    <string name="keypad_number">Number</string>
+    <string name="keypad_single">Single</string>
+    <string name="keypad_double">Double</string>
+    <string name="keypad_treble">Treble</string>
+    <string name="keypad_outer_bull">Bull 25</string>
+    <string name="keypad_bull">Bull 50</string>
+    <string name="keypad_miss">Miss</string>
+    <!-- The Score the keys make so far: its short form and value, e.g. "T20 · 60". -->
+    <string name="keypad_score">%1$s · %2$d</string>
+    <!-- The same, spoken: %1$s is the Score spoken ("treble 20"), %2$s the points ("60 points"). -->
+    <string name="keypad_score_description">%1$s, %2$s</string>
+    <!-- Shown instead of the Score after a ring is picked and before a number is. -->
+    <string name="keypad_pick_number">Pick a number</string>
+    <string name="keypad_done">Done</string>
     <!-- The screen reader's summary of a result, read when it appears: "Visit Score 81." then the
          Darts, then which are unsure. -->
     <string name="visit_summary_score">Visit Score %1$d.</string>

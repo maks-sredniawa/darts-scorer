@@ -4,55 +4,66 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -60,12 +71,14 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import app.dartsscorer.R
+import app.dartsscorer.scoring.Point
 import app.dartsscorer.theme.Spacing
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import kotlinx.coroutines.delay
+import java.io.File
 import coil3.size.Size as CoilSize
 
 /**
@@ -74,7 +87,7 @@ import coil3.size.Size as CoilSize
  * first node once the window is back, so the request waits for both.
  */
 @Composable
-private fun Modifier.focusOnArrival(arrival: Any): Modifier {
+internal fun Modifier.focusOnArrival(arrival: Any): Modifier {
     val focus = remember { FocusRequester() }
     val interactions = remember { MutableInteractionSource() }
     val focused by interactions.collectIsFocusedAsState()
@@ -96,18 +109,38 @@ private fun Modifier.focusOnArrival(arrival: Any): Modifier {
     return focusRequester(focus).focusable(interactionSource = interactions).then(ring)
 }
 
+/**
+ * A button is focusable only outside touch mode, so focus could not be moved back to it after the
+ * sheet closes, and TalkBack follows that focus (phase-1.md §3, *Focus*).
+ */
+private fun Modifier.focusableInTouchMode(): Modifier = focusProperties { canFocus = true }
+
 private val FOCUS_RING = 3.dp
 
-private const val WINDOW_SETTLE_MS = 600L
+internal const val WINDOW_SETTLE_MS = 600L
 
 private const val MARKER_MAX_FONT_SCALE = 1.3f
 
-/** At most two fifths of the window high, so the Score and the chips sit beside the Photo rather than under the fold. */
+internal val TOUCH_TARGET = 48.dp
+
+/**
+ * Above the Score: at most two fifths of the window high, so the Score and the chips sit under the
+ * Photo rather than below the fold. [beside] the Score, on a short window: the full height, at most
+ * half the window wide.
+ */
 @Composable
-private fun Modifier.photoSize(aspect: Double): Modifier {
+private fun Modifier.photoSize(
+    aspect: Double,
+    beside: Boolean,
+): Modifier {
     val window = LocalWindowInfo.current.containerSize
-    val maxHeight = with(LocalDensity.current) { (window.height * 2 / 5).toDp() }
-    return heightIn(max = maxHeight).aspectRatio(aspect.toFloat())
+    return with(LocalDensity.current) {
+        if (beside) {
+            widthIn(max = (window.width / 2).toDp()).fillMaxHeight().aspectRatio(aspect.toFloat(), true)
+        } else {
+            heightIn(max = (window.height * 2 / 5).toDp()).aspectRatio(aspect.toFloat())
+        }
+    }
 }
 
 /** A banner for what came back wrong: a shape and a title as well as its colour. */
@@ -137,54 +170,92 @@ internal fun NoticeBanner(
 }
 
 @Composable
-internal fun NoBoardFound(result: VisitPhase.NoBoard) {
+internal fun NoBoardBanner(result: VisitPhase.NoBoard) {
     NoticeBanner(
         title = stringResource(R.string.visit_no_board_title),
         body = stringResource(R.string.visit_no_board_hint),
         modifier = Modifier.padding(bottom = Spacing.base).focusOnArrival(result),
     )
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        AsyncImage(
-            model = result.photo,
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.photoSize(result.width.toDouble() / result.height),
-        )
-    }
 }
 
+/** The whole Photo, with no markers: no Board was found on it. */
 @Composable
-internal fun ScoredVisit(result: VisitPhase.Scored) {
-    val summary = LocalResources.current.summary(result)
+internal fun WholePhoto(
+    photo: File,
+    width: Int,
+    height: Int,
+    beside: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    AsyncImage(
+        model = photo,
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = modifier.photoSize(width.toDouble() / height, beside),
+    )
+}
 
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        BoardPhoto(result, summary)
+/**
+ * The Score heading, the *Check* lines, a chip per Dart and *Add a Dart*. The heading takes focus
+ * when a new result arrives; [focus] moves it to a chip or *Add a Dart* once the sheet has closed.
+ */
+@Composable
+internal fun ShownDetails(
+    shown: VisitPhase.Shown,
+    focus: VisitFocus?,
+    onOpenDart: (Int) -> Unit,
+    onRemoveDart: (Int) -> Unit,
+    onAddDart: () -> Unit,
+    onFocusPlaced: () -> Unit,
+) {
+    val resources = LocalResources.current
+    val chips = remember { mutableMapOf<Int, FocusRequester>() }
+    val addDart = remember { FocusRequester() }
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(focus, windowFocused) {
+        if (focus != null && windowFocused) {
+            delay(WINDOW_SETTLE_MS)
+            val target =
+                when (focus) {
+                    is VisitFocus.Chip -> chips[focus.number]
+                    VisitFocus.AddDart -> addDart.takeIf { Correction.canAdd(shown.darts) }
+                }
+            target?.requestFocus()
+            onFocusPlaced()
+        }
     }
+
+    val heading =
+        Modifier.semantics(mergeDescendants = true) {
+            heading()
+            liveRegion = LiveRegionMode.Polite
+            contentDescription = resources.summary(shown)
+        }
     Column(
         modifier =
-            Modifier
-                .padding(top = Spacing.base)
-                .focusOnArrival(result)
-                .semantics(mergeDescendants = true) {
-                    heading()
-                    liveRegion = LiveRegionMode.Polite
-                    contentDescription = summary
-                },
+            if (shown is VisitPhase.Scored) heading.focusOnArrival(shown.photo) else heading.focusable(),
     ) {
         Text(
             text = stringResource(R.string.visit_score_label),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(text = result.total.toString(), style = MaterialTheme.typography.displayLarge)
+        Text(text = shown.darts.total.toString(), style = MaterialTheme.typography.displayLarge)
     }
-    result.darts.filter { it.unsure }.forEach { dart ->
+    if (shown is VisitPhase.Entered) {
+        Text(
+            text = stringResource(R.string.visit_entered_by_hand),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    shown.darts.filter { it.unsure }.forEach { dart ->
         Text(
             text = stringResource(R.string.visit_check_dart, dart.number),
             style = MaterialTheme.typography.bodyLarge,
         )
     }
-    if (result.darts.isEmpty()) {
+    if (shown is VisitPhase.Scored && shown.darts.isEmpty()) {
         Text(
             text = stringResource(R.string.visit_no_darts),
             style = MaterialTheme.typography.bodyLarge,
@@ -195,24 +266,50 @@ internal fun ScoredVisit(result: VisitPhase.Scored) {
         modifier = Modifier.padding(top = Spacing.base),
         horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
         verticalArrangement = Arrangement.spacedBy(Spacing.tight),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        result.darts.forEach { DartChip(it) }
+        shown.darts.forEach { dart ->
+            DartChip(
+                dart,
+                onOpen = { onOpenDart(dart.number) },
+                onRemove = { onRemoveDart(dart.number) },
+                modifier =
+                    Modifier
+                        .focusRequester(
+                            chips.getOrPut(dart.number) { FocusRequester() },
+                        ).focusableInTouchMode(),
+            )
+        }
+        if (Correction.canAdd(shown.darts)) {
+            AddDartButton(onAddDart, Modifier.focusRequester(addDart).focusableInTouchMode())
+        }
     }
 }
 
 /**
- * Filled when sure, outlined with *Check* when unsure: shape and text, never colour alone. Not a
- * button yet; checkpoint C opens the keypad from it.
+ * Filled when sure, outlined with *Check* when unsure: shape and text, never colour alone. A button
+ * that opens the keypad, with *Remove Dart* as TalkBack's custom action.
  */
 @Composable
-private fun DartChip(dart: ShownDart) {
+private fun DartChip(
+    dart: ShownDart,
+    onOpen: () -> Unit,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val resources = LocalResources.current
     val description = resources.chipDescription(dart)
+    val removeLabel = stringResource(R.string.visit_remove_dart)
     Surface(
+        onClick = onOpen,
         shape = MaterialTheme.shapes.small,
         color = if (dart.unsure) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.secondaryContainer,
         border = if (dart.unsure) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
-        modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = description },
+        modifier =
+            modifier.heightIn(min = TOUCH_TARGET).semantics(mergeDescendants = true) {
+                contentDescription = description
+                customActions = listOf(CustomAccessibilityAction(removeLabel) { onRemove().let { true } })
+            },
     ) {
         Row(
             modifier = Modifier.padding(horizontal = Spacing.snug, vertical = Spacing.tight),
@@ -231,12 +328,32 @@ private fun DartChip(dart: ShownDart) {
     }
 }
 
-/** The Photo cropped to the Board, one node for TalkBack; its markers are not focusable. */
+/** No container, so it reads as an action beside the Darts' chips rather than as a Dart. */
 @Composable
-private fun BoardPhoto(
-    result: VisitPhase.Scored,
-    description: String,
+private fun AddDartButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    TextButton(onClick = onClick, modifier = modifier.heightIn(min = TOUCH_TARGET)) {
+        Icon(Icons.Filled.Add, contentDescription = null)
+        Text(stringResource(R.string.visit_add_dart), modifier = Modifier.padding(start = Spacing.tight))
+    }
+}
+
+/**
+ * The Photo cropped to the Board, one node for TalkBack; its markers are not focusable, since the
+ * chips are the path that needs no precise tap. A tap on a marker opens its Dart, a tap elsewhere
+ * proposes a new Dart while fewer than three are shown.
+ */
+@Composable
+internal fun BoardPhoto(
+    result: VisitPhase.Scored,
+    onOpenDart: (Int) -> Unit,
+    onSpot: (Point) -> Unit,
+    beside: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val description = LocalResources.current.summary(result)
     val painter =
         rememberAsyncImagePainter(
             ImageRequest
@@ -249,12 +366,33 @@ private fun BoardPhoto(
     val numberStyle = MaterialTheme.typography.labelLarge
     val colors = MaterialTheme.colorScheme
     val crop = result.crop
+    val latest by rememberUpdatedState(result)
     Canvas(
         modifier =
-            Modifier
-                .photoSize(crop.width / crop.height)
+            modifier
+                .photoSize(crop.width / crop.height, beside)
                 .clipToBounds()
-                .semantics {
+                .pointerInput(Unit) {
+                    detectTapGestures { tap ->
+                        val shown = latest
+                        val scale = size.width / shown.crop.width
+                        val hit = TOUCH_TARGET.toPx() / 2
+                        val nearest =
+                            shown.darts
+                                .mapNotNull { dart ->
+                                    dart.at?.let {
+                                        dart to
+                                            (it.screen(shown.crop, scale) - tap).getDistance()
+                                    }
+                                }.minByOrNull { it.second }
+                                ?.takeIf { it.second <= hit }
+                        if (nearest != null) {
+                            onOpenDart(nearest.first.number)
+                        } else {
+                            onSpot(Point(shown.crop.left + tap.x / scale, shown.crop.top + tap.y / scale))
+                        }
+                    }
+                }.semantics {
                     contentDescription = description
                     role = Role.Image
                 },
@@ -267,15 +405,22 @@ private fun BoardPhoto(
             with(painter) { draw(Size(result.width.toFloat(), result.height.toFloat())) }
         }
         result.darts.forEach { dart ->
-            val at = Offset(((dart.x - crop.left) * scale).toFloat(), ((dart.y - crop.top) * scale).toFloat())
-            drawMarker(at, dart, measurer, numberStyle, colors)
+            val at = dart.at ?: return@forEach
+            drawMarker(at.screen(crop, scale.toDouble()), dart, measurer, numberStyle, colors)
         }
     }
 }
 
+private fun Point.screen(
+    crop: Crop,
+    scale: Double,
+): Offset = Offset(((x - crop.left) * scale).toFloat(), ((y - crop.top) * scale).toFloat())
+
 /**
  * A light disc inside a dark keyline inside a light one, so the number reads on any part of a Photo.
- * The roles are a light and a dark pair in either theme. Unsure: the dark keyline dashed and a *?* badge.
+ * The roles are a light and a dark pair in either theme. Unsure: the dark keyline dashed and a *?*
+ * badge. Corrected: the same rings, hollow, with the number in the badge's place, since the Dart was
+ * placed by hand at its bed's centre rather than measured.
  */
 private fun DrawScope.drawMarker(
     at: Offset,
@@ -288,6 +433,15 @@ private fun DrawScope.drawMarker(
     val markerDensity = Density(density, fontScale.coerceAtMost(MARKER_MAX_FONT_SCALE))
     val number = measurer.measure(dart.number.toString(), style.copy(color = colors.onSurface), density = markerDensity)
     val radius = maxOf(number.size.width, number.size.height) / 2f + Spacing.hair.toPx()
+    val badgeCentre = at + Offset(radius + keyline, -(radius + keyline))
+    if (dart.corrected) {
+        val band = Stroke(width = keyline)
+        drawCircle(colors.surfaceContainerLowest, radius + 1.5f * keyline, at, style = band)
+        drawCircle(colors.inverseSurface, radius + keyline / 2, at, style = band)
+        drawCircle(colors.surfaceContainerLowest, radius - keyline / 2, at, style = band)
+        drawBadge(number, badgeCentre, colors.surfaceContainerLowest, keyline, colors)
+        return
+    }
     drawCircle(colors.surfaceContainerLowest, radius + 2 * keyline, at)
     drawCircle(
         colors.inverseSurface,
@@ -303,10 +457,19 @@ private fun DrawScope.drawMarker(
     drawText(number, topLeft = at - Offset(number.size.width / 2f, number.size.height / 2f))
     if (dart.unsure) {
         val mark = measurer.measure("?", style.copy(color = colors.onTertiaryContainer), density = markerDensity)
-        val badge = maxOf(mark.size.width, mark.size.height) / 2f + keyline / 2
-        val centre = at + Offset(radius + keyline, -(radius + keyline))
-        drawCircle(colors.inverseSurface, badge + keyline / 2, centre)
-        drawCircle(colors.tertiaryContainer, badge, centre)
-        drawText(mark, topLeft = centre - Offset(mark.size.width / 2f, mark.size.height / 2f))
+        drawBadge(mark, badgeCentre, colors.tertiaryContainer, keyline, colors)
     }
+}
+
+private fun DrawScope.drawBadge(
+    text: TextLayoutResult,
+    centre: Offset,
+    fill: Color,
+    keyline: Float,
+    colors: ColorScheme,
+) {
+    val badge = maxOf(text.size.width, text.size.height) / 2f + keyline / 2
+    drawCircle(colors.inverseSurface, badge + keyline / 2, centre)
+    drawCircle(fill, badge, centre)
+    drawText(text, topLeft = centre - Offset(text.size.width / 2f, text.size.height / 2f))
 }

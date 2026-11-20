@@ -3,8 +3,8 @@
 Sequence lives in [`PLAN.md`](PLAN.md); the live worklist lives in [`DOD.md`](DOD.md). This phase
 relies on ADR-0008 (the model, its 2026-11-19 runtime amendment), ADR-0002 (the media pipeline),
 ADR-0005 (no Photo in a backup) and ADR-0007 (the tip's Visit count), and amends ADR-0008 under D1.
-[`CONTEXT.md`](../CONTEXT.md) is owed *Miss* and *unsure* (§3), and nothing else: Board, Dart,
-Visit, Photo, Entry point and Score already cover the rest.
+[`CONTEXT.md`](../CONTEXT.md) is owed *Miss* and *unsure* (§3), and *Bed*, which C's code needed:
+Board, Dart, Visit, Photo, Entry point and Score already cover the rest.
 
 **What closing this phase means.** Today the Visit tab is a placeholder: no Photo is taken and no
 model is in the app. After this phase a player takes one Photo of the Board after a Visit, with the
@@ -270,7 +270,7 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 | *Pick a Photo* tapped | The Photo Picker, one image. No permission on any API level |
 | Photo arrives | Through `MediaFiles` as the `photos` kind, the camera's file deleted; then both passes off the main thread |
 | No Board found | §3's: the whole Photo with no markers, the banner with its hint (the whole Board in the frame, more light), and *Take another Photo*, *Choose a Photo*, *Enter the Score yourself* (D6). Nothing is counted |
-| Board found | §3's result. The first time a Photo's result is shown, `incrementVisitsScored()` is called once for it, so the last Visit of a session counts too; a Visit entered by hand (D6) is not counted, since the app read nothing |
+| Board found | §3's result. The first time a Photo's result is shown, `incrementVisitsScored()` is called once for it, so the last Visit of a session counts too. A Visit entered by hand (D6) counts once, when its first Dart is committed (*What moved while building C*) |
 | *Next Visit* | The camera opens directly and the result stays on screen. When a new Photo arrives, the previous one is deleted; a cancelled camera changes nothing |
 | Process death mid-Visit | The Photo's relative path survives in `SavedStateHandle`, and the last counted Photo's path is in DataStore; the result is recomputed from it and not counted again, and the start-up sweep (D2) skips that path. Corrections made before the death are lost, and that is accepted (Known gaps) |
 | The start-up sweep | Runs when the Visit ViewModel is created, not in `Application.onCreate`: only the ViewModel's `SavedStateHandle` knows which Photo survived process death, so only it can tell a leftover from the Photo on screen |
@@ -306,6 +306,53 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 - **`scripts/edge-to-edge.py`'s scenes are unchanged.** The empty state is still `visit`; a result
   needs a Photo picked through the Picker, which the driver cannot seed.
 
+### What moved while building C (2026-11-20)
+
+- **A Visit entered by hand counts toward the tip's Visit count**, once, when its first Dart is
+  committed; §4 said it would not. ADR-0007's count measures use, and a player who scores a Visit on
+  the keypad after a bad Photo has used the app as much as one whose Photo was read. It goes through
+  the same `incrementVisitsScored(photo)` with the No Board Photo's path, so committing more Darts,
+  re-entering after process death, or a later Photo cannot count it twice.
+- **A Dart keeps its number through corrections.** The top-to-bottom rule numbers the model's Darts
+  when a result arrives; a corrected marker that moves does not renumber them, and a new Dart takes
+  the lowest free number, so a chip never changes under the player's finger.
+- **The corrected marker** is the measured marker's rings at the same size with a hollow centre, the
+  number moved into the badge's place (a corrected Dart is never unsure). **A Miss has no bed and no
+  marker**: a Dart set to Miss, or added as one, is a chip only. A Visit entered by hand has no
+  markers at all.
+- **Which bed's centre:** a single goes to the one of its segment's two single beds nearer where the
+  Dart was or the tap landed, and to the outer one from *Add a Dart*; an outer bull keeps that point's
+  direction. *Done* on an unchanged Score confirms the Dart where it was measured: it is not moved
+  and not drawn hollow.
+- **The keypad's two picks.** While a Bull or *Miss* is picked the ring row shows nothing selected; a
+  ring tapped then waits for a number (*Pick a number*, *Done* disabled), and a number tapped then is
+  a single. *Add a Dart* opens with Single and no number.
+- **A tap on the Photo** within 24 dp of a marker opens that Dart; anywhere else proposes a new one
+  while fewer than three are shown, *Miss* when it lands off the Board.
+- ***Undo* is a snackbar with no timer** (WCAG 2.2.1: nothing to adjust): it stays until *Undo*, its
+  dismiss button, or the Visit's next change (a commit, another removal, a new Photo). The screen
+  leaves room for it at the end of its scroll, so it never hides *Next Visit* for good. *Undo* puts
+  the Dart back with its number unless a new Dart has taken it.
+- **Focus.** After *Remove Dart* it goes to the next chip in order, else *Add a Dart*; closing the
+  sheet without *Done* returns it to the Dart's chip, or to *Add a Dart* for a new one. Chips and
+  *Add a Dart* are made focusable in touch mode, since a button is not, and focus could not be moved
+  back to them otherwise. The sheet's drag handle is drawn without its semantics: as the sheet's first
+  node it took TalkBack's focus on opening, where §3 puts it on the title. Read on `pixel-api36` with
+  TalkBack on: into the sheet on *Dart 1*, back to its chip on *Done*.
+- **A Visit entered by hand** replaces the *No Board found* banner with the Score, *Entered by hand*
+  under it, the whole Photo and *Next Visit*. Removing every Dart again stays there at 0 with *Add a
+  Dart*; a keypad closed without *Done* leaves *No Board found* as it was.
+- ***Add a Dart*** is a borderless button at the end of the chip row: filled is a Dart, outlined is
+  unsure, no container is an action.
+- **Landscape (QA's B follow-up).** A window under 480 dp high puts the Photo beside the Score at the
+  full height left, at most half the window wide, and scrolls the Score, the chips and the buttons
+  beside it; the keypad sheet splits into two panes. The shell's top bar and bottom bar still take
+  most of a phone's landscape height (about 210 dp is left for the Photo on `pixel-api36`); a
+  navigation rail would be the shell's fix, not this checkpoint's.
+- **Corrections are still lost on process death** (Known gaps). Keeping them in `SavedStateHandle`
+  means a saveable Visit replayed onto the recomputed reading, which is not trivial, so they stay in
+  the ViewModel's state alone.
+
 ## 5. `minSdk`
 
 Phase 0 left it here (`phase-0.md`, `DOD.md`): decided before the door, on the runtime's own floor
@@ -337,7 +384,7 @@ direction is still asymmetric, and lowering later is free.
 
 - **ADR-0008:** the shipped model is committed (D1); the Credits list is final.
 - **`CLAUDE.md`:** the `ml/` stack line (D1), and the Layout gains the inference package.
-- **`CONTEXT.md`:** Miss and unsure (§3).
+- **`CONTEXT.md`:** Miss and unsure (§3), Bed (C).
 - **`PLAN.md`'s phase 1 paragraph:** the tap picks, the keypad sets (D3).
 - **`DOD.md`:** a Phase 1 section with A–E; the `minSdk` and runtime items under *Before the first
   upload* point here.

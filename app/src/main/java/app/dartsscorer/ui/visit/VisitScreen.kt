@@ -5,10 +5,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,18 +23,29 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,48 +83,137 @@ fun VisitScreen(
         }
     }
 
+    val snackbar = remember { SnackbarHostState() }
+    val density = LocalDensity.current
+    var snackbarHeight by remember { mutableStateOf(0.dp) }
+    val removedMessage = state.removed?.let { stringResource(R.string.visit_removed, it.number) }
+    val undo = stringResource(R.string.visit_undo)
+    // No timer to adjust (WCAG 2.2.1): the snackbar stays until Undo, its dismiss action or the
+    // Visit's next change, which clears `removed` and so cancels this effect.
+    LaunchedEffect(state.removed) {
+        if (removedMessage == null) return@LaunchedEffect
+        val result =
+            snackbar.showSnackbar(
+                removedMessage,
+                actionLabel = undo,
+                withDismissAction = true,
+                duration = SnackbarDuration.Indefinite,
+            )
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoRemove() else viewModel.removalSettled()
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = { TopAppBar(title = { Text(stringResource(R.string.tab_visit)) }) },
+        // The snackbar has no timer, so the screen makes room for it rather than hide the buttons under it.
+        snackbarHost = {
+            SnackbarHost(snackbar, Modifier.onSizeChanged { snackbarHeight = with(density) { it.height.toDp() } })
+        },
     ) { insets ->
-        // fillMaxSize's minimum height reaches the scrolled Column, so the Spacer's weight keeps the
-        // buttons at the bottom whenever everything fits, and everything scrolls when it does not.
-        Column(modifier = Modifier.fillMaxSize().padding(insets).verticalScroll(rememberScrollState())) {
-            val noticeSpacing = Modifier.padding(start = Spacing.base, end = Spacing.base, top = Spacing.base)
-            when (state.notice) {
-                VisitNotice.NoCamera ->
-                    NoticeBanner(
-                        stringResource(R.string.visit_no_camera_title),
-                        stringResource(R.string.visit_no_camera_body),
-                        noticeSpacing,
+        val phase = state.phase
+        val notice: @Composable () -> Unit = { Notice(state.notice) }
+        val details: @Composable ColumnScope.() -> Unit = {
+            when (phase) {
+                VisitPhase.Empty -> EmptyVisit(state.showTipAsk, viewModel::answerTipAsk, onOpenSupport)
+                VisitPhase.Reading -> ReadingPhoto()
+                is VisitPhase.NoBoard -> NoBoardBanner(phase)
+                is VisitPhase.Shown ->
+                    ShownDetails(
+                        phase,
+                        state.focus,
+                        onOpenDart = viewModel::openDart,
+                        onRemoveDart = viewModel::removeDart,
+                        onAddDart = viewModel::addDart,
+                        onFocusPlaced = viewModel::focusPlaced,
                     )
-                VisitNotice.Unreadable ->
-                    NoticeBanner(
-                        stringResource(R.string.visit_unreadable_title),
-                        stringResource(R.string.visit_unreadable_body),
-                        noticeSpacing,
-                    )
-                null -> Unit
-            }
-            Column(modifier = Modifier.fillMaxWidth().padding(Spacing.base)) {
-                when (val phase = state.phase) {
-                    VisitPhase.Empty -> EmptyVisit(state.showTipAsk, viewModel::answerTipAsk, onOpenSupport)
-                    VisitPhase.Reading -> ReadingPhoto()
-                    is VisitPhase.NoBoard -> NoBoardFound(phase)
-                    is VisitPhase.Scored -> ScoredVisit(phase)
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            when (state.phase) {
-                VisitPhase.Empty ->
-                    Actions(stringResource(R.string.visit_take_photo), takePhoto, choosePhoto)
-                VisitPhase.Reading -> Unit
-                is VisitPhase.NoBoard ->
-                    Actions(stringResource(R.string.visit_take_another), takePhoto, choosePhoto)
-                is VisitPhase.Scored ->
-                    Actions(stringResource(R.string.visit_next), takePhoto, choosePhoto)
             }
         }
+        val actions: @Composable () -> Unit = {
+            when (phase) {
+                VisitPhase.Empty -> Actions(stringResource(R.string.visit_take_photo), takePhoto, choosePhoto)
+                VisitPhase.Reading -> Unit
+                is VisitPhase.NoBoard ->
+                    Actions(stringResource(R.string.visit_take_another), takePhoto, choosePhoto, viewModel::addDart)
+                is VisitPhase.Shown -> Actions(stringResource(R.string.visit_next), takePhoto, choosePhoto)
+            }
+        }
+        val photo: (@Composable (beside: Boolean) -> Unit)? =
+            when (phase) {
+                is VisitPhase.Scored -> { beside ->
+                    BoardPhoto(phase, viewModel::openDart, viewModel::addDartAt, beside)
+                }
+                is VisitPhase.NoBoard -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
+                is VisitPhase.Entered -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
+                else -> null
+            }
+
+        if (photo != null && isShortWindow()) {
+            Row(modifier = Modifier.fillMaxSize().padding(insets)) {
+                Box(modifier = Modifier.fillMaxHeight().padding(Spacing.base), contentAlignment = Alignment.Center) {
+                    photo(true)
+                }
+                Column(modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) {
+                    notice()
+                    Column(modifier = Modifier.fillMaxWidth().padding(Spacing.base), content = details)
+                    Spacer(Modifier.weight(1f))
+                    actions()
+                    Spacer(Modifier.height(snackbarHeight))
+                }
+            }
+        } else {
+            // fillMaxSize's minimum height reaches the scrolled Column, so the Spacer's weight keeps the
+            // buttons at the bottom whenever everything fits, and everything scrolls when it does not.
+            Column(modifier = Modifier.fillMaxSize().padding(insets).verticalScroll(rememberScrollState())) {
+                notice()
+                Column(modifier = Modifier.fillMaxWidth().padding(Spacing.base)) {
+                    if (phase is VisitPhase.NoBoard) NoBoardBanner(phase)
+                    if (photo != null) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { photo(false) }
+                    }
+                    if (phase !is VisitPhase.NoBoard) {
+                        Column(
+                            modifier = if (photo != null) Modifier.padding(top = Spacing.base) else Modifier,
+                            content = details,
+                        )
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                actions()
+                Spacer(Modifier.height(snackbarHeight))
+            }
+        }
+    }
+
+    state.keypad?.let { keypad ->
+        KeypadSheet(
+            keypad,
+            onRing = viewModel::pickRing,
+            onNumber = viewModel::pickNumber,
+            onOther = viewModel::pickOther,
+            onDone = viewModel::commitKeypad,
+            onRemove = viewModel::removeDart,
+            onDismiss = viewModel::dismissKeypad,
+        )
+    }
+}
+
+@Composable
+private fun Notice(notice: VisitNotice?) {
+    val spacing = Modifier.padding(start = Spacing.base, end = Spacing.base, top = Spacing.base)
+    when (notice) {
+        VisitNotice.NoCamera ->
+            NoticeBanner(
+                stringResource(R.string.visit_no_camera_title),
+                stringResource(R.string.visit_no_camera_body),
+                spacing,
+            )
+        VisitNotice.Unreadable ->
+            NoticeBanner(
+                stringResource(R.string.visit_unreadable_title),
+                stringResource(R.string.visit_unreadable_body),
+                spacing,
+            )
+        null -> Unit
     }
 }
 
@@ -162,6 +267,7 @@ private fun Actions(
     takeLabel: String,
     onTake: () -> Unit,
     onChoose: () -> Unit,
+    onEnterScore: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.base, vertical = Spacing.tight),
@@ -170,6 +276,11 @@ private fun Actions(
         Button(onClick = onTake, modifier = Modifier.fillMaxWidth()) { Text(takeLabel) }
         OutlinedButton(onClick = onChoose, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.visit_choose_photo))
+        }
+        onEnterScore?.let {
+            OutlinedButton(onClick = it, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.visit_enter_score))
+            }
         }
     }
 }

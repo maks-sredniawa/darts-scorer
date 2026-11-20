@@ -4,9 +4,12 @@ import android.app.Activity
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import app.dartsscorer.data.AppPreferences
+import app.dartsscorer.scoring.Board
 import app.dartsscorer.scoring.FoundDart
 import app.dartsscorer.scoring.Homography
 import app.dartsscorer.scoring.Located
+import app.dartsscorer.scoring.Point
+import app.dartsscorer.scoring.Ring
 import app.dartsscorer.scoring.Score
 import app.dartsscorer.tip.TipBilling
 import app.dartsscorer.tip.TipJar
@@ -218,14 +221,165 @@ class VisitViewModelTest {
                 ),
             )
         val phase = phaseOf(File("photos/a.jpg"), reading) as VisitPhase.Scored
-        assertEquals(listOf(100.0, 300.0, 500.0), phase.darts.map { it.y })
+        assertEquals(listOf(100.0, 300.0, 500.0), phase.darts.map { it.at?.y })
         assertEquals(listOf(1, 2, 3), phase.darts.map { it.number })
         assertEquals(listOf(true, false, false), phase.darts.map { it.unsure })
-        assertEquals(75, phase.total)
+        assertEquals(75, phase.darts.total)
         assertEquals(Crop(0.0, 0.0, 800.0, 800.0), phase.crop)
     }
 
-    private fun board() = PhotoReading(800, 800, Located(BOARD))
+    @Test
+    fun `a Dart's ring and number are changed on the keypad and committed with Done`() {
+        photos.next = board(FoundDart(400.0, 194.0, 0.9, Score(Ring.TREBLE, 20)))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.scored()
+        visit.openDart(1)
+        assertEquals(Keypad(1, Ring.TREBLE, 20, near = Point(0.0, 103.0)), visit.stateWhen { it.keypad != null }.keypad)
+        visit.pickRing(Ring.DOUBLE)
+        visit.pickNumber(5)
+        visit.commitKeypad()
+        val state = visit.stateWhen { it.keypad == null }
+        val dart = (state.phase as VisitPhase.Scored).darts.single()
+        assertEquals(Score(Ring.DOUBLE, 5), dart.score)
+        assertTrue(dart.corrected)
+        assertEquals(10, state.phase.darts.total)
+        assertEquals(VisitFocus.Chip(1), state.focus)
+    }
+
+    @Test
+    fun `Done on an unsure Dart confirms it where it was measured`() {
+        photos.next = board(FoundDart(400.0, 194.0, 0.3, Score(Ring.TREBLE, 20)))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.scored()
+        visit.openDart(1)
+        visit.commitKeypad()
+        val dart = visit.scored().darts.single()
+        assertEquals(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20)), dart)
+    }
+
+    @Test
+    fun `a removed Dart comes back with Undo, and focus moves to the next chip`() {
+        photos.next =
+            board(
+                FoundDart(400.0, 100.0, 0.9, Score(Ring.SINGLE, 20)),
+                FoundDart(400.0, 500.0, 0.9, Score(Ring.SINGLE, 3)),
+            )
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        val before = visit.scored()
+        visit.openDart(1)
+        visit.removeDart(1)
+        val removed = visit.stateWhen { it.removed != null }
+        assertEquals(listOf(2), (removed.phase as VisitPhase.Scored).darts.map { it.number })
+        assertEquals(VisitFocus.Chip(2), removed.focus)
+        assertNull(removed.keypad)
+        visit.undoRemove()
+        val back = visit.stateWhen { it.removed == null }
+        assertEquals(before, back.phase)
+        assertEquals(VisitFocus.Chip(1), back.focus)
+    }
+
+    @Test
+    fun `the last Dart removed sends focus to Add a Dart, and a dismissed snackbar forgets it`() {
+        photos.next = board(FoundDart(400.0, 100.0, 0.9, Score(Ring.SINGLE, 20)))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.scored()
+        visit.removeDart(1)
+        assertEquals(VisitFocus.AddDart, visit.stateWhen { it.removed != null }.focus)
+        visit.removalSettled()
+        visit.undoRemove()
+        assertTrue(visit.scored().darts.isEmpty())
+    }
+
+    @Test
+    fun `a tap on the Photo proposes the bed under it, and Done adds the Dart at the bed's centre`() {
+        photos.next = board()
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.scored()
+        visit.addDartAt(Point(400.0, 400.0 + 2 * 164.0))
+        assertEquals(Score(Ring.DOUBLE, 3), visit.stateWhen { it.keypad != null }.keypad?.score)
+        visit.commitKeypad()
+        val dart = visit.scored().darts.single()
+        assertEquals(Score(Ring.DOUBLE, 3), dart.score)
+        assertEquals(Score(Ring.DOUBLE, 3), Board.score(BOARD.project(dart.at!!)))
+        assertTrue(dart.corrected)
+    }
+
+    @Test
+    fun `no fourth Dart can be added`() {
+        photos.next =
+            board(
+                FoundDart(400.0, 100.0, 0.9, Score(Ring.SINGLE, 20)),
+                FoundDart(400.0, 300.0, 0.9, Score(Ring.SINGLE, 20)),
+                FoundDart(400.0, 500.0, 0.9, Score(Ring.SINGLE, 3)),
+            )
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.scored()
+        visit.addDart()
+        visit.addDartAt(Point(400.0, 400.0))
+        assertNull(visit.stateWhen { it.phase is VisitPhase.Scored }.keypad)
+    }
+
+    @Test
+    fun `a Visit entered by hand on no Board found is counted once, at its first Dart`() {
+        photos.next = PhotoReading(800, 600, Located(null))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.stateWhen { it.phase is VisitPhase.NoBoard }
+        visit.addDart()
+        visit.pickRing(Ring.TREBLE)
+        visit.pickNumber(20)
+        visit.commitKeypad()
+        visit.addDart()
+        visit.pickOther(Ring.BULL)
+        visit.commitKeypad()
+        val entered =
+            visit
+                .stateWhen {
+                    it.phase is VisitPhase.Entered && it.keypad == null
+                }.phase as VisitPhase.Entered
+        assertEquals(listOf(1, 2), entered.darts.map { it.number })
+        assertEquals(110, entered.darts.total)
+        assertTrue(entered.darts.all { it.at == null })
+        runBlocking { preferences.incrementVisitsScored("photos/other.jpg") }
+        assertEquals(2, visitsScored())
+    }
+
+    @Test
+    fun `a keypad closed without Done changes nothing and enters nothing`() {
+        photos.next = PhotoReading(800, 600, Located(null))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.stateWhen { it.phase is VisitPhase.NoBoard }
+        visit.addDart()
+        visit.pickNumber(20)
+        visit.dismissKeypad()
+        val state = visit.stateWhen { it.keypad == null }
+        assertTrue(state.phase is VisitPhase.NoBoard)
+        assertEquals(VisitFocus.AddDart, state.focus)
+        assertEquals(0, visitsScored())
+    }
+
+    @Test
+    fun `a new Photo closes the keypad and drops the corrections`() {
+        photos.next = board(FoundDart(400.0, 194.0, 0.9, Score(Ring.TREBLE, 20)))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.scored()
+        visit.removeDart(1)
+        visit.addDart()
+        visit.photoChosen("content://picked/2")
+        val state = visit.stateWhen { it.phase is VisitPhase.Scored && it.removed == null }
+        assertNull(state.keypad)
+        assertEquals(1, (state.phase as VisitPhase.Scored).darts.size)
+    }
+
+    private fun board(vararg darts: FoundDart) = PhotoReading(800, 800, Located(BOARD, darts = darts.toList()))
 
     private class FakePhotos : VisitPhotos {
         val stored = mutableListOf<String>()
