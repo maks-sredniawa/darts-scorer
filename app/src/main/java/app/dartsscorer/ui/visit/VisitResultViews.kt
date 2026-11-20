@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -79,6 +80,9 @@ import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import kotlinx.coroutines.delay
 import java.io.File
+import kotlin.math.PI
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import coil3.size.Size as CoilSize
 
 /**
@@ -142,6 +146,14 @@ private val FOCUS_RING = 3.dp
 internal const val WINDOW_SETTLE_MS = 600L
 
 private const val MARKER_MAX_FONT_SCALE = 1.3f
+
+private val HAIRLINE = 1.dp
+
+private val RING_DARK = 1.5.dp
+
+private val RING_DASH = 4.dp
+
+private val RING_GAP = 3.dp
 
 internal val TOUCH_TARGET = 48.dp
 
@@ -387,7 +399,7 @@ internal fun BoardPhoto(
                 .build(),
         )
     val measurer = rememberTextMeasurer()
-    val numberStyle = MaterialTheme.typography.labelLarge
+    val numberStyle = MaterialTheme.typography.labelMedium
     val colors = MaterialTheme.colorScheme
     val crop = result.crop
     val latest by rememberUpdatedState(result)
@@ -441,10 +453,11 @@ private fun Point.screen(
 ): Offset = Offset(((x - crop.left) * scale).toFloat(), ((y - crop.top) * scale).toFloat())
 
 /**
- * A light disc inside a dark keyline inside a light one, so the number reads on any part of a Photo.
- * The roles are a light and a dark pair in either theme. Unsure: the dark keyline dashed and a *?*
- * badge. Corrected: the same rings, hollow, with the number in the badge's place, since the player
- * set the Score: drawn at its bed's centre, or for a Miss where it was or was tapped.
+ * A thin ring with its centre left clear, so the dart tip shows through, and the number in a badge
+ * beside it. Light, dark and light bands, so it reads on a dark Board and a light wall. Unsure: the
+ * ring dashed and the badge *n?*. Corrected: no ring, only the badge on its place, since the player
+ * set the Score: drawn at its bed's centre, or for a Miss where it was or was tapped, so it hides no
+ * tip.
  */
 private fun DrawScope.drawMarker(
     at: Offset,
@@ -453,47 +466,109 @@ private fun DrawScope.drawMarker(
     style: TextStyle,
     colors: ColorScheme,
 ) {
-    val keyline = 2.dp.toPx()
     val markerDensity = Density(density, fontScale.coerceAtMost(MARKER_MAX_FONT_SCALE))
-    val number = measurer.measure(dart.number.toString(), style.copy(color = colors.onSurface), density = markerDensity)
-    val radius = maxOf(number.size.width, number.size.height) / 2f + Spacing.hair.toPx()
-    val badgeCentre = at + Offset(radius + keyline, -(radius + keyline))
+    val (fill, ink) =
+        when {
+            dart.corrected -> colors.inverseSurface to colors.inverseOnSurface
+            dart.unsure -> colors.tertiaryContainer to colors.onTertiaryContainer
+            else -> colors.surfaceContainerLowest to colors.onSurface
+        }
+    val label = if (dart.unsure && !dart.corrected) "${dart.number}?" else dart.number.toString()
+    val text = measurer.measure(label, style.copy(color = ink), density = markerDensity)
     if (dart.corrected) {
-        val band = Stroke(width = keyline)
-        drawCircle(colors.surfaceContainerLowest, radius + 1.5f * keyline, at, style = band)
-        drawCircle(colors.inverseSurface, radius + keyline / 2, at, style = band)
-        drawCircle(colors.surfaceContainerLowest, radius - keyline / 2, at, style = band)
-        drawBadge(number, badgeCentre, colors.surfaceContainerLowest, keyline, colors)
+        drawBadge(text, inside(at, text), fill, colors.surfaceContainerLowest)
         return
     }
-    drawCircle(colors.surfaceContainerLowest, radius + 2 * keyline, at)
-    drawCircle(
-        colors.inverseSurface,
-        radius + keyline / 2,
-        at,
-        style =
-            Stroke(
-                width = keyline,
-                pathEffect =
-                    if (dart.unsure) PathEffect.dashPathEffect(floatArrayOf(2 * keyline, 1.5f * keyline)) else null,
-            ),
+    drawRing(at, dart.unsure, colors)
+    drawBadge(text, besideRing(at, text), fill, colors.inverseSurface)
+}
+
+private fun DrawScope.drawRing(
+    at: Offset,
+    dashed: Boolean,
+    colors: ColorScheme,
+) {
+    val light = HAIRLINE.toPx()
+    val dark = RING_DARK.toPx()
+    val middle = Spacing.tight.toPx() + light + dark / 2
+    val dashes = if (dashed) wholeDashes(middle) else null
+    drawCircle(colors.surfaceContainerLowest, middle, at, style = Stroke(width = 2 * light + dark, pathEffect = dashes))
+    drawCircle(colors.inverseSurface, middle, at, style = Stroke(width = dark, pathEffect = dashes))
+}
+
+/** Stretched to a whole number of dashes, so no short one is left where the circle closes. */
+private fun DrawScope.wholeDashes(radius: Float): PathEffect {
+    val period = (RING_DASH + RING_GAP).toPx()
+    val circumference = 2 * PI.toFloat() * radius
+    val stretch = circumference / ((circumference / period).roundToInt() * period)
+    return PathEffect.dashPathEffect(floatArrayOf(RING_DASH.toPx() * stretch, RING_GAP.toPx() * stretch))
+}
+
+private fun DrawScope.ringOuter(): Float = Spacing.tight.toPx() + 2 * HAIRLINE.toPx() + RING_DARK.toPx()
+
+private fun DrawScope.badgeSize(text: TextLayoutResult): Size {
+    val height = text.size.height.toFloat()
+    return Size(maxOf(height, text.size.width + 2 * Spacing.hair.toPx()), height)
+}
+
+/**
+ * The badge's rounded end touches the ring at 45° up and to the right, flipped to whichever side
+ * stays inside the crop.
+ */
+private fun DrawScope.besideRing(
+    at: Offset,
+    text: TextLayoutResult,
+): Offset {
+    val keyline = HAIRLINE.toPx()
+    val badge = badgeSize(text)
+    val halfWidth = badge.width / 2 + keyline
+    val halfHeight = badge.height / 2 + keyline
+    val reach = (ringOuter() + halfHeight) / sqrt(2f)
+    val toCentre = reach + halfWidth - halfHeight
+    val right = at.x + toCentre + halfWidth <= size.width
+    val up = at.y - reach - halfHeight >= 0
+    val beside =
+        Offset(
+            if (right) at.x + toCentre else at.x - toCentre,
+            if (up) at.y - reach else at.y + reach,
+        )
+    return inside(beside, text)
+}
+
+private fun DrawScope.inside(
+    centre: Offset,
+    text: TextLayoutResult,
+): Offset {
+    val keyline = HAIRLINE.toPx()
+    val badge = badgeSize(text)
+    val halfWidth = badge.width / 2 + keyline
+    val halfHeight = badge.height / 2 + keyline
+    return Offset(
+        centre.x.coerceAtMost(size.width - halfWidth).coerceAtLeast(halfWidth),
+        centre.y.coerceAtMost(size.height - halfHeight).coerceAtLeast(halfHeight),
     )
-    drawText(number, topLeft = at - Offset(number.size.width / 2f, number.size.height / 2f))
-    if (dart.unsure) {
-        val mark = measurer.measure("?", style.copy(color = colors.onTertiaryContainer), density = markerDensity)
-        drawBadge(mark, badgeCentre, colors.tertiaryContainer, keyline, colors)
-    }
 }
 
 private fun DrawScope.drawBadge(
     text: TextLayoutResult,
     centre: Offset,
     fill: Color,
-    keyline: Float,
-    colors: ColorScheme,
+    keyline: Color,
 ) {
-    val badge = maxOf(text.size.width, text.size.height) / 2f + keyline / 2
-    drawCircle(colors.inverseSurface, badge + keyline / 2, centre)
-    drawCircle(fill, badge, centre)
+    val line = HAIRLINE.toPx()
+    val badge = badgeSize(text)
+    val outer = Size(badge.width + 2 * line, badge.height + 2 * line)
+    drawRoundRect(
+        keyline,
+        topLeft = centre - Offset(outer.width / 2, outer.height / 2),
+        size = outer,
+        cornerRadius = CornerRadius(outer.height / 2),
+    )
+    drawRoundRect(
+        fill,
+        topLeft = centre - Offset(badge.width / 2, badge.height / 2),
+        size = badge,
+        cornerRadius = CornerRadius(badge.height / 2),
+    )
     drawText(text, topLeft = centre - Offset(text.size.width / 2f, text.size.height / 2f))
 }
