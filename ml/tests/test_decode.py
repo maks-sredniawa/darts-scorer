@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from darts_ml.board import CALIBRATION_POINTS
-from darts_ml.decode import MIN_INLIERS, THRESHOLD, EntryRule, decode, kept_entries, ransac
+from darts_ml.decode import MIN_INLIERS, THRESHOLD, EntryRule, decode, kept_entries, ransac, sigmoid
 from darts_ml.homography import project
 from darts_ml.model import BOARD_STRIDE, ENTRY_POINT, ENTRY_STRIDE, Heads
 from darts_ml.training_data import targets
@@ -24,6 +24,10 @@ def logits_of(points, size=SIZE, entry_stride=ENTRY_STRIDE) -> Heads:
 
 
 class DecodeTest(unittest.TestCase):
+    def test_a_very_negative_logit_reads_zero_without_a_warning(self):
+        with np.errstate(all="raise"):
+            self.assertEqual(0.0, sigmoid(np.array([-1000.0]))[0])
+
     def test_calibration_points_come_back_within_a_twentieth_of_a_pixel(self):
         known = {0: (101.37, 240.81), 17: (300.02, 77.5), 79: (455.9, 401.26)}
         decoded = decode(logits_of([(c, x, y, 1.0) for c, (x, y) in known.items()]))
