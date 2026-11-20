@@ -443,8 +443,8 @@ private fun Point.screen(
 /**
  * A light disc inside a dark keyline inside a light one, so the number reads on any part of a Photo.
  * The roles are a light and a dark pair in either theme. Unsure: the dark keyline dashed and a *?*
- * badge. Corrected: the same rings, hollow, with the number in the badge's place, since the Dart was
- * placed by hand at its bed's centre rather than measured.
+ * badge. Corrected: the same rings, hollow, with the number in the badge's place, since the player
+ * set the Score: drawn at its bed's centre, or for a Miss where it was or was tapped.
  */
 private fun DrawScope.drawMarker(
     at: Offset,
