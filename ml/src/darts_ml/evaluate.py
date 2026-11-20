@@ -31,7 +31,7 @@ class Bar:
     visits_counted: int
 
 
-# The bar for opening phase 1: docs/phase-M1.md §7, decided 2026-11-13 (D1).
+# The bar for phase 1's model: docs/phase-M1.md §7, decided 2026-11-13 (D1).
 BAR = Bar(
     board_found=Fraction(98, 100),
     wire_median_mm=0.5,
@@ -318,5 +318,5 @@ def report(result: Evaluation, bar: Bar = BAR) -> list[str]:
     ]
     if result.ignored_predictions:
         lines.append(f"  {result.ignored_predictions} predicted Photos are not in the Held-out set and were ignored")
-    lines += ["", f"The bar for opening phase 1: {verdict(board and visits)}"]
+    lines += ["", f"The bar for phase 1's model: {verdict(board and visits)}"]
     return lines
