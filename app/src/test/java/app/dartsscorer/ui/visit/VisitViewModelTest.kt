@@ -336,7 +336,7 @@ class VisitViewModelTest {
         visit.pickNumber(20)
         visit.commitKeypad()
         visit.addDart()
-        visit.pickOther(Ring.BULL)
+        visit.pickBullOrMiss(Ring.BULL)
         visit.commitKeypad()
         val entered =
             visit
@@ -361,7 +361,7 @@ class VisitViewModelTest {
         visit.dismissKeypad()
         val state = visit.stateWhen { it.keypad == null }
         assertTrue(state.phase is VisitPhase.NoBoard)
-        assertEquals(VisitFocus.AddDart, state.focus)
+        assertEquals(VisitFocus.EnterScore, state.focus)
         assertEquals(0, visitsScored())
     }
 

@@ -89,9 +89,6 @@ import coil3.size.Size as CoilSize
 @Composable
 internal fun Modifier.focusOnArrival(arrival: Any): Modifier {
     val focus = remember { FocusRequester() }
-    val interactions = remember { MutableInteractionSource() }
-    val focused by interactions.collectIsFocusedAsState()
-    val keyboard = LocalInputModeManager.current.inputMode == InputMode.Keyboard
     var placed by remember(arrival) { mutableStateOf(false) }
     val windowFocused = LocalWindowInfo.current.isWindowFocused
     LaunchedEffect(arrival, windowFocused) {
@@ -100,20 +97,45 @@ internal fun Modifier.focusOnArrival(arrival: Any): Modifier {
             placed = focus.requestFocus()
         }
     }
+    return focusRequester(focus).focusableWithRing()
+}
+
+@Composable
+internal fun Modifier.focusableWithRing(): Modifier {
+    val interactions = remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
+    val keyboard = LocalInputModeManager.current.inputMode == InputMode.Keyboard
     val ring =
         if (focused && keyboard) {
             Modifier.border(FOCUS_RING, MaterialTheme.colorScheme.onSurface, MaterialTheme.shapes.medium)
         } else {
             Modifier
         }
-    return focusRequester(focus).focusable(interactionSource = interactions).then(ring)
+    return focusable(interactionSource = interactions).then(ring)
+}
+
+@Composable
+internal fun Modifier.takesFocusWhen(
+    requested: Boolean,
+    onPlaced: () -> Unit,
+): Modifier {
+    val focus = remember { FocusRequester() }
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(requested, windowFocused) {
+        if (requested && windowFocused) {
+            delay(WINDOW_SETTLE_MS)
+            focus.requestFocus()
+            onPlaced()
+        }
+    }
+    return focusRequester(focus).focusableInTouchMode()
 }
 
 /**
  * A button is focusable only outside touch mode, so focus could not be moved back to it after the
  * sheet closes, and TalkBack follows that focus (phase-1.md §3, *Focus*).
  */
-private fun Modifier.focusableInTouchMode(): Modifier = focusProperties { canFocus = true }
+internal fun Modifier.focusableInTouchMode(): Modifier = focusProperties { canFocus = true }
 
 private val FOCUS_RING = 3.dp
 
@@ -219,6 +241,7 @@ internal fun ShownDetails(
                 when (focus) {
                     is VisitFocus.Chip -> chips[focus.number]
                     VisitFocus.AddDart -> addDart.takeIf { Correction.canAdd(shown.darts) }
+                    VisitFocus.EnterScore -> null
                 }
             target?.requestFocus()
             onFocusPlaced()
@@ -233,7 +256,7 @@ internal fun ShownDetails(
         }
     Column(
         modifier =
-            if (shown is VisitPhase.Scored) heading.focusOnArrival(shown.photo) else heading.focusable(),
+            if (shown is VisitPhase.Scored) heading.focusOnArrival(shown.photo) else heading.focusableWithRing(),
     ) {
         Text(
             text = stringResource(R.string.visit_score_label),
@@ -306,7 +329,8 @@ private fun DartChip(
         color = if (dart.unsure) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.secondaryContainer,
         border = if (dart.unsure) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
         modifier =
-            modifier.heightIn(min = TOUCH_TARGET).semantics(mergeDescendants = true) {
+            modifier.semantics(mergeDescendants = true) {
+                role = Role.Button
                 contentDescription = description
                 customActions = listOf(CustomAccessibilityAction(removeLabel) { onRemove().let { true } })
             },
