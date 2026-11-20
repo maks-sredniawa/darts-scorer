@@ -1,18 +1,25 @@
 package app.dartsscorer.scoring
 
 import android.content.Context
-import androidx.core.content.edit
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-/** R2's thread counts (phase-1.md Readings), picked in Settings' debug section. */
 val READ_THREAD_CHOICES = listOf(1, 2, 4, 6)
 
-fun readThreads(context: Context): Int = prefs(context).getInt(KEY, LiteRtModel.DEFAULT_THREADS)
+fun readThreads(context: Context): Flow<Int> =
+    context.applicationContext.debugStore.data
+        .map { it[KEY] ?: LiteRtModel.DEFAULT_THREADS }
 
-fun setReadThreads(
+suspend fun setReadThreads(
     context: Context,
     threads: Int,
-) = prefs(context).edit { putInt(KEY, threads) }
+) {
+    context.applicationContext.debugStore.edit { it[KEY] = threads }
+}
 
-private fun prefs(context: Context) = context.getSharedPreferences("debug", Context.MODE_PRIVATE)
+private val Context.debugStore by preferencesDataStore(name = "debug")
 
-private const val KEY = "read_threads"
+private val KEY = intPreferencesKey("read_threads")
