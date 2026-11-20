@@ -9,8 +9,7 @@ import app.dartsscorer.scoring.Score
 
 /**
  * The keypad sheet's selection (phase-1.md §3). [ring] is the ring row's key, Single, Double or
- * Treble; [number] the segment picked; [other] a Bull or Miss picked instead of a number, which
- * leaves the ring row unselected. [dart] is the number of the Dart being changed, null for a new
+ * Treble; [number] the segment picked. [dart] is the number of the Dart being changed, null for a new
  * one. [near] is where on the Board, in millimetres, the Dart was or the tap landed: it picks which
  * of a segment's two single beds a single goes to.
  */
@@ -18,27 +17,27 @@ data class Keypad(
     val dart: Int?,
     val ring: Ring = Ring.SINGLE,
     val number: Int? = null,
-    val other: Ring? = null,
+    val bullOrMiss: Ring? = null,
     val near: Point? = null,
 ) {
     /** Null until a number, a Bull or Miss is picked. */
-    val score: Score? get() = other?.let(::Score) ?: number?.let { Score(ring, it) }
+    val score: Score? get() = bullOrMiss?.let(::Score) ?: number?.let { Score(ring, it) }
 
     fun withRing(ring: Ring): Keypad {
         require(ring in RING_ROW)
-        return if (other != null) copy(ring = ring, other = null, number = null) else copy(ring = ring)
+        return if (bullOrMiss != null) copy(ring = ring, bullOrMiss = null, number = null) else copy(ring = ring)
     }
 
-    fun withNumber(number: Int): Keypad = copy(number = number, other = null)
+    fun withNumber(number: Int): Keypad = copy(number = number, bullOrMiss = null)
 
-    fun withOther(other: Ring): Keypad {
-        require(other in OTHERS)
-        return copy(ring = Ring.SINGLE, number = null, other = other)
+    fun withBullOrMiss(bullOrMiss: Ring): Keypad {
+        require(bullOrMiss in BULLS_AND_MISS)
+        return copy(ring = Ring.SINGLE, number = null, bullOrMiss = bullOrMiss)
     }
 
     companion object {
         val RING_ROW = listOf(Ring.SINGLE, Ring.DOUBLE, Ring.TREBLE)
-        val OTHERS = listOf(Ring.OUTER_BULL, Ring.BULL, Ring.MISS)
+        val BULLS_AND_MISS = listOf(Ring.OUTER_BULL, Ring.BULL, Ring.MISS)
 
         fun showing(
             dart: Int?,
@@ -48,7 +47,7 @@ data class Keypad(
             if (score.ring in RING_ROW) {
                 Keypad(dart, ring = score.ring, number = score.number, near = near)
             } else {
-                Keypad(dart, other = score.ring, near = near)
+                Keypad(dart, bullOrMiss = score.ring, near = near)
             }
     }
 }
@@ -57,7 +56,6 @@ data class Keypad(
 object Correction {
     const val MOST_DARTS = Decoding.MOST_ENTRIES
 
-    /** The keypad for an existing Dart, its Score preselected. */
     fun open(
         dart: ShownDart,
         toBoard: Homography?,
@@ -111,7 +109,6 @@ object Correction {
     ): List<ShownDart> =
         if (!canAdd(darts) || darts.any { it.number == dart.number }) darts else (darts + dart).sortedBy { it.number }
 
-    /** Where focus goes after [removed] is gone: the next chip, else *Add a Dart*. */
     fun focusAfterRemoving(
         darts: List<ShownDart>,
         removed: Int,
@@ -120,11 +117,12 @@ object Correction {
     private fun freeNumber(darts: List<ShownDart>): Int = (1..MOST_DARTS).first { n -> darts.none { it.number == n } }
 }
 
-/** Where focus is moved once the keypad sheet has closed (phase-1.md §3, *Focus*). */
 sealed interface VisitFocus {
     data class Chip(
         val number: Int,
     ) : VisitFocus
 
     data object AddDart : VisitFocus
+
+    data object EnterScore : VisitFocus
 }

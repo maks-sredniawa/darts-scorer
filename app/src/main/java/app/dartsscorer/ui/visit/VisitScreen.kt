@@ -133,7 +133,16 @@ fun VisitScreen(
                 VisitPhase.Empty -> Actions(stringResource(R.string.visit_take_photo), takePhoto, choosePhoto)
                 VisitPhase.Reading -> Unit
                 is VisitPhase.NoBoard ->
-                    Actions(stringResource(R.string.visit_take_another), takePhoto, choosePhoto, viewModel::addDart)
+                    Actions(
+                        stringResource(R.string.visit_take_another),
+                        takePhoto,
+                        choosePhoto,
+                        EnterScoreAction(
+                            viewModel::addDart,
+                            state.focus == VisitFocus.EnterScore,
+                            viewModel::focusPlaced,
+                        ),
+                    )
                 is VisitPhase.Shown -> Actions(stringResource(R.string.visit_next), takePhoto, choosePhoto)
             }
         }
@@ -189,7 +198,7 @@ fun VisitScreen(
             keypad,
             onRing = viewModel::pickRing,
             onNumber = viewModel::pickNumber,
-            onOther = viewModel::pickOther,
+            onBullOrMiss = viewModel::pickBullOrMiss,
             onDone = viewModel::commitKeypad,
             onRemove = viewModel::removeDart,
             onDismiss = viewModel::dismissKeypad,
@@ -267,7 +276,7 @@ private fun Actions(
     takeLabel: String,
     onTake: () -> Unit,
     onChoose: () -> Unit,
-    onEnterScore: (() -> Unit)? = null,
+    enterScore: EnterScoreAction? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.base, vertical = Spacing.tight),
@@ -277,10 +286,19 @@ private fun Actions(
         OutlinedButton(onClick = onChoose, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.visit_choose_photo))
         }
-        onEnterScore?.let {
-            OutlinedButton(onClick = it, modifier = Modifier.fillMaxWidth()) {
+        enterScore?.let {
+            OutlinedButton(
+                onClick = it.onClick,
+                modifier = Modifier.fillMaxWidth().takesFocusWhen(it.focusRequested, it.onFocusPlaced),
+            ) {
                 Text(stringResource(R.string.visit_enter_score))
             }
         }
     }
 }
+
+private class EnterScoreAction(
+    val onClick: () -> Unit,
+    val focusRequested: Boolean,
+    val onFocusPlaced: () -> Unit,
+)

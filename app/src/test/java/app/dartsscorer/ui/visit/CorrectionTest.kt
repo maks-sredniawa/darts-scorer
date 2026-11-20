@@ -46,12 +46,12 @@ class CorrectionTest {
         assertEquals(Score(Ring.TREBLE, 20), treble.score)
         assertEquals(Score(Ring.DOUBLE, 20), treble.withRing(Ring.DOUBLE).score)
         assertEquals(Score(Ring.TREBLE, 5), treble.withNumber(5).score)
-        val bull = treble.withOther(Ring.BULL)
+        val bull = treble.withBullOrMiss(Ring.BULL)
         assertEquals(Score.BULL, bull.score)
         assertNull("a ring after a Bull waits for a number", bull.withRing(Ring.TREBLE).score)
         assertEquals(Score(Ring.TREBLE, 19), bull.withRing(Ring.TREBLE).withNumber(19).score)
         assertEquals(Score(Ring.SINGLE, 7), bull.withNumber(7).score)
-        assertEquals(Keypad(2, other = Ring.MISS), Keypad.showing(2, Score.MISS, null))
+        assertEquals(Keypad(2, bullOrMiss = Ring.MISS), Keypad.showing(2, Score.MISS, null))
         assertNull(Keypad(dart = null).score)
     }
 
@@ -69,7 +69,7 @@ class CorrectionTest {
     @Test
     fun `a Dart set to Miss loses its marker`() {
         val darts = listOf(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20)))
-        val miss = Correction.commit(darts, Correction.open(darts[0], BOARD).withOther(Ring.MISS), BOARD).single()
+        val miss = Correction.commit(darts, Correction.open(darts[0], BOARD).withBullOrMiss(Ring.MISS), BOARD).single()
         assertNull(miss.at)
         assertEquals(0, listOf(miss).total)
     }

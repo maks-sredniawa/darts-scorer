@@ -38,7 +38,6 @@ data class VisitUiState(
     val notice: VisitNotice? = null,
     /** False wherever Play will not sell a tip: nothing is asked for that cannot be bought. */
     val showTipAsk: Boolean = false,
-    /** The keypad sheet, open while set. */
     val keypad: Keypad? = null,
     /** The Dart last removed, offered back with *Undo* until the next change or the snackbar's dismissal. */
     val removed: ShownDart? = null,
@@ -178,12 +177,18 @@ class VisitViewModel(
 
     fun pickNumber(number: Int) = visit.update { state -> state.copy(keypad = state.keypad?.withNumber(number)) }
 
-    fun pickOther(other: Ring) = visit.update { state -> state.copy(keypad = state.keypad?.withOther(other)) }
+    fun pickBullOrMiss(ring: Ring) = visit.update { state -> state.copy(keypad = state.keypad?.withBullOrMiss(ring)) }
 
     fun dismissKeypad() {
         visit.update { state ->
             val keypad = state.keypad ?: return@update state
-            state.copy(keypad = null, focus = keypad.dart?.let { VisitFocus.Chip(it) } ?: VisitFocus.AddDart)
+            val focus =
+                when {
+                    keypad.dart != null -> VisitFocus.Chip(keypad.dart)
+                    state.phase is VisitPhase.NoBoard -> VisitFocus.EnterScore
+                    else -> VisitFocus.AddDart
+                }
+            state.copy(keypad = null, focus = focus)
         }
     }
 
@@ -215,7 +220,6 @@ class VisitViewModel(
         }
     }
 
-    /** *Remove Dart*, from the sheet or a chip's custom action; offered back with *Undo*. */
     fun removeDart(number: Int) {
         visit.update { state ->
             val shown = state.phase as? VisitPhase.Shown ?: return@update state
