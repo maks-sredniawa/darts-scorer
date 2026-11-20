@@ -110,6 +110,7 @@ uv run --directory ml darts-ml train --name board-512 --board-only   # C: Calibr
 uv run --directory ml darts-ml train --name darts-512 --init <run>   # D: Entry points added, from C's weights
 uv run --directory ml darts-ml train --name darts-640-s2-ring --size 640 --init <run>   # after D: Entry head at stride 2
 uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, R3: a run's figures on DeepDarts
+uv run --directory ml darts-ml deepdarts score --run <run> --as-stored   # phase 1 §1: on val, as MediaFiles stores a Photo
 uv run --directory ml darts-ml deepdarts tune --run <run>            # each rule for keeping Entry points, on val only
 uv run --directory ml darts-ml deepdarts grouped                     # pairs under 10 mm the targets decode as two
 uv run --directory ml darts-ml predict --run <run>                   # the predictions file, on the Held-out set
@@ -198,7 +199,9 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   with `--run`, `heads-*.json`: three Photos' heads from that run's LiteRT model, every logit under
   −3 lowered so the files stay small, with what `decode` and `_board` give for them (a strip with
   Calibration points and no Board, two Darts in one bed, three in three beds). Run it again after
-  changing `board.py`, `decode.py`, `homography.py` or `augment.py`, and commit what changed.
+  changing `board.py`, `decode.py`, `homography.py` or `augment.py`, and commit what changed:
+  `test_phone.py`'s `CommittedFixturesTest` regenerates the files and re-decodes the stored heads,
+  and fails while the committed ones are stale.
 - **`runtime-bench`** downloads each runtime's Android AAR, pinned by version and SHA-256 in
   `runtime_bench.py` (LiteRT 2.3.2 from Google Maven, `litert` and `litert-api`; ONNX Runtime 1.32.0
   from Maven Central), into `$DARTS_DATA/runtimes/`, and prints the native libraries each would add

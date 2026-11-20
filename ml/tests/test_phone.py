@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+from PIL import Image
 
 from darts_ml import DartsMlError
 from darts_ml.board import CALIBRATION_POINTS, SEGMENTS, score
@@ -12,9 +13,10 @@ from darts_ml.evaluate import PredictedEntry
 from darts_ml.homography import project
 from darts_ml.locate import Located
 from darts_ml.model import ENTRY_POINT, Heads
-from darts_ml.phone import (DEVICE_DIR, EXPECTED, REPORT, device_name, expected_record, heads_case, picked, rng_choices,
+from darts_ml.phone import (DEVICE_DIR, EXPECTED, FIXTURES, PHOTOS_LONG_EDGE, REPORT, as_stored, as_stored_samples,
+                            device_name, expected_record, heads_case, heads_from_record, picked, rng_choices,
                             run_parity, same_model, scoring_table, warp_cases, write_fixtures)
-from darts_ml.training_data import targets
+from darts_ml.training_data import Sample, targets
 from synthetic import camera
 
 SIZE = 512
@@ -78,6 +80,70 @@ class FixturesTest(unittest.TestCase):
             self.assertEqual([p.name for p in written], ["scores.tsv", "rng.json", "warp.json", "heads-x.json"])
             header = written[0].read_text(encoding="utf-8").splitlines()[0]
             self.assertEqual(header, "x_mm\ty_mm\tscore")
+
+
+class CommittedFixturesTest(unittest.TestCase):
+    """The Kotlin tests read these files; a change to board.py, decode.py, homography.py or augment.py that is not
+    carried into them by `darts-ml phone-fixtures` fails here instead of leaving the port held to stale answers."""
+
+    def test_table_draws_and_warp_are_what_phone_fixtures_writes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            for written in write_fixtures(Path(folder)):
+                with self.subTest(written.name):
+                    self.assertEqual(written.read_bytes(), (FIXTURES / written.name).read_bytes())
+
+    def test_each_heads_fixture_still_decodes_and_locates_as_recorded(self):
+        committed = sorted(FIXTURES.glob("heads-*.json"))
+        self.assertEqual(len(committed), 3)
+        for path in committed:
+            with self.subTest(path.name):
+                stored = json.loads(path.read_text(encoding="utf-8"))
+                matrix, heads = heads_from_record(stored)
+                again = json.loads(json.dumps(heads_case(stored["name"], matrix, heads)))
+                self.assertEqual(again, stored)
+
+
+class AsStoredTest(unittest.TestCase):
+    def test_a_large_photo_is_capped_on_its_long_edge_without_metadata(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source, target = Path(folder, "in.jpg"), Path(folder, "out.jpg")
+            exif = Image.Exif()
+            exif[0x010F] = "camera"
+            Image.new("RGB", (5000, 2500), (120, 80, 40)).save(source, exif=exif)
+            sx, sy = as_stored(source, target)
+            with Image.open(target) as written:
+                self.assertEqual(written.size, (PHOTOS_LONG_EDGE, PHOTOS_LONG_EDGE // 2))
+                self.assertEqual(len(written.getexif()), 0)
+            self.assertAlmostEqual(sx, PHOTOS_LONG_EDGE / 5000)
+            self.assertAlmostEqual(sy, (PHOTOS_LONG_EDGE // 2) / 2500)
+
+    def test_a_small_photo_keeps_its_size(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source, target = Path(folder, "in.jpg"), Path(folder, "out.jpg")
+            Image.new("RGB", (800, 800), (10, 200, 30)).save(source)
+            self.assertEqual(as_stored(source, target), (1.0, 1.0))
+            with Image.open(target) as written:
+                self.assertEqual(written.size, (800, 800))
+
+    def test_a_rotated_photo_is_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder, "in.jpg")
+            exif = Image.Exif()
+            exif[0x0112] = 6
+            Image.new("RGB", (40, 20)).save(source, exif=exif)
+            with self.assertRaises(DartsMlError):
+                as_stored(source, Path(folder, "out.jpg"))
+
+    def test_labels_scale_with_the_photo(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder, "in.jpg")
+            Image.new("RGB", (4096, 3072)).save(source)
+            sample = Sample(source, ((0, 100.0, 200.0, 1.0),), ((400.0, 40.0),), "d1_x")
+            [stored] = as_stored_samples([sample], Path(folder, "stored"))
+            self.assertEqual(stored.calibration, ((0, 50.0, 100.0, 1.0),))
+            self.assertEqual(stored.entries, ((200.0, 20.0),))
+            self.assertEqual(stored.capture_session, "d1_x")
+            self.assertTrue(stored.photo.exists())
 
 
 class ParityTest(unittest.TestCase):

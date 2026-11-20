@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sys
+import tempfile
 from pathlib import Path
 
 from . import DartsMlError, labelme
@@ -169,6 +170,8 @@ def _parser() -> argparse.ArgumentParser:
     scorer.add_argument("--split", choices=("val", "test"), default="val")
     scorer.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
     scorer.add_argument("--workers", type=_non_negative, default=4)
+    scorer.add_argument("--as-stored", action="store_true", help="score copies written as MediaFiles writes the "
+                        "photos kind (2048 px long edge, JPEG q85) instead of the Photos as they are (phase-1.md §1)")
     scorer.set_defaults(handler=_deepdarts_score)
     tuner = actions.add_parser("tune", help="a run's figures on DeepDarts' val split under each rule for keeping Entry points")
     tuner.add_argument("--run", required=True)
@@ -534,9 +537,15 @@ def _deepdarts_score(args) -> int:
     speed = Speed(config["bf16"] and device == "cuda", config["channels_last"])
     model = load_weights(folder / f"{args.weights}.pt", device).to(memory_format=speed.memory)
     samples = deepdarts_reading_samples(data, args.split)
-    print(f"{len(samples)} DeepDarts {args.split} Photos ...", file=sys.stderr, flush=True)
-    reading = figures(samples, locate(Inference(model, device, config["size"], config["batch"], args.workers, speed),
-                                      [s.photo for s in samples]))
+    with tempfile.TemporaryDirectory(prefix="as-stored-", dir=data.root) as scratch:
+        if args.as_stored:
+            from .phone import as_stored_samples
+
+            samples = as_stored_samples(samples, Path(scratch))
+        print(f"{len(samples)} DeepDarts {args.split} Photos{' as stored' if args.as_stored else ''} ...",
+              file=sys.stderr, flush=True)
+        reading = figures(samples, locate(Inference(model, device, config["size"], config["batch"], args.workers,
+                                                    speed), [s.photo for s in samples]))
     print("\n".join(reading.lines()))
     return 0
 
