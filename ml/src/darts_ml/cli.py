@@ -16,9 +16,10 @@ from .ingest import ingest, jpegtran_version
 from .kernel_search import explain_failed_search, seconds_asleep
 from .marked import PACKAGE
 from .overlay import overlay
-from .paths import DataDir, Round, repo_roots, run_config
+from .paths import DataDir, Round, render_set, repo_roots, run_config
 from .prefill import prefill
 from .records import RECORDS, build
+from .renders import LOOKS, MAX_RESIDUAL_PX
 from .repeatability import repeatability
 from .review import review
 
@@ -114,6 +115,12 @@ def _parser() -> argparse.ArgumentParser:
                               "ordinary one; 0 turns the ring off; default 4")
     trainer.add_argument("--ring-mm", type=_non_negative_float, nargs=2, metavar=("INNER", "OUTER"), default=None,
                          help="the ring's edges in Board millimetres from the Entry point; default 4 20")
+    trainer.add_argument("--renders", type=_render_sets, default=(), metavar="SET[,SET]",
+                         help="also train on these render sets under $DARTS_DATA/renders/, a tenth of each set's frames "
+                              "held out by --seed and read each epoch beside DeepDarts val, never chosen on")
+    trainer.add_argument("--render-weight", type=_positive_float, default=None,
+                         help="how often a render is drawn against a DeepDarts Photo, overall; 0.5, the default, makes "
+                              "renders a third of each batch")
     predictor = step("predict", _predict, "the predictions file `evaluate` reads, from a run's weights, on the Held-out set",
                      capture_session=False)
     predictor.add_argument("--run", required=True, help="the run folder's name under $DARTS_DATA/runs/")
@@ -162,6 +169,29 @@ def _parser() -> argparse.ArgumentParser:
     puller.add_argument("--package", default=PACKAGE, help=f"the debug build's applicationId; default {PACKAGE}")
     puller.add_argument("--delete-after", action="store_true",
                         help="then delete on the phone each file that is here unchanged")
+    marked = step("evaluate-marked", _evaluate_marked, "a run's reading of the owner's marked Visits under "
+                  "$DARTS_DATA/phone-captures/, the real test set: read once a run is chosen, never to choose one",
+                  capture_session=False)
+    marked.add_argument("--run", required=True, help="the run folder's name under $DARTS_DATA/runs/")
+    marked.add_argument("--weights", choices=WEIGHTS, default="best")
+    marked.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
+    marked.add_argument("--workers", type=_non_negative, default=4)
+    renders = steps.add_parser("renders", help="synthetic renders from darts-render, as training records",
+                               description="synthetic renders from darts-render (ml/README.md, *Synthetic renders*)")
+    render_actions = renders.add_subparsers(dest="action", required=True)
+    importer = render_actions.add_parser("import", help="a renderer output folder → renders/<set>/, its images and "
+                                         "records.jsonl, with a manifest naming the renderer's commit and options")
+    importer.add_argument("source", type=Path, help="the folder the renderer wrote, holding annotations/ and rgb/")
+    importer.add_argument("--set", dest="set_", type=_render_set, required=True, help="the set's name, such as owner-768")
+    made = importer.add_mutually_exclusive_group(required=True)
+    made.add_argument("--renderer", type=Path, help="the darts-render clone that rendered it; its HEAD is recorded")
+    made.add_argument("--renderer-commit", help="the darts-render commit that rendered it, when the clone is elsewhere")
+    importer.add_argument("--look", choices=LOOKS, required=True, help="the --look it was rendered with")
+    importer.add_argument("--option", action="append", default=[], type=_option, metavar="KEY=VALUE",
+                          help="any other renderer setting to record, such as width=768; repeat for each")
+    importer.add_argument("--max-residual-px", type=_positive_float, default=MAX_RESIDUAL_PX,
+                          help=f"refuse a frame whose keypoints fit one plane worse than this; default {MAX_RESIDUAL_PX}")
+    importer.set_defaults(handler=_renders_import)
     deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
@@ -215,6 +245,34 @@ def _non_negative_float(text: str) -> float:
     if not value >= 0:
         raise argparse.ArgumentTypeError(f"{text} is not a non-negative number")
     return value
+
+
+def _positive_float(text: str) -> float:
+    value = float(text)
+    if not 0 < value < float("inf"):
+        raise argparse.ArgumentTypeError(f"{text} is not a positive number")
+    return value
+
+
+def _render_set(text: str) -> str:
+    try:
+        return render_set(text)
+    except DartsMlError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
+def _render_sets(text: str) -> tuple[str, ...]:
+    names = tuple(map(_render_set, text.split(",")))
+    if len(set(names)) != len(names):
+        raise argparse.ArgumentTypeError(f"{text} names a set twice")
+    return names
+
+
+def _option(text: str) -> tuple[str, str]:
+    key, equals, value = text.partition("=")
+    if not equals or not key:
+        raise argparse.ArgumentTypeError(f"{text!r} is not KEY=VALUE")
+    return key, value
 
 
 def _probability(text: str) -> float:
@@ -362,7 +420,7 @@ def _evaluate(args) -> int:
 
 def _train(args) -> int:
     from .locate import Speed
-    from .train import RING_WEIGHT, RunConfig, probe, probe_path, save, train
+    from .train import RENDER_WEIGHT, RING_WEIGHT, RunConfig, probe, probe_path, save, train
     from .training_data import RING_INNER_MM, RING_OUTER_MM
 
     data = DataDir.from_environment()
@@ -382,10 +440,13 @@ def _train(args) -> int:
         return 0
     if not args.name:
         raise DartsMlError("name the run with --name, or pass --probe")
+    if args.render_weight is not None and not args.renders:
+        raise DartsMlError("--render-weight weighs the renders --renders names; name a set")
     config = RunConfig(args.name, args.device, args.epochs, args.size, args.batch, args.lr, workers=args.workers,
                        seed=args.seed, augment=args.augment, board_only=args.board_only, bf16=args.bf16,
                        channels_last=args.channels_last, init=args.init, entry_stride=args.entry_stride,
-                       ring_weight=ring_weight, ring_inner_mm=inner, ring_outer_mm=outer)
+                       ring_weight=ring_weight, ring_inner_mm=inner, ring_outer_mm=outer, renders=args.renders,
+                       render_weight=RENDER_WEIGHT if args.render_weight is None else args.render_weight)
     folder = train(data, config)
     print(f"written to {folder}")
     return 0
@@ -552,6 +613,49 @@ def _pull_marked(args) -> int:
     copied = pull(Phone(args.serial, args.package), captures, dt.date.today().isoformat(),
                   lambda line: print(line, file=sys.stderr, flush=True), args.delete_after)
     print(f"{copied} copied into {captures}")
+    return 0
+
+
+def _evaluate_marked(args) -> int:
+    from .locate import Inference, Speed, locate
+    from .marked_reading import NOTE, marked_visits, read_marked
+    from .train import load_weights, resolve_device, use_tuned_kernels
+
+    data = DataDir.from_environment()
+    folder, config = run_config(data, args.run)
+    captures = data.phone_captures()
+    visits, skipped = marked_visits(captures)
+    for name, reason in skipped:
+        print(f"skipped  {name}: {reason}")
+    if not visits:
+        raise DartsMlError(f"no marked Visit under {captures}; `darts-ml pull-marked` copies them off the phone")
+    print(NOTE, file=sys.stderr, flush=True)
+    use_tuned_kernels(data)
+    device, _ = resolve_device(args.device)
+    speed = Speed(config["bf16"] and device == "cuda", config["channels_last"])
+    model = load_weights(folder / f"{args.weights}.pt", device).to(memory_format=speed.memory)
+    print(f"{len(visits)} marked Visits through {args.run} {args.weights}.pt ...", file=sys.stderr, flush=True)
+    located = locate(Inference(model, device, config["size"], config["batch"], args.workers, speed),
+                     [v.photo for v in visits])
+    print(f"{len(visits)} marked Visits from {captures}, {len(skipped)} skipped; run {args.run}, {args.weights}.pt")
+    print("\n".join(read_marked(visits, located).lines()))
+    print(NOTE)
+    return 0
+
+
+def _renders_import(args) -> int:
+    from .renders import Renderer, import_renders, renderer_commit
+    from .train import commit
+
+    commit_ = args.renderer_commit or renderer_commit(args.renderer)
+    imported = import_renders(DataDir.from_environment(), args.source, args.set_,
+                              Renderer(commit_, args.look, dict(args.option)), args.max_residual_px,
+                              lambda line: print(line, file=sys.stderr, flush=True), commit())
+    for frame, reason in imported.refused:
+        print(f"refused  {frame}: {reason}")
+    print(f"{imported.records} frames with {imported.darts} Darts written to {imported.folder}; "
+          f"{len(imported.refused)} frames refused, {imported.off_image} Darts off the image dropped, "
+          f"{imported.zones_differ} scored otherwise than the renderer's zone; renderer {commit_}")
     return 0
 
 

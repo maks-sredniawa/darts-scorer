@@ -77,7 +77,12 @@ budget; the ADR amendment.
 - **Merging several Angles.** `evaluate` already reads B2 on all three Photos merged, beside the bar;
   using the merge to decide anything is phase 2.
 - **Synthetic renders.** M1 left them out; they come back only if F misses B2 and the misses are the
-  hard cases renders could cover, and then as a decision for the owner.
+  hard cases renders could cover, and then as a decision for the owner. **Taken up from §7's
+  escalation list, 2026-11-21:** frames from the owner's renderer fork, `maks-sredniawa/darts-render`
+  (ADR-0008's 2026-11-21 amendment), join DeepDarts as a training source with `train --renders`,
+  their own rendered val read beside DeepDarts val and never chosen on (`ml/README.md`, *Synthetic
+  renders*). The owner's marked Visits from the debug build (`pull-marked`) are the real test set:
+  `evaluate-marked` reads a chosen run on them, and nothing trains or chooses on them.
 - **A model per job.** One network finds both kinds of point (ADR-0008). Two networks would double
   the app's model size and its latency to buy nothing the gate has shown is needed.
 - **Hyper-parameter search against the Held-out set.** The Held-out set is read under D6's budget
