@@ -197,8 +197,8 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   Photo is one node with that summary and its markers are not focusable; the chips are the focus
   targets, with *Remove Dart* as a custom action. Each chip's accessible name starts with its
   visible text (*1 · T20 · 60, treble 20, 60 points*, then *check* when unsure), so voice control's
-  "tap T20" or "tap Check" finds it. The keypad is the path that needs no precise tap, for everyone, so there is no separate
-  accessible mode.
+  "tap T20" or "tap Check" finds it. The keypad is the path that needs no precise tap, for everyone,
+  so there is no separate accessible mode.
 - **Focus:** opening the sheet moves focus into it, and *Done* returns it to the Dart's chip; after
   *Remove Dart* it goes to the next chip, or to *Add a Dart* when none is left; a new result puts it
   on the Score heading, and no Board found on the banner.
