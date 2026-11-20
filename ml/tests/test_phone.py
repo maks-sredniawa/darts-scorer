@@ -104,10 +104,10 @@ class CommittedFixturesTest(unittest.TestCase):
                 self.assert_same_record(again, stored)
 
     def assert_same_record(self, actual, expected, where="record"):
-        # A homography refit differs from runner to runner around the tenth significant digit, so floats are
-        # held to a relative 1e-9 while everything discrete must match exactly.
+        # OpenBLAS picks its kernels by CPU, so a refit's small perspective terms move by up to ~1e-11 between
+        # runners. Floats get DecodingTest.kt's 1e-9 bound; everything discrete must match exactly.
         if isinstance(expected, float) or isinstance(actual, float):
-            self.assertTrue(math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12), f"{where}: {actual} != {expected}")
+            self.assertTrue(math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-9), f"{where}: {actual} != {expected}")
         elif isinstance(expected, dict):
             self.assertEqual(sorted(actual), sorted(expected), where)
             for key in expected:
