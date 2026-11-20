@@ -1,0 +1,19 @@
+{
+ "run": "2026-11-19-darts-640-s2-ring-ext",
+ "weights": "best.pt",
+ "weights_sha256": "d90edb2991a4b133be9904e7a8b2c5116b740a159234902d09341f723501ed9d",
+ "size": 640,
+ "bytes": 12837288,
+ "operations": {
+  "ADD": 14,
+  "CONV_2D": 57,
+  "DEPTHWISE_CONV_2D": 15,
+  "HARD_SWISH": 20,
+  "MEAN": 8,
+  "MUL": 16,
+  "PAD": 5,
+  "RESIZE_BILINEAR": 1,
+  "RESIZE_NEAREST_NEIGHBOR": 3,
+  "TRANSPOSE": 3
+ }
+}
