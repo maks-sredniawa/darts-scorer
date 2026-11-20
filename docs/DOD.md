@@ -80,7 +80,10 @@ only on a model that met this phase's bar.
       `MediaFiles` (`phase-1.md` §1, R1). 2026-11-20: 200 of 200 on API 36 and API 26, worst
       crossing 0.005 mm; the Credits ADR-0008 asks for came with it. Its second question, the
       `photos` kind's q85 re-encode, moved val's exactly right from 69.2% to 68.7% (R5): D2 holds.
-- [ ] **A Visit scored from one Photo (B)**, with the Visit count.
+- [ ] **A Visit scored from one Photo (B)**, with the Visit count. Built, awaiting merge: camera and
+      Picker in, the Darts and total on the cropped Photo, unsure Darts marked, the no-Board and
+      no-camera paths, the Visit count and the start-up sweep (`phase-1.md` §4, *What moved while
+      building B*). Read on `pixel-api36` and `urgent-api26`; *Enter the Score yourself* waits for C.
 - [ ] **Correcting a Dart (C)** with the keypad sheet (D3) and *Enter the Score yourself* (D6).
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
