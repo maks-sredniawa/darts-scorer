@@ -199,6 +199,38 @@ On 200 of DeepDarts' 1,070 val Photos, every 5th or so in the split's order
   debuggable) read about 260 ms a Photo on `urgent-api26`, and LiteRT ran there with no keep rule
   of our own: its AAR's consumer rules cover it.
 
+### Colour-profiled Photos (2026-11-21)
+
+The 17 Visits the owner marked on 2026-11-20 (`darts-ml pull-marked`) read differently in Python
+than on the phone: `locate()` on the stored Photos gave the app's kept Scores in 4 of 17 Visits, and
+not one with every Dart within a pixel of the app's. The cause was colour, not the port. The
+owner's Xiaomi tags its Photos Display P3; `MediaFiles` decoded them in P3, and `Bitmap.compress`
+wrote the P3 profile into the stored Photo. The phone's `decodePhoto` reads through `getPixels`,
+which hands back sRGB; Pillow's `convert("RGB")` ignores the profile and hands back the raw P3
+numbers. The two differ by 1.2 levels on average and up to 55, enough to move an Entry peak that
+was a near-tie. DeepDarts' JPEGs carry no profile, so R1 never met one. Two checks proved it:
+Python on LittleCMS-converted sRGB copies gives the app's Scores in 13 of 17 Visits, every Dart
+within 0.2 px; and with only the profile's APP2 segment stripped from the files, the emulator and
+Python agree on all 18 Photos.
+
+The fix has three parts:
+
+- **The app stores sRGB.** `MediaFiles` decodes with `inPreferredColorSpace` sRGB, so a stored
+  Photo or thumbnail is sRGB with no P3 profile, and both sides read the same numbers from it.
+  Photos already stored in P3 still read as before: `getPixels` converts them.
+- **`ml/` reads sRGB.** Every step opens a Photo through `images.open_srgb`, which converts a
+  profiled Photo with LittleCMS. On the 17 marked Visits it gives the app's Scores in 13; the other
+  4 differ by one Dart each, a near-tie that Android's conversion (Skia) and LittleCMS settle one
+  level apart. Those Photos were stored in P3; new ones are sRGB and need no conversion (the sRGB
+  profile Android writes into every JPEG counts as none: LittleCMS would move a colour by one level
+  at most, so `open_srgb` leaves those pixels as they are). `ingest`
+  now keeps the profile (`jpegtran -copy icc`) rather than strip it and leave P3 numbers untagged.
+- **The gate reads a profiled Photo.** `phone-parity` also pushes `--display-p3` of its val Photos
+  (default 20) rewritten in Display P3's numbers and tagged with its profile, so a side that
+  ignores the profile fails the gate. On `pixel-api36`, 200 val Photos and 20 P3 copies: Board
+  found by both in 220 of 220, worst crossing 0.00513 mm, kept Darts' Scores the same in 220 of
+  220.
+
 ## 2. The model in the app (D1)
 
 - **Where:** `app/src/main/assets/model/darts.tflite` and `darts.json` (the export record: run,

@@ -17,6 +17,7 @@ from .capture_sessions import PhotoName
 from .deepdarts import ORDER, PROJECTED, RECORDS as DEEPDARTS_RECORDS, SOURCE as DEEPDARTS, deepdarts_mm
 from .heldout import HeldOutSet, file_sha256
 from .homography import MIN_POINTS, fit, invert, project
+from .images import open_srgb
 from .labelme import label_path
 from .model import BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_POINT, ENTRY_STRIDE
 from .paths import DataDir
@@ -235,15 +236,14 @@ class KeypointDataset(torch.utils.data.Dataset):
     def __getitem__(self, index: int) -> tuple[torch.Tensor, Targets]:
         sample = self.samples[index]
         to_photo = sample.board_to_photo() if len(sample.calibration) >= MIN_POINTS else None
-        with Image.open(sample.photo) as photo:
-            photo = photo.convert("RGB")
-            if self.augment:
-                rng = np.random.default_rng(int(torch.randint(0, 2**62, ())))
-                matrix = random_matrix(to_photo, self.size, rng)
-                image = photometric(warp(photo, matrix, self.size), rng)
-            else:
-                matrix = np.diag([self.size / photo.width, self.size / photo.height, 1.0])
-                image = photo.resize((self.size, self.size), Image.BILINEAR)
+        photo = open_srgb(sample.photo)
+        if self.augment:
+            rng = np.random.default_rng(int(torch.randint(0, 2**62, ())))
+            matrix = random_matrix(to_photo, self.size, rng)
+            image = photometric(warp(photo, matrix, self.size), rng)
+        else:
+            matrix = np.diag([self.size / photo.width, self.size / photo.height, 1.0])
+            image = photo.resize((self.size, self.size), Image.BILINEAR)
         made = framed_targets(sample, matrix, self.size, self.entry_stride, self.ring_mm, to_photo)
         return normalise(image), Targets(*map(torch.from_numpy, made))
 

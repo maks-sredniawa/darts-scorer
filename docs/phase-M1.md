@@ -330,12 +330,16 @@ which Photo belongs to which Visit.
 
 **Unlike `MediaFiles.kt`, it does not re-encode.** Photos keep their full resolution and the phone's
 own JPEG: what the model is fed is M2's decision, and a second encode adds a second generation of
-artefacts at the scale of a wire. Ingest rotates and strips with `jpegtran -copy none`
+artefacts at the scale of a wire. Ingest rotates and strips with `jpegtran -copy icc`
 (libjpeg-turbo, BSD-style and IJG licences, a system tool that `darts-ml paths` checks for and CI
 installs). Every rotation passes `-trim`, a 180° turn as much as a quarter-turn: on a size that is
 not a whole number of 16-pixel blocks, it drops the partial edge blocks (under 16 pixels at the
 frame's edge) rather than re-encode them. An upright Photo is only stripped. A file that is not a
 JPEG is refused (§3 sets the camera to JPEG).
+
+*2026-11-21:* `-copy none` became `-copy icc`. A colour profile is not about the player, and a
+Xiaomi tags its Photos Display P3: stripped, its numbers would be read as sRGB, which is not what
+the app reads (`docs/phase-1.md` §1, *Colour-profiled Photos*).
 
 ### Board geometry, as code
 

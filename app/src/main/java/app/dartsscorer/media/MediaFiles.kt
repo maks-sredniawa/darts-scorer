@@ -3,6 +3,7 @@ package app.dartsscorer.media
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ColorSpace
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.core.graphics.scale
@@ -210,7 +211,8 @@ class MediaFiles(
         }
 
     /**
-     * Decode at roughly the size we need, with the camera's [orientation] tag applied to the pixels.
+     * Decode at roughly the size we need, in sRGB, with the camera's [orientation] tag applied to the
+     * pixels.
      *
      * Cameras commonly leave pixels unrotated and record an orientation tag instead. Coil honours
      * that tag on an untouched file, but re-encoding discards the tag and keeps the pixels
@@ -233,6 +235,9 @@ class MediaFiles(
         val options =
             BitmapFactory.Options().apply {
                 inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight, spec)
+                // A phone camera may tag its JPEG Display P3, and compress() would carry that profile
+                // into the stored file, where ml/ must then convert it too (docs/phase-1.md §1).
+                inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
             }
         val decoded =
             openStream(source).use { BitmapFactory.decodeStream(it, null, options) }

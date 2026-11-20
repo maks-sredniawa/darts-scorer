@@ -2,12 +2,15 @@ package app.dartsscorer.media
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.ColorSpace
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -72,6 +75,33 @@ class MediaFilesTest {
             assertEquals(120, boundsOf(media.resolve(persisted.path)).outWidth)
         }
 
+    @Test
+    fun aDisplayP3SourceIsStoredAsSrgbWithoutItsProfile() =
+        runTest {
+            val source = writeJpeg(width = 640, height = 480, colorSpace = ColorSpace.Named.DISPLAY_P3)
+            assertTrue("the source carries Display P3", containsDisplayP3(File(source.path!!).readBytes()))
+
+            for (kind in listOf(MediaKind.Photo, MediaKind.Thumbnail)) {
+                val stored = media.resolve(media.persist(source, kind).path)
+                assertFalse("$kind keeps no Display P3 profile", containsDisplayP3(stored.readBytes()))
+                val decoded = checkNotNull(BitmapFactory.decodeFile(stored.path))
+                assertEquals(kind.name, ColorSpace.get(ColorSpace.Named.SRGB), decoded.colorSpace)
+                val pixel = decoded.getPixel(decoded.width / 2, decoded.height / 2)
+                assertTrue(
+                    "still red: ${Integer.toHexString(pixel)}",
+                    Color.red(pixel) > 240 && Color.green(pixel) < 24,
+                )
+                decoded.recycle()
+            }
+        }
+
+    private fun containsDisplayP3(bytes: ByteArray): Boolean {
+        val marker = "Display P3".toByteArray(Charsets.UTF_16BE)
+        return (0..bytes.size - marker.size).any { start ->
+            marker.indices.all { bytes[start + it] == marker[it] }
+        }
+    }
+
     private fun boundsOf(file: File): BitmapFactory.Options =
         BitmapFactory.Options().apply { inJustDecodeBounds = true }.also {
             BitmapFactory.decodeFile(file.path, it)
@@ -80,9 +110,11 @@ class MediaFilesTest {
     private fun writeJpeg(
         width: Int,
         height: Int,
+        colorSpace: ColorSpace.Named = ColorSpace.Named.SRGB,
     ): Uri {
-        val file = File(root, "source-$width-$height.jpg")
-        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).let { bitmap ->
+        val file = File(root, "source-$width-$height-$colorSpace.jpg")
+        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888, true, ColorSpace.get(colorSpace)).let { bitmap ->
+            bitmap.eraseColor(Color.RED)
             file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }
             bitmap.recycle()
         }

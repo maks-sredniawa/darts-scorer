@@ -18,6 +18,7 @@ from .augment import letterbox, warp
 from .board import CALIBRATION_POINTS, SEGMENT_DEGREES, SEGMENTS, WIRES, board_point, boundary_degrees, score
 from .decode import ENTRY_THRESHOLD, MIN_INLIERS, decode
 from .homography import invert, project
+from .images import as_srgb, open_srgb, to_display_p3
 from .locate import Located, _board
 from .model import BOARD_OFFSETS, CALIBRATION_CHANNELS, ENTRY_HEAT, ENTRY_OFFSETS, Heads
 from .training_data import Sample
@@ -42,6 +43,7 @@ _RNG_POPULATIONS = (8, 9, 12, 20, 33, 47, 61, 79, 80)
 PHOTOS_LONG_EDGE = 2048
 PHOTOS_QUALITY = 85
 _EXIF_ORIENTATION = 0x0112
+DISPLAY_P3_PREFIX = "p3__"
 
 
 def scoring_table(cases_path: Path = SCORING_CASES) -> list[tuple[float, float, str]]:
@@ -166,7 +168,7 @@ def as_stored(photo: Path, target: Path) -> tuple[float, float]:
         sample = 1
         while max(width, height) // (sample * 2) >= PHOTOS_LONG_EDGE:
             sample *= 2
-        reduced = image.convert("RGB").reduce(sample)
+        reduced = as_srgb(image).reduce(sample)
     longest = max(reduced.size)
     if longest > PHOTOS_LONG_EDGE:
         ratio = PHOTOS_LONG_EDGE / longest
@@ -195,6 +197,20 @@ def picked(samples: list, count: int) -> list:
     return [samples[i * len(samples) // count] for i in range(count)]
 
 
+def display_p3_copies(sources: list[tuple[str, Path]], folder: Path, count: int) -> list[tuple[str, Path]]:
+    """`count` of the sources, spread as `picked` spreads them, rewritten as the same scene in Display P3's numbers
+    and tagged with its profile, as a Xiaomi stores a Photo: the gate then also reads a colour-profiled Photo."""
+    shutil.rmtree(folder, ignore_errors=True)
+    folder.mkdir(parents=True)
+    copies = []
+    for name, photo in picked(sources, min(count, len(sources))):
+        target = folder / f"{DISPLAY_P3_PREFIX}{name}"
+        p3 = to_display_p3(open_srgb(photo))
+        p3.save(target, "JPEG", quality=95, icc_profile=p3.info["icc_profile"])
+        copies.append((target.name, target))
+    return copies
+
+
 def device_name(sample) -> str:
     return f"{sample.capture_session}__{Path(sample.photo).stem}.jpg"
 
@@ -221,7 +237,9 @@ def run_parity(device, sources: list[tuple[str, Path]], folder: Path, run: str,
     for sub in ("source", "written"):
         shutil.rmtree(folder / sub, ignore_errors=True)
     (folder / "source").mkdir(parents=True)
-    device.shell(f"rm -rf {DEVICE_DIR} && mkdir -p {DEVICE_DIR}/source")
+    # shell makes these 2770 shell:ext_data_rw, which an API 36 app can neither list nor write into; a+rwx keeps the
+    # setgid bit, so what the app writes stays in ext_data_rw and `adb pull` can read it.
+    device.shell(f"rm -rf {DEVICE_DIR} && mkdir -p {DEVICE_DIR}/source && chmod a+rwx {DEVICE_DIR} {DEVICE_DIR}/source")
     say(f"pushing {len(sources)} Photos to {DEVICE_DIR}/source ...")
     for name, photo in sources:
         shutil.copyfile(photo, folder / "source" / name)
@@ -274,9 +292,9 @@ def chosen_heads(samples: list, run, folder: Path) -> list[dict]:
     cases = []
     for sample in samples:
         strip = folder / "strip.jpg"
-        with Image.open(sample.photo) as image:
-            image.crop((0, 0, _STRIP_PX, image.height)).save(strip, quality=95)
-            first = letterbox((_STRIP_PX, image.height), run.size)
+        image = open_srgb(sample.photo)
+        image.crop((0, 0, _STRIP_PX, image.height)).save(strip, quality=95)
+        first = letterbox((_STRIP_PX, image.height), run.size)
         read = heads(strip, first)
         if len(decode(read).calibration) >= MIN_INLIERS and not _board(first, read).found:
             cases.append(heads_case("no-board", first, read))

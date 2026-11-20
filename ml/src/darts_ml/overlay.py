@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 from .board import CALIBRATION_POINTS, OUTER_BULL_RING, OUTER_DOUBLE, SEGMENTS, WIRES, board_point, boundary_degrees, score
 from .capture_sessions import load_sheet
 from .homography import invert, project
+from .images import open_srgb
 from .labelme import label_path, read_label
 from .paths import DataDir, Round
 from .prefill import image_to_board
@@ -30,8 +31,7 @@ def overlay(data: DataDir, name: str, round_: Round = Round.A) -> list[str]:
         label = read_label(path)
         if len(label.calibration) < 4:
             continue
-        with Image.open(data.photo(name, photo)) as image:
-            rendered = render(image.convert("RGB"), label)
+        rendered = render(open_srgb(data.photo(name, photo)), label)
         rendered.save(target / f"{photo}.jpg", quality=85)
         written.append(photo)
     return written

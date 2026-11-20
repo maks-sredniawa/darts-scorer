@@ -5,6 +5,7 @@ import unittest
 import numpy as np
 from PIL import Image
 
+from darts_ml.images import display_p3
 from darts_ml.ingest import IngestError, ingest, jpegtran_command, metadata_markers, read_shot
 from synthetic import SIZE, TemporaryData, as_stored, board_image, camera, jpeg_with_exif
 
@@ -53,6 +54,22 @@ class IngestTest(unittest.TestCase):
                 self.assertNotIn(leaked, raw)
             self.assertLess(difference.mean(), 3.0, "the Photo is not the one taken, upright")
             self.assertLess(difference[:10, :20].mean(), 40, "the corner marker is not top-left")
+
+    def test_a_colour_profile_survives_and_nothing_else(self):
+        self.td.write_sheet("s01", [["T20", "T20", "S1"]])
+        for seconds, orientation in enumerate((1, 6, 3)):
+            stored = as_stored(upright_photo(seconds), orientation)
+            exif = Image.Exif()
+            exif[0x0112] = orientation
+            exif.get_ifd(0x8769)[0x9003] = (START + dt.timedelta(seconds=seconds)).strftime("%Y:%m:%d %H:%M:%S")
+            stored.save(self.inbox / f"{seconds}.jpg", "JPEG", quality=93, exif=exif.tobytes(), icc_profile=display_p3())
+        ingest(self.data, "s01")
+        for angle in (1, 2, 3):
+            out = self.data.photo("s01", f"s01-v01-p{angle}")
+            with Image.open(out) as photo:
+                self.assertEqual(photo.info.get("icc_profile"), display_p3())
+                self.assertEqual(len(photo.getexif()), 0)
+            self.assertEqual(metadata_markers(out), [])
 
     def test_pixels_match_a_lossless_turn(self):
         self.td.write_sheet("s01", [["T20", "T20", "S1"]])
@@ -125,7 +142,7 @@ class IngestTest(unittest.TestCase):
         for orientation in range(2, 9):
             command = jpegtran_command(shot.__class__(shot.path, shot.taken, orientation, ""), self.inbox / "x.jpg")
             self.assertIn("-trim", command)
-            self.assertEqual(command[1:3], ["-copy", "none"])
+            self.assertEqual(command[1:3], ["-copy", "icc"])
         upright = jpegtran_command(shot.__class__(shot.path, shot.taken, 1, ""), self.inbox / "x.jpg")
         self.assertNotIn("-trim", upright)
         self.assertNotIn("-rotate", upright)
