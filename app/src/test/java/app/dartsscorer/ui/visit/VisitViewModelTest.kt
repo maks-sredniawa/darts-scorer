@@ -398,6 +398,38 @@ class VisitViewModelTest {
         assertEquals(1, (state.phase as VisitPhase.Scored).darts.size)
     }
 
+    @Test
+    fun `a new Photo keeps the ended Visit with the Darts removed from its reading, before deleting its Photo`() {
+        photos.next =
+            board(
+                FoundDart(400.0, 100.0, 0.9, Score(Ring.SINGLE, 20)),
+                FoundDart(400.0, 500.0, 0.9, Score(Ring.SINGLE, 3)),
+            )
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        val read = visit.scored()
+        visit.removeDart(1)
+        visit.moveDart(2, Point(400.0, 400.0))
+        val ended = visit.scored()
+        visit.photoChosen("content://picked/2")
+        visit.stateWhen { it.phase is VisitPhase.Scored && it.phase != ended }
+        val (kept, removed) = photos.kept.single()
+        assertEquals(ended, kept)
+        assertEquals(listOf(read.darts.first()), removed)
+        assertEquals(listOf("keep photos/0.jpg", "delete photos/0.jpg"), photos.log)
+    }
+
+    @Test
+    fun `a Visit with no result is not kept`() {
+        photos.next = PhotoReading(800, 600, Located(null))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.stateWhen { it.phase is VisitPhase.NoBoard }
+        visit.photoChosen("content://picked/2")
+        visit.stateWhen { it.phase is VisitPhase.NoBoard && photos.stored.size == 1 }
+        assertTrue(photos.kept.isEmpty())
+    }
+
     private fun board(vararg darts: FoundDart) = PhotoReading(800, 800, Located(BOARD, darts = darts.toList()))
 
     private class FakePhotos : VisitPhotos {
@@ -406,6 +438,8 @@ class VisitViewModelTest {
         var next: PhotoReading? = null
         var failPersist = false
         var readFailure: Throwable? = null
+        val kept = mutableListOf<Pair<VisitPhase.Shown, List<ShownDart>>>()
+        val log = mutableListOf<String>()
         private var made = 0
 
         override fun newCameraTarget() = "content://camera/${made++}.jpg"
@@ -425,6 +459,7 @@ class VisitViewModelTest {
         override fun storedPhotos() = stored.toList()
 
         override fun delete(photo: String) {
+            log += "delete $photo"
             stored -= photo
         }
 
@@ -433,6 +468,14 @@ class VisitViewModelTest {
         override suspend fun read(photo: String): PhotoReading? {
             readFailure?.let { throw it }
             return next
+        }
+
+        override fun keep(
+            visit: VisitPhase.Shown,
+            removed: List<ShownDart>,
+        ) {
+            log += "keep ${visit.photo.path}"
+            kept += visit to removed
         }
     }
 

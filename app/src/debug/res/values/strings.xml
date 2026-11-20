@@ -23,4 +23,8 @@
         <item quantity="one">%1$d thread per Photo read</item>
         <item quantity="other">%1$d threads per Photo read</item>
     </plurals>
+    <plurals name="debug_marked_visits" translatable="false">
+        <item quantity="one">%1$d marked Visit kept for scripts/pull-marked.py</item>
+        <item quantity="other">%1$d marked Visits kept for scripts/pull-marked.py</item>
+    </plurals>
 </resources>

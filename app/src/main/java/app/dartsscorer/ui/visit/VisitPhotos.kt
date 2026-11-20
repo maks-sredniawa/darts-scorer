@@ -33,4 +33,10 @@ interface VisitPhotos {
 
     /** Null when the file is missing or does not decode. */
     suspend fun read(photo: String): PhotoReading?
+
+    /** An ended [visit] and the Darts read on it that the player [removed], before its Photo is deleted. */
+    fun keep(
+        visit: VisitPhase.Shown,
+        removed: List<ShownDart>,
+    )
 }

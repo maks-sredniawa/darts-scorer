@@ -129,8 +129,9 @@ app/src/main/java/<namespace>/
                SupportConfig.kt is this app's; the rest, and each strings.xml's shared:support block,
                arrive from android-starter's scripts/sync-support.py, so change them there
 
-app/src/debug/    the developer-only build: Settings' debug section (R2's thread count) and the debug
-                  app name
+app/src/debug/    the developer-only build: Settings' debug section (R2's thread count, the marked
+                  Visits kept), the timing line, each marked Visit kept for scripts/pull-marked.py,
+                  and the debug app name
 app/src/release/  only the no-op half of each seam, so main/ can call it unconditionally
 scripts/          the Python toolchain. project.py is the one place the app's identity lives
 ml/               the data tools for ADR-0008's model, a uv project with its own lockfile; code
