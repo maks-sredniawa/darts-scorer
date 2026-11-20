@@ -224,17 +224,18 @@ class VisitViewModel(
     fun moveDart(
         number: Int,
         to: Point,
+        nearRead: Boolean = false,
     ) {
         visit.update { state ->
             val scored = state.phase as? VisitPhase.Scored ?: return@update state
             state.copy(
-                phase = scored.copy(darts = Correction.move(scored.darts, number, to, scored.toBoard)),
+                phase = scored.copy(darts = Correction.move(scored.darts, number, to, scored.toBoard, nearRead)),
                 removed = null,
             )
         }
     }
 
-    /** A drop on the model's point, or the sheet's *Back to the app's reading*: the Dart as it was read. */
+    /** The sheet's *Back to the app's reading*: the Dart as it was read. */
     fun backToReading(number: Int) {
         visit.update { state ->
             val shown = state.phase as? VisitPhase.Shown ?: return@update state

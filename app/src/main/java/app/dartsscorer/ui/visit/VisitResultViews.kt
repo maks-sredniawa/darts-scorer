@@ -402,8 +402,7 @@ internal fun BoardPhoto(
     result: VisitPhase.Scored,
     onOpenDart: (Int) -> Unit,
     onSpot: (Point) -> Unit,
-    onMoveDart: (Int, Point) -> Unit,
-    onBackToReading: (Int) -> Unit,
+    onMoveDart: (Int, Point, Boolean) -> Unit,
     beside: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -432,19 +431,23 @@ internal fun BoardPhoto(
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
     val move by rememberUpdatedState(onMoveDart)
-    val back by rememberUpdatedState(onBackToReading)
     val ring =
         remember(result.photo, density, measurer, numberStyle) {
             object : RingDrag {
                 var onRead = false
 
                 override fun hit(at: Offset): Int? {
-                    val markers =
-                        density.markers(latest, box, zoom.clampedTo(box), measurer, numberStyle, null, scoreLabel)
+                    val markers = shownMarkers()
                     return markers.map { it.spot }.hitBy(at, with(density) { TOUCH_TARGET.toPx() } / 2)?.let {
                         markers[it].dart.number
                     }
                 }
+
+                override fun ringAt(dart: Int): Offset? =
+                    shownMarkers().firstOrNull { it.dart.number == dart }?.spot?.at
+
+                private fun shownMarkers() =
+                    density.markers(latest, box, zoom.clampedTo(box), measurer, numberStyle, null, scoreLabel)
 
                 override fun hold(dart: Int) {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -466,17 +469,15 @@ internal fun BoardPhoto(
                             (crop.left + base.x / scale).coerceIn(crop.left, crop.right),
                             (crop.top + base.y / scale).coerceIn(crop.top, crop.bottom),
                         )
-                    val read = shown.darts.firstOrNull { it.number == dart }?.read
+                    val held = shown.darts.firstOrNull { it.number == dart } ?: return
                     val screen = view.toScreen(point.screen(crop, scale))
-                    val snaps =
-                        read != null &&
-                            (screen - view.toScreen(read.at.screen(crop, scale))).getDistance() <= density.ringOuter()
-                    if (snaps) {
-                        if (!onRead) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        back(dart)
-                    } else {
-                        move(dart, point)
-                    }
+                    val nearRead =
+                        held.read?.let {
+                            (screen - view.toScreen(it.at.screen(crop, scale))).getDistance() <= density.ringOuter()
+                        } == true
+                    val snaps = Correction.snapsBack(held, point, shown.toBoard, nearRead)
+                    if (snaps && !onRead) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    move(dart, point, nearRead)
                     onRead = snaps
                 }
 
@@ -531,9 +532,11 @@ internal fun BoardPhoto(
     }
 }
 
-/** A marker's ring held and dragged; [drag]'s point is where the ring is drawn, above the finger. */
+/** A marker's ring held and dragged; [drag]'s point is where the ring is drawn. */
 private interface RingDrag {
     fun hit(at: Offset): Int?
+
+    fun ringAt(dart: Int): Offset?
 
     fun hold(dart: Int)
 
@@ -597,18 +600,14 @@ private fun Modifier.zoomGestures(
         }
     }
 
-/**
- * Every change is consumed, the lift included, so the hold is neither a tap, a pan nor a scroll. The
- * ring is drawn one touch target above the finger so the finger never hides the tip, and a release
- * within touch slop moves nothing.
- */
+/** Every change is consumed, the lift included, so the hold is neither a tap, a pan nor a scroll. */
 private suspend fun AwaitPointerEventScope.dragRing(
     down: PointerInputChange,
     dart: Int,
     ring: RingDrag,
 ) {
+    val grab = (ring.ringAt(dart) ?: down.position) - down.position
     ring.hold(dart)
-    val lift = Offset(0f, TOUCH_TARGET.toPx())
     var travel = 0f
     try {
         while (true) {
@@ -616,7 +615,7 @@ private suspend fun AwaitPointerEventScope.dragRing(
             event.changes.forEach { it.consume() }
             val finger = event.changes.firstOrNull { it.id == down.id } ?: break
             travel = maxOf(travel, (finger.position - down.position).getDistance())
-            if (travel > viewConfiguration.touchSlop) ring.drag(dart, finger.position - lift)
+            if (travel > viewConfiguration.touchSlop) ring.drag(dart, finger.position + grab)
             if (!finger.pressed) break
         }
     } finally {
