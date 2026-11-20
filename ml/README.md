@@ -20,6 +20,11 @@ leaves it alone. The `rocm` build carries the whole ROCm runtime (about 17 GB in
 the kernel's `amdgpu` driver. The lock covers Linux on x86-64 only, and holds PyPI packages to releases
 before 2026-11-03 (`[tool.uv.exclude-newer-package]`); move that date forward deliberately.
 
+**Every step reads a Photo through `images.open_srgb`**, which converts one tagged with a colour
+profile to sRGB with LittleCMS (Pillow's `ImageCms`) and leaves a profile-free one as it is. The app
+reads pixels as sRGB, and a Xiaomi tags its Photos Display P3: read as raw numbers, they are up to 55
+levels off what the app sees, enough to move a Dart (`docs/phase-1.md` §1, 2026-11-21).
+
 `DARTS_DATA` defaults to `~/darts-scorer-data`. `paths.py` refuses any value that resolves inside the
 repository or one of its worktrees, symlinks followed, and the same for every folder under it that the
 loop reads or writes.
@@ -64,7 +69,7 @@ uv run --directory ml darts-ml overlay s01         # QA renders into overlays/s0
 ```
 
 `ingest` keeps the phone's files in `inbox/<capture-session>/`: delete them, GPS and all, once the
-Photos look right. It never guesses: a count that is not three Photos per Visit stops it, and so do
+Photos look right. It keeps one marker: a colour profile, since a phone may tag its Photos Display P3. It never guesses: a count that is not three Photos per Visit stops it, and so do
 capture times that do not fall three to a Visit (a gap inside a Visit as long as one between two);
 either way it lists the files in capture order.
 
@@ -177,7 +182,9 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   LiteRT interpreter), one device in `adb devices` (or the one `ANDROID_SERIAL` names) with the debug
   app and its test APK installed, and the run's `best.tflite` byte for byte the app's
   `assets/model/darts.tflite`. It takes `--photos` of DeepDarts' val Photos spread evenly through the
-  split, the same ones every time, pushes them to the app's external files (`parity/source/`), has
+  split, the same ones every time, and `--display-p3` of those again (default 20) rewritten as the
+  same scene in Display P3's numbers and tagged with its profile, as a Xiaomi stores a Photo. It
+  pushes them to the app's external files (`parity/source/`, made writable for the app), has
   `PhoneParityTest#writesEachPhotoThroughMediaFiles` write each through `MediaFiles` as a Photo,
   pulls the written files back, runs `locate()` on them here with the same model, pushes that as
   `expected.json`, has `PhoneParityTest#matchesPythonOnEachPhoto` run the app's `PhotoReader` on each

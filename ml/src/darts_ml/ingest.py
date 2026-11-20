@@ -30,6 +30,7 @@ TRANSFORMS = {
     7: ["-transverse"],
     8: ["-rotate", "270"],
 }
+ICC_PROFILE = b"ICC_PROFILE\x00"
 _MARKERS_WITHOUT_LENGTH = {0x01, *range(0xD0, 0xD8)}
 
 
@@ -76,7 +77,7 @@ def read_shot(path: Path) -> Shot:
 def jpegtran_command(shot: Shot, target: Path, jpegtran: str = "jpegtran") -> list[str]:
     transform = TRANSFORMS[shot.orientation]
     trim = ["-trim"] if transform else []
-    return [jpegtran, "-copy", "none", *transform, *trim, "-outfile", str(target), str(shot.path)]
+    return [jpegtran, "-copy", "icc", *transform, *trim, "-outfile", str(target), str(shot.path)]
 
 
 def metadata_markers(path: Path) -> list[str]:
@@ -94,7 +95,7 @@ def metadata_markers(path: Path) -> list[str]:
         if marker in _MARKERS_WITHOUT_LENGTH:
             offset += 2
             continue
-        if 0xE1 <= marker <= 0xEF:
+        if 0xE1 <= marker <= 0xEF and not (marker == 0xE2 and data[offset + 4 : offset + 16] == ICC_PROFILE):
             found.append(f"APP{marker - 0xE0}")
         elif marker == 0xFE:
             found.append("COM")
@@ -130,7 +131,7 @@ def ingest(data: DataDir, name: str, jpegtran: str = "jpegtran") -> list[PhotoNa
             raise IngestError(f"jpegtran failed on {shot.path.name}: {result.stderr.strip()}")
         left = metadata_markers(out)
         if left:
-            raise IngestError(f"{out.name} still carries {', '.join(left)} after jpegtran -copy none")
+            raise IngestError(f"{out.name} still carries {', '.join(left)} after jpegtran -copy icc")
     if target.exists():
         target.rmdir()
     staging.rename(target)

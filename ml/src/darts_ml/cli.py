@@ -155,6 +155,8 @@ def _parser() -> argparse.ArgumentParser:
     phone.add_argument("--run", required=True, help="the run whose best.tflite the app ships")
     phone.add_argument("--weights", choices=WEIGHTS, default="best")
     phone.add_argument("--photos", type=_positive, default=150, help="how many val Photos; default 150")
+    phone.add_argument("--display-p3", type=_non_negative, default=20,
+                       help="how many of those also go as a Display P3 copy, as a Xiaomi tags its Photos; default 20")
     phone.add_argument("--workers", type=_non_negative, default=4)
     puller = step("pull-marked", _pull_marked, "copy the debug build's marked Visits off a phone into "
                   "$DARTS_DATA/phone-captures/<date>/, and again each one kept again since", capture_session=False)
@@ -517,7 +519,7 @@ def _phone_parity(args) -> int:
 
     from .export import runtime
     from .locate import Inference, locate
-    from .phone import device_name, picked, run_parity, same_model
+    from .phone import device_name, display_p3_copies, picked, run_parity, same_model
     from .runtime_bench import Device, attached_devices, choose_device, run_tool
     from .training_data import deepdarts_samples
 
@@ -534,8 +536,10 @@ def _phone_parity(args) -> int:
         raise DartsMlError("no device attached (adb devices); start an emulator and install both APKs first")
     samples = picked(deepdarts_samples(data, "val"), args.photos)
     run = Inference(runtime(Format.LITERT, path), "cpu", config["size"], 1, args.workers)
-    report = run_parity(Device(serial), [(device_name(s), s.photo) for s in samples],
-                        data.root / "phone-parity" / args.run, args.run, lambda photos: locate(run, photos),
+    sources = [(device_name(s), s.photo) for s in samples]
+    parity = data.root / "phone-parity" / args.run
+    sources += display_p3_copies(sources, parity / "display-p3", args.display_p3) if args.display_p3 else []
+    report = run_parity(Device(serial), sources, parity, args.run, lambda photos: locate(run, photos),
                         lambda line: print(line, file=sys.stderr, flush=True))
     print(report)
     return 0 if report.startswith("PASS") else 1

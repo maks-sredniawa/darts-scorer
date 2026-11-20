@@ -12,13 +12,14 @@ from darts_ml import DartsMlError
 from darts_ml.board import CALIBRATION_POINTS, SEGMENTS, score
 from darts_ml.evaluate import PredictedEntry
 from darts_ml.homography import project
+from darts_ml.images import as_srgb, display_p3, to_display_p3
 from darts_ml.locate import Located
 from darts_ml.model import ENTRY_POINT, Heads
 from darts_ml.phone import (DEVICE_DIR, EXPECTED, FIXTURES, PHOTOS_LONG_EDGE, REPORT, as_stored, as_stored_samples,
-                            device_name, expected_record, heads_case, heads_from_record, picked, rng_choices,
+                            device_name, display_p3_copies, expected_record, heads_case, heads_from_record, picked, rng_choices,
                             run_parity, same_model, scoring_table, warp_cases, write_fixtures)
 from darts_ml.training_data import Sample, targets
-from synthetic import camera
+from synthetic import board_image, camera
 
 SIZE = 512
 
@@ -142,6 +143,17 @@ class AsStoredTest(unittest.TestCase):
             with Image.open(target) as written:
                 self.assertEqual(written.size, (800, 800))
 
+    def test_a_display_p3_photo_is_stored_as_srgb_without_its_profile(self):
+        with tempfile.TemporaryDirectory() as folder:
+            scene = board_image(camera())
+            source, target = Path(folder, "p3.jpg"), Path(folder, "out.jpg")
+            p3 = to_display_p3(scene)
+            p3.save(source, quality=95, icc_profile=p3.info["icc_profile"])
+            as_stored(source, target)
+            with Image.open(target) as written:
+                self.assertNotIn("icc_profile", written.info)
+                self.assertLess(np.abs(np.asarray(written, int) - np.asarray(scene, int)).mean(), 3.0)
+
     def test_a_rotated_photo_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder, "in.jpg")
@@ -217,6 +229,23 @@ class ParityTest(unittest.TestCase):
             expected = json.loads((root / "out" / EXPECTED).read_text(encoding="utf-8"))
             self.assertEqual([p["name"] for p in expected["photos"]], ["a.jpg", "b.jpg"])
             self.assertEqual(device.methods, ["writesEachPhotoThroughMediaFiles", "matchesPythonOnEachPhoto"])
+
+    def test_display_p3_copies_hold_the_same_scene_tagged_display_p3(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            sources = []
+            for i in range(4):
+                sources.append((f"s{i}.jpg", root / f"s{i}.jpg"))
+                board_image(camera(yaw_deg=5.0 * i)).save(sources[-1][1], quality=95)
+            copies = display_p3_copies(sources, root / "p3", 2)
+            self.assertEqual([name for name, _ in copies], ["p3__s0.jpg", "p3__s2.jpg"])
+            for (_, photo), (_, copy) in zip(picked(sources, 2), copies, strict=True):
+                with Image.open(copy) as tagged, Image.open(photo) as plain:
+                    self.assertEqual(tagged.info["icc_profile"], display_p3())
+                    self.assertGreater(np.abs(np.asarray(tagged, int) - np.asarray(plain, int)).max(), 10)
+                    back = np.abs(np.asarray(as_srgb(tagged), int) - np.asarray(plain, int))
+                self.assertLess(back.mean(), 2.0)
+            self.assertEqual(len(display_p3_copies(sources, root / "p3", 9)), 4)
 
     def test_run_parity_stops_when_the_phone_wrote_fewer(self):
         with tempfile.TemporaryDirectory() as root:

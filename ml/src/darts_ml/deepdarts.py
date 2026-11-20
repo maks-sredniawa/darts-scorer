@@ -15,6 +15,7 @@ from . import DartsMlError
 from .board import CALIBRATION_BY_NAME, CALIBRATION_POINTS, OUTER_DOUBLE, board_point
 from .heldout import file_sha256
 from .homography import fit, project
+from .images import open_srgb
 from .labelme import ENTRY, Label, Shape
 from .overlay import render
 from .paths import DataDir
@@ -205,8 +206,7 @@ def overlay_sample(data: DataDir, count: int, seed: int = 0) -> list[str]:
         label = Label(Path(), record["photo"], record["width"], record["height"], False, tuple(shapes))
         clicked = label.calibration
         to_board = fit([clicked[n] for n in ORDER], deepdarts_mm())
-        with Image.open(data.root / record["photo"]) as image:
-            rendered = render(image.convert("RGB"), label, to_board)
+        rendered = render(open_srgb(data.root / record["photo"]), label, to_board)
         name = f"{record['capture_session']}-{Path(record['photo']).stem}.jpg"
         rendered.save(target / name, quality=85)
         written.append(name)

@@ -16,6 +16,7 @@ from .board import CALIBRATION_POINTS, DOUBLE_WIRES, TREBLE_WIRES, score
 from .decode import EntryRule, decode, kept_entries, ransac
 from .evaluate import PredictedEntry, Share
 from .homography import crossing_errors_mm, invert, project
+from .images import open_srgb
 from .model import ENTRY_STRIDE, Heads
 from .repeatability import Spread
 from .training_data import Sample, framed_targets, normalise
@@ -78,8 +79,7 @@ class _Framed(torch.utils.data.Dataset):
 
     def __getitem__(self, index: int) -> torch.Tensor:
         path, matrix = self.items[index]
-        with Image.open(path) as photo:
-            return normalise(warp(photo.convert("RGB"), matrix, self.size))
+        return normalise(warp(open_srgb(path), matrix, self.size))
 
 
 def _logits(run: Inference, items: list[tuple[Path, np.ndarray]]):
