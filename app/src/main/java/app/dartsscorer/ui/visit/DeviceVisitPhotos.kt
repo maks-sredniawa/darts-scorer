@@ -11,6 +11,7 @@ import app.dartsscorer.scoring.decodePhoto
 import app.dartsscorer.scoring.logReadTime
 import app.dartsscorer.scoring.readThreads
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -56,7 +57,7 @@ class DeviceVisitPhotos(
         withContext(Dispatchers.Default) {
             reading.withLock {
                 val image = decodePhoto(media.resolve(photo)) ?: return@withLock null
-                val threads = readThreads(appContext)
+                val threads = readThreads(appContext).first()
                 val reader = readerAt(threads)
                 val started = System.nanoTime()
                 val located = reader.read(image)
