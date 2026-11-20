@@ -16,10 +16,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
-/**
- * Held by `AppContainer`, so the model is mapped once per process rather than once per screen, and
- * only when the first Photo needs it.
- */
 class DeviceVisitPhotos(
     context: Context,
     private val media: MediaFiles,
