@@ -47,6 +47,7 @@ class AppPreferences(
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val TIP_ASKED = booleanPreferencesKey("tip_asked")
         val VISITS_SCORED = intPreferencesKey("visits_scored")
+        val LAST_COUNTED_PHOTO = stringPreferencesKey("last_counted_photo")
 
         /** What *Restore to default* removes: everything the user chose, so each reads its default again. */
         val SETTINGS: List<Preferences.Key<*>> =
@@ -64,6 +65,7 @@ class AppPreferences(
                 ONBOARDING_DONE,
                 TIP_ASKED,
                 VISITS_SCORED,
+                LAST_COUNTED_PHOTO,
             )
     }
 
@@ -123,8 +125,17 @@ class AppPreferences(
         store.edit { it[Keys.TIP_ASKED] = true }
     }
 
-    suspend fun incrementVisitsScored() {
-        store.edit { it[Keys.VISITS_SCORED] = (it[Keys.VISITS_SCORED] ?: 0) + 1 }
+    /**
+     * Counts the Visit read from [photo] unless it was the last one counted. One edit, so no process
+     * death can land between remembering the Photo and counting it.
+     */
+    suspend fun incrementVisitsScored(photo: String) {
+        store.edit {
+            if (it[Keys.LAST_COUNTED_PHOTO] != photo) {
+                it[Keys.LAST_COUNTED_PHOTO] = photo
+                it[Keys.VISITS_SCORED] = (it[Keys.VISITS_SCORED] ?: 0) + 1
+            }
+        }
     }
 
     /**

@@ -53,7 +53,7 @@ class AppPreferencesTest {
                 setMaterialYou(true)
                 setOnboardingDone(true)
                 markTipAsked()
-                incrementVisitsScored()
+                incrementVisitsScored("photos/a.jpg")
 
                 restoreDefaults()
 
@@ -66,12 +66,13 @@ class AppPreferencesTest {
         }
 
     @Test
-    fun `visits scored starts at zero and counts up`() =
+    fun `visits scored starts at zero and counts each Photo once`() =
         runBlocking {
             with(preferences) {
                 assertEquals(0, visitsScored.first())
-                incrementVisitsScored()
-                incrementVisitsScored()
+                incrementVisitsScored("photos/a.jpg")
+                incrementVisitsScored("photos/a.jpg")
+                incrementVisitsScored("photos/b.jpg")
                 assertEquals(2, visitsScored.first())
             }
         }

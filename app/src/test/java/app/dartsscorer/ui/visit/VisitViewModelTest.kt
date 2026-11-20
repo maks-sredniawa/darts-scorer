@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -36,8 +37,8 @@ import java.io.IOException
 import java.time.Instant
 
 /**
- * The ViewModel runs on an unconfined dispatcher, so each call has done its work, up to handing a
- * preference write to DataStore, by the time it returns.
+ * The ViewModel runs on an unconfined dispatcher unless a test says otherwise, so each call has done
+ * its work, up to handing a preference write to DataStore, by the time it returns.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class VisitViewModelTest {
@@ -74,14 +75,40 @@ class VisitViewModelTest {
     private fun visitsScored(): Int = runBlocking { preferences.visitsScored.first() }
 
     @Test
-    fun `a Board found is counted once, and not again when process death reads it back`() {
+    fun `a Board found is counted once, even from a handle saved before it was counted`() {
         val saved = SavedStateHandle()
         photos.next = board()
         viewModel(saved).photoChosen("content://picked/1")
-        viewModel(saved).scored()
+        viewModel(SavedStateHandle(mapOf(VisitViewModel.PHOTO to saved.get<String>(VisitViewModel.PHOTO)))).scored()
         // DataStore applies edits in order: had the second ViewModel counted, its edit would land first.
-        runBlocking { preferences.incrementVisitsScored() }
+        runBlocking { preferences.incrementVisitsScored("photos/other.jpg") }
         assertEquals(2, visitsScored())
+    }
+
+    @Test
+    fun `a camera Photo delivered before the sweep runs is kept`() {
+        val io = StandardTestDispatcher()
+        val saved = SavedStateHandle(mapOf(VisitViewModel.CAMERA to "content://camera/pending.jpg"))
+        photos.camera += "content://camera/pending.jpg"
+        photos.next = board()
+        val visit = VisitViewModel(preferences, tipJar, Instant.EPOCH, photos, saved, io)
+        visit.cameraReturned(taken = true)
+        io.scheduler.advanceUntilIdle()
+        visit.scored()
+        assertEquals(listOf(saved.get<String>(VisitViewModel.PHOTO)), photos.stored)
+        assertTrue(photos.camera.isEmpty())
+    }
+
+    @Test
+    fun `a model that fails on a Photo says it is unreadable rather than crashing`() {
+        listOf(IllegalStateException("interpreter"), OutOfMemoryError(), UnsatisfiedLinkError()).forEach { failure ->
+            photos.readFailure = failure
+            val visit = viewModel()
+            visit.photoChosen("content://picked/1")
+            val state = visit.stateWhen { it.notice != null }
+            assertEquals(VisitNotice.Unreadable, state.notice)
+            assertEquals(VisitPhase.Empty, state.phase)
+        }
     }
 
     @Test
@@ -103,7 +130,6 @@ class VisitViewModelTest {
             SavedStateHandle(
                 mapOf(
                     VisitViewModel.PHOTO to "photos/kept.jpg",
-                    VisitViewModel.COUNTED to true,
                     VisitViewModel.CAMERA to "content://camera/pending.jpg",
                 ),
             ),
@@ -168,7 +194,7 @@ class VisitViewModelTest {
 
     @Test
     fun `a Photo gone after process death leaves the empty state, not a crash`() {
-        val saved = SavedStateHandle(mapOf(VisitViewModel.PHOTO to "photos/gone.jpg", VisitViewModel.COUNTED to true))
+        val saved = SavedStateHandle(mapOf(VisitViewModel.PHOTO to "photos/gone.jpg"))
         photos.next = null
         val visit = viewModel(saved)
         assertEquals(VisitNotice.Unreadable, visit.stateWhen { it.phase == VisitPhase.Empty }.notice)
@@ -206,6 +232,7 @@ class VisitViewModelTest {
         val camera = mutableListOf<String>()
         var next: PhotoReading? = null
         var failPersist = false
+        var readFailure: Throwable? = null
         private var made = 0
 
         override fun newCameraTarget() = "content://camera/${made++}.jpg"
@@ -218,6 +245,7 @@ class VisitViewModelTest {
 
         override suspend fun persist(source: String): String {
             if (failPersist) throw IOException("not an image")
+            if (source.startsWith("content://camera/") && source !in camera) throw IOException("swept")
             return "photos/${made++}.jpg".also { stored += it }
         }
 
@@ -229,7 +257,10 @@ class VisitViewModelTest {
 
         override fun resolve(photo: String) = File(photo)
 
-        override suspend fun read(photo: String) = next
+        override suspend fun read(photo: String): PhotoReading? {
+            readFailure?.let { throw it }
+            return next
+        }
     }
 
     private object NoBilling : TipBilling {
