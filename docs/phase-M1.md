@@ -13,11 +13,12 @@ are about 800 of the owner's handheld Photos of about 270 Visits, every one labe
 Calibration points and Entry points, and every Visit carries the Score the owner read at the Board.
 DeepDarts' 16,050 Photos are converted into the same records, unless the labels cannot be had (D5).
 A third of the owner's Capture sessions are frozen as the Held-out set, by a hash manifest in git.
-The bar phase 1's model must meet is written below and computed by code that has been tested on perfect
-and on broken predictions. No model exists yet. The difference a reader can check: **`darts-ml
-verify-held-out` passes against the committed manifest, and `darts-ml evaluate --predictions
-labels` reads 100% found and 0 mm on the Held-out set, with B2 short of 100% only by the counted
-Visits whose sheet records an open mismatch on p1**, so the bar is a command before it is a result.
+The bar phase 1's model must meet is written below and computed by code that has been tested on
+perfect and on broken predictions. No model exists yet. The difference a reader can check:
+**`darts-ml verify-held-out` passes against the committed manifest, and `darts-ml evaluate
+--predictions labels` reads 100% found and 0 mm on the Held-out set, with B2 short of 100% only by
+the counted Visits whose sheet records an open mismatch on p1**, so the bar is a command before it
+is a result.
 
 **`PLAN.md`'s paragraph holds, with one addition said here first.** It names the bar but not where
 the truth comes from. A label is the owner's reading of a Photo, and DeepDarts' own labels disagreed

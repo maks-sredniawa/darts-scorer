@@ -184,8 +184,8 @@ at and labels their calibration points and Entry points; the DeepDarts dataset i
 and a share of the owner's photos is held out and never trained on. The `ml/` folder holds the code
 that prepares them; the photos, labels and weights stay out of git (ADR-0008). Before M1 closes, the
 bar phase 1's model must meet is written in `phase-M1.md`, so it is set before training starts, not
-fitted to the first result. Labelling costs the owner's hours, training costs compute and iterations,
-so per rule 2 they are two phases.
+fitted to the first result. Labelling costs the owner's hours, training costs compute and
+iterations, so per rule 2 they are two phases.
 
 ## Phase M2 — The model
 
