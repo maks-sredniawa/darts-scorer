@@ -349,7 +349,8 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   inside the segmented row (Polish *Pojedyncze* at 200%), the row stacks as three full-width keys.
   TalkBack reads each group's name with its keys (*5, radio button, in list Number*); the visible
   labels are hidden from it so they are not read twice. Unselected keys are outlined in `outline`.
-- **A tap on the Photo** within 24 dp of a marker opens that Dart; anywhere else proposes a new one
+- **A tap on the Photo** on a marker's badge, or within 24 dp of its point, opens that Dart, at any
+  zoom; anywhere else proposes a new one
   while fewer than three are shown, *Miss* when it lands off the Board.
 - ***Undo* is a snackbar with no timer** (WCAG 2.2.1: nothing to adjust): it stays until *Undo*, its
   dismiss button, or the Visit's next change (a commit, another removal, a new Photo). The screen
