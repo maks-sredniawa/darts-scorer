@@ -161,7 +161,7 @@ private fun AppNavigationRail(
 ) {
     // The Scaffold has already padded and consumed the system bars; a side cutout is not one of them.
     NavigationRail(
-        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical),
+        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Start),
     ) {
         for (destination in TopLevelDestination.entries) {
             val selected = destination == current
