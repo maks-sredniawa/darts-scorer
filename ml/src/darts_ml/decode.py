@@ -46,7 +46,10 @@ class Decoded:
 
 
 def sigmoid(logits: np.ndarray) -> np.ndarray:
-    return 1 / (1 + np.exp(-logits))
+    # exp overflows to inf for very negative logits and 1 / inf is the right 0; this form is kept,
+    # rather than a stable one, because the phone's port reproduces it bit for bit.
+    with np.errstate(over="ignore"):
+        return 1 / (1 + np.exp(-logits))
 
 
 def decode(heads: Heads, threshold: float = THRESHOLD, entry_threshold: float | None = None) -> Decoded:

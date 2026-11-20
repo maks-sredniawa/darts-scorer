@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from darts_ml import DartsMlError
-from darts_ml.paths import DataDir, DataInsideRepo, Round, data_root, repo_roots
+from darts_ml.paths import DataDir, DataInsideRepo, Round, data_root, repo_roots, run_config
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -46,6 +46,16 @@ class PathsTest(unittest.TestCase):
                 with self.assertRaises(DataInsideRepo) as caught:
                     writes[link_at]()
                 self.assertIn("under DARTS_DATA", str(caught.exception))
+
+    def test_a_run_config_without_its_size_is_refused_by_name(self):
+        with tempfile.TemporaryDirectory() as outside:
+            data = DataDir(data_root({"DARTS_DATA": outside}))
+            run = data.runs() / "hand-made"
+            run.mkdir(parents=True)
+            (run / "config.json").write_text('{"batch": 16}', encoding="utf-8")
+            with self.assertRaises(DartsMlError) as caught:
+                run_config(data, "hand-made")
+            self.assertIn("has no size", str(caught.exception))
 
     def test_a_symlinked_capture_session_folder_is_refused(self):
         with tempfile.TemporaryDirectory() as outside:

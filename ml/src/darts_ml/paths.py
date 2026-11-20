@@ -133,4 +133,7 @@ def run_config(data: DataDir, run: str) -> tuple[Path, dict]:
     path = folder / "config.json"
     if not path.exists():
         raise DartsMlError(f"no run at {folder}; `darts-ml train` writes one")
-    return folder, json.loads(path.read_text(encoding="utf-8"))
+    config = json.loads(path.read_text(encoding="utf-8"))
+    if "size" not in config:
+        raise DartsMlError(f"{path} has no size: not a config `darts-ml train` wrote")
+    return folder, config
