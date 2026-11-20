@@ -34,12 +34,15 @@ object SupportConfig {
         // LiteRT's own artifact is in Licensee's list; these are compiled into its native library, or
         // trained into the model, where the dependency list cannot see them (ADR-0008, 2026-11-19).
         listOf(
-            inLiteRt("eigen", "https://gitlab.com/libeigen/eigen", MPL_2_0),
-            inLiteRt("xnnpack", "https://github.com/google/XNNPACK", BSD_3_CLAUSE),
-            inLiteRt("ruy", "https://github.com/google/ruy", APACHE_2_0),
-            inLiteRt("gemmlowp", "https://github.com/google/gemmlowp", APACHE_2_0),
-            inLiteRt("flatbuffers", "https://github.com/google/flatbuffers", APACHE_2_0),
-            inLiteRt("cpuinfo", "https://github.com/pytorch/cpuinfo", BSD_2_CLAUSE),
+            inLiteRt("libeigen", "eigen", "https://gitlab.com/libeigen/eigen", MPL_2_0),
+            inLiteRt("google", "xnnpack", "https://github.com/google/XNNPACK", BSD_3_CLAUSE),
+            inLiteRt("google", "ruy", "https://github.com/google/ruy", APACHE_2_0),
+            inLiteRt("google", "gemmlowp", "https://github.com/google/gemmlowp", APACHE_2_0),
+            inLiteRt("google", "flatbuffers", "https://github.com/google/flatbuffers", APACHE_2_0),
+            inLiteRt("pytorch", "cpuinfo", "https://github.com/pytorch/cpuinfo", BSD_2_CLAUSE),
+            inLiteRt("google", "pthreadpool", "https://github.com/google/pthreadpool", BSD_2_CLAUSE),
+            inLiteRt("maratyszcza", "fp16", "https://github.com/Maratyszcza/FP16", MIT),
+            inLiteRt("maratyszcza", "fxdiv", "https://github.com/Maratyszcza/FXdiv", MIT),
             LicensedArtifact(
                 groupId = "ooura",
                 artifactId = "fft2d",
@@ -68,7 +71,9 @@ object SupportConfig {
     val CONTRIBUTORS: List<Contributor> = emptyList()
 }
 
-private const val LITERT = "in LiteRT 1.4.2"
+// LiteRT builds these from TensorFlow's main branch at its release, which pins no upstream version
+// of them, so the version names the LiteRT build that carries them.
+private const val LITERT = "litert-1.4.2"
 
 private val APACHE_2_0 = SpdxLicence("Apache-2.0", "Apache License 2.0", "https://www.apache.org/licenses/LICENSE-2.0")
 private val BSD_2_CLAUSE =
@@ -79,6 +84,7 @@ private val BSD_3_CLAUSE =
         "BSD 3-Clause \"New\" or \"Revised\" License",
         "https://opensource.org/licenses/BSD-3-Clause",
     )
+private val MIT = SpdxLicence("MIT", "MIT License", "https://opensource.org/licenses/MIT")
 private val MPL_2_0 = SpdxLicence("MPL-2.0", "Mozilla Public License 2.0", "https://www.mozilla.org/MPL/2.0/")
 private val CC_BY_4_0 =
     SpdxLicence(
@@ -88,11 +94,12 @@ private val CC_BY_4_0 =
     )
 
 private fun inLiteRt(
+    owner: String,
     project: String,
     source: String,
     licence: SpdxLicence,
 ) = LicensedArtifact(
-    groupId = project,
+    groupId = owner,
     artifactId = project,
     version = LITERT,
     source = source,

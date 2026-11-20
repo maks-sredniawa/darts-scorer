@@ -31,16 +31,23 @@ class LiteRtModel(
     override val inputSize: Int
 
     init {
-        val shape = interpreter.getInputTensor(0).shape()
-        check(shape.size == 4 && shape[0] == 1 && shape[1] == 3 && shape[2] == shape[3]) {
-            "the model's input is ${shape.contentToString()}, not 1×3×n×n"
+        try {
+            val shape = interpreter.getInputTensor(0).shape()
+            check(shape.size == 4 && shape[0] == 1 && shape[1] == 3 && shape[2] == shape[3]) {
+                "the model's input is ${shape.contentToString()}, not 1×3×n×n"
+            }
+            inputSize = shape[2]
+            input = direct(3 * inputSize * inputSize)
+            val heads =
+                (0 until interpreter.outputTensorCount).associateWith { interpreter.getOutputTensor(it).shape() }
+            boardIndex = heads.entries.single { it.value[1] == Decoding.CALIBRATION_CHANNELS + 2 }.key
+            entryIndex = heads.entries.single { it.value[1] == 3 }.key
+            outputs = heads.mapValues { (_, s) -> direct(s.fold(1) { a, b -> a * b }) }
+        } catch (e: Throwable) {
+            // The caller never gets an instance to close, so the native interpreter is freed here.
+            interpreter.close()
+            throw e
         }
-        inputSize = shape[2]
-        input = direct(3 * inputSize * inputSize)
-        val heads = (0 until interpreter.outputTensorCount).associateWith { interpreter.getOutputTensor(it).shape() }
-        boardIndex = heads.entries.single { it.value[1] == Decoding.CALIBRATION_CHANNELS + 2 }.key
-        entryIndex = heads.entries.single { it.value[1] == 3 }.key
-        outputs = heads.mapValues { (_, s) -> direct(s.fold(1) { a, b -> a * b }) }
     }
 
     override fun run(input: FloatArray): Heads {
