@@ -15,7 +15,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -63,21 +62,17 @@ internal fun appEntryDecorators(): List<NavEntryDecorator<NavKey>> =
  * The back stack is rooted at [Visit], so Back from any top-level destination returns there and
  * Back from there exits. That is one rule rather than per-screen behaviour, and it is why
  * [showTopLevel] rewrites the stack instead of pushing onto it — pushing would let a user walk
- * Visit → Settings → Visit → Settings and need four Backs to leave.
+ * Visit → Settings → Visit → Settings and need four Backs to leave. Visit stays at the root under
+ * Settings rather than being replaced, so the Visit being scored, held by its entry's ViewModel,
+ * outlives a look at Settings.
  */
 @Composable
 fun MainNavigation(modifier: Modifier = Modifier) {
     val backStack = rememberNavBackStack(Visit)
     val activity = LocalActivity.current
 
-    // Which top-level destination the bar should show as selected. Derived from the *bottom* of the
-    // stack rather than the top, so a detail screen pushed on top does not deselect its own tab.
-    val current =
-        remember(backStack.firstOrNull()) {
-            TopLevelDestination.entries.firstOrNull { it.key == backStack.firstOrNull() }
-                ?: TopLevelDestination.VisitTab
-        }
-    val onDetailScreen = backStack.size > 1
+    val current = backStack.currentTab()
+    val onDetailScreen = backStack.lastOrNull()?.let(::isTopLevel) == false
     // Hidden on a detail screen: a detail screen has its own back affordance, and tabs that stay
     // visible invite a tap that silently discards an unsaved form.
     val showTabs = !onDetailScreen
@@ -196,12 +191,22 @@ private fun AppNavigationBar(
 }
 
 /**
- * Replace the stack with just this destination.
- *
- * Not `add`: a bottom bar is a switch between roots, not a path to walk deeper into. Pushing would
- * let a user tap between two tabs a dozen times and need a dozen Backs to leave the app.
+ * Leaves [Visit] alone, or [Visit] with the tab on it. Not a push: tabs are a switch, not a path, so
+ * tapping between them a dozen times never needs a dozen Backs. Visit's entry is trimmed down to,
+ * never removed, so its ViewModel is not cleared.
  */
-private fun NavBackStack<NavKey>.showTopLevel(destination: TopLevelDestination) {
-    clear()
-    add(destination.key)
+internal fun NavBackStack<NavKey>.showTopLevel(destination: TopLevelDestination) {
+    if (firstOrNull() != Visit) {
+        clear()
+        add(Visit)
+    }
+    while (size > 1) removeAt(lastIndex)
+    if (destination.key != Visit) add(destination.key)
 }
+
+/** The tab shown as selected: the topmost tab in the stack, so a detail screen keeps its tab lit. */
+internal fun List<NavKey>.currentTab(): TopLevelDestination =
+    lastOrNull(::isTopLevel)?.let { key -> TopLevelDestination.entries.first { it.key == key } }
+        ?: TopLevelDestination.VisitTab
+
+private fun isTopLevel(key: NavKey) = TopLevelDestination.entries.any { it.key == key }
