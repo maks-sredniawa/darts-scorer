@@ -78,7 +78,8 @@ only on a model that met this phase's bar.
 - [x] **The gate (A):** the Kotlin pipeline gives the Board and Darts that Python's `locate()` gives,
       as `darts-ml phone-parity` writes them out, on DeepDarts' val Photos written through
       `MediaFiles` (`phase-1.md` §1, R1). 2026-11-20: 200 of 200 on API 36 and API 26, worst
-      crossing 0.005 mm; the Credits ADR-0008 asks for came with it.
+      crossing 0.005 mm; the Credits ADR-0008 asks for came with it. Its second question, the
+      `photos` kind's q85 re-encode, moved val's exactly right from 69.2% to 68.7% (R5): D2 holds.
 - [ ] **A Visit scored from one Photo (B)**, with the Visit count.
 - [ ] **Correcting a Dart (C)** with the keypad sheet (D3) and *Enter the Score yourself* (D6).
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
