@@ -320,9 +320,11 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   when a result arrives; a corrected marker that moves does not renumber them, and a new Dart takes
   the lowest free number, so a chip never changes under the player's finger.
 - **The corrected marker** is the measured marker's rings at the same size with a hollow centre, the
-  number moved into the badge's place (a corrected Dart is never unsure). **A Miss has no bed and no
-  marker**: a Dart set to Miss, or added as one, is a chip only. A Visit entered by hand has no
-  markers at all.
+  number moved into the badge's place (a corrected Dart is never unsure). Hollow means the player set
+  the Score. **A Miss has no bed, so it keeps its place**: a Dart set to Miss stays where it was, and
+  one added by a tap sits at the tap, both hollow (2026-11-20; until then a Miss set by hand lost its
+  marker while a measured one kept it). A Dart with no place, a Miss from *Add a Dart* or a Visit
+  entered by hand, has no marker.
 - **Which bed's centre:** a single goes to the one of its segment's two single beds nearer where the
   Dart was or the tap landed, and to the outer one from *Add a Dart*; an outer bull keeps that point's
   direction. *Done* on an unchanged Score confirms the Dart where it was measured: it is not moved
