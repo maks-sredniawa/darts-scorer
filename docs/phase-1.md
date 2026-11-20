@@ -226,8 +226,9 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
 - **Unsure Dart** (confidence below 0.5): a dashed keyline and a *?* badge on the marker, an
   outlined chip with *Check*, and *Check Dart 2* under the total. Shape and text, never colour alone
   (phase T reuses this). Opening it and pressing *Done* confirms it. Nothing blocks *Next Visit*.
-- **Changing a Dart:** its marker or chip opens the sheet; *Done* commits; the marker moves to the
-  centre of the chosen bed and becomes a hollow ring, so nobody reads it as a measured Entry point.
+- **Changing a Dart:** its marker or chip opens the sheet; *Done* commits; the marker becomes a
+  hollow ring at the centre of the chosen bed, or for a Miss where it was, so nobody reads it as a
+  measured Entry point (*The corrected marker*, §4).
 - **The keypad sheet:** each key is a selectable item that exposes its selected state; Single /
   Double / Treble and 1–20 (with the Bulls and *Miss*) are two labelled groups, so two picks read
   as one Score; the preselected key shows a check and a fill, never tint alone; every key is at
