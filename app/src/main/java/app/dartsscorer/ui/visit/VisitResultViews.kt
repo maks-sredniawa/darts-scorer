@@ -4,6 +4,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -41,6 +46,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -379,7 +385,8 @@ private fun AddDartButton(
 /**
  * The Photo cropped to the Board, one node for TalkBack; its markers are not focusable, since the
  * chips are the path that needs no precise tap. A tap on a marker opens its Dart, a tap elsewhere
- * proposes a new Dart while fewer than three are shown.
+ * proposes a new Dart while fewer than three are shown. Pinch and double-tap zoom the Photo for a
+ * closer look; the markers keep their size, so the zoom uncovers the tip. A new Photo starts at 1×.
  */
 @Composable
 internal fun BoardPhoto(
@@ -403,38 +410,79 @@ internal fun BoardPhoto(
     val colors = MaterialTheme.colorScheme
     val crop = result.crop
     val latest by rememberUpdatedState(result)
+    var zoom by remember(result.photo) { mutableStateOf(PhotoZoom()) }
     Canvas(
         modifier =
             modifier
                 .photoSize(crop.width / crop.height, beside)
                 .clipToBounds()
                 .pointerInput(measurer, numberStyle) {
-                    detectTapGestures { tap ->
+                    detectTapGestures(onDoubleTap = { at -> zoom = zoom.toggled(at, size.toSize()) }) { tap ->
                         val shown = latest
-                        val markers = markers(shown, size.toSize(), measurer, numberStyle)
+                        val view = zoom.clampedTo(size.toSize())
+                        val markers = markers(shown, size.toSize(), view, measurer, numberStyle)
                         val hit = markers.map { it.spot }.hitBy(tap, TOUCH_TARGET.toPx() / 2)
                         if (hit != null) {
                             onOpenDart(markers[hit].dart.number)
                         } else {
                             val scale = size.width / shown.crop.width
-                            onSpot(Point(shown.crop.left + tap.x / scale, shown.crop.top + tap.y / scale))
+                            val base = view.toBase(tap)
+                            onSpot(Point(shown.crop.left + base.x / scale, shown.crop.top + base.y / scale))
                         }
                     }
-                }.semantics {
+                }.zoomGestures({ zoom }, { zoom = it })
+                .semantics {
                     contentDescription = description
                     role = Role.Image
                 },
     ) {
+        val view = zoom.clampedTo(size)
         val scale = (size.width / crop.width).toFloat()
         withTransform({
-            scale(scale, scale, pivot = Offset.Zero)
+            translate(view.pan.x, view.pan.y)
+            scale(view.zoom * scale, view.zoom * scale, pivot = Offset.Zero)
             translate(-crop.left.toFloat(), -crop.top.toFloat())
         }) {
             with(painter) { draw(Size(result.width.toFloat(), result.height.toFloat())) }
         }
-        markers(result, size, measurer, numberStyle).forEach { drawMarker(it, colors) }
+        markers(result, size, view, measurer, numberStyle).forEach { drawMarker(it, colors) }
     }
 }
+
+/**
+ * Pinch, and a one-finger drag once zoomed in. A drag is consumed only while it moves the Photo, so
+ * at 1× or at a pan edge it falls through to the scroll around the Photo; a consumed move also
+ * cancels the tap, so a pan never adds a Dart.
+ */
+private fun Modifier.zoomGestures(
+    current: () -> PhotoZoom,
+    onZoom: (PhotoZoom) -> Unit,
+): Modifier =
+    pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            var travel = 0f
+            do {
+                val event = awaitPointerEvent()
+                val box = size.toSize()
+                val now = current().clampedTo(box)
+                val move = event.calculatePan()
+                val next =
+                    if (event.changes.count { it.pressed } >= 2) {
+                        travel = Float.POSITIVE_INFINITY
+                        event.changes.forEach { it.consume() }
+                        now.zoomedAbout(event.calculateCentroid(), event.calculateZoom(), box).panned(move, box)
+                    } else {
+                        travel += move.getDistance()
+                        if (travel > viewConfiguration.touchSlop) now.panned(move, box) else now
+                    }
+                if (next != now) {
+                    onZoom(next)
+                    event.changes.forEach { it.consume() }
+                }
+            } while (event.changes.any { it.pressed })
+        }
+    }
 
 private fun Point.screen(
     crop: Crop,
@@ -447,9 +495,11 @@ private class Marker(
     val spot: MarkerSpot,
 )
 
+/** Placed in screen space, so a zoomed Photo keeps its badges readable; a Dart zoomed out of the box has none. */
 private fun Density.markers(
     shown: VisitPhase.Scored,
     canvas: Size,
+    zoom: PhotoZoom,
     measurer: TextMeasurer,
     style: TextStyle,
 ): List<Marker> {
@@ -457,8 +507,10 @@ private fun Density.markers(
     val scale = canvas.width / shown.crop.width
     val keyline = HAIRLINE.toPx()
     val ringOuter = Spacing.tight.toPx() + 2 * keyline + RING_DARK.toPx()
+    val box = Rect(Offset.Zero, canvas)
     return shown.darts.mapNotNull { dart ->
-        val at = dart.at?.screen(shown.crop, scale) ?: return@mapNotNull null
+        val at = dart.at?.let { zoom.toScreen(it.screen(shown.crop, scale)) } ?: return@mapNotNull null
+        if (!box.contains(at)) return@mapNotNull null
         val label = if (dart.unsure && !dart.corrected) "${dart.number}?" else dart.number.toString()
         val text = measurer.measure(label, style, density = markerDensity)
         val height = text.size.height.toFloat()
