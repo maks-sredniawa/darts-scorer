@@ -7,6 +7,7 @@ import math
 import shutil
 import tomllib
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +20,7 @@ from .decode import ENTRY_THRESHOLD, MIN_INLIERS, decode
 from .homography import invert, project
 from .locate import Located, _board
 from .model import BOARD_OFFSETS, CALIBRATION_CHANNELS, ENTRY_HEAT, ENTRY_OFFSETS, Heads
+from .training_data import Sample
 
 REPO = Path(__file__).resolve().parents[3]
 SCORING_CASES = REPO / "ml" / "tests" / "scoring-cases.toml"
@@ -37,6 +39,9 @@ _SPARSE_FLOOR = -3.0
 _STRIP_PX = 150
 _SPARSE_FILL = -30.0
 _RNG_POPULATIONS = (8, 9, 12, 20, 33, 47, 61, 79, 80)
+PHOTOS_LONG_EDGE = 2048
+PHOTOS_QUALITY = 85
+_EXIF_ORIENTATION = 0x0112
 
 
 def scoring_table(cases_path: Path = SCORING_CASES) -> list[tuple[float, float, str]]:
@@ -119,6 +124,18 @@ def heads_case(name: str, matrix: np.ndarray, heads: Heads) -> dict:
             "located": located_record(located)}
 
 
+def heads_from_record(case: dict) -> tuple[np.ndarray, Heads]:
+    """A committed `heads-*.json`'s matrix and sparse heads, rebuilt as `heads_case` reduced them."""
+    def head(record: dict) -> np.ndarray:
+        values = np.zeros(record["shape"], dtype=np.float32)
+        values[slice(*record["heat"])] = record["fill"]
+        for index, value in record["cells"]:
+            values.flat[index] = value
+        return values
+
+    return np.array(case["matrix"]).reshape(3, 3), Heads(head(case["board"]), head(case["entry"]))
+
+
 def write_fixtures(target: Path, heads: list[dict] | None = None) -> list[Path]:
     target.mkdir(parents=True, exist_ok=True)
     written = []
@@ -135,6 +152,40 @@ def write_fixtures(target: Path, heads: list[dict] | None = None) -> list[Path]:
         path.write_text(json.dumps(case, separators=(",", ":")), encoding="utf-8")
         written.append(path)
     return written
+
+
+def as_stored(photo: Path, target: Path) -> tuple[float, float]:
+    """`photo` written to `target` as `MediaFiles` writes the `photos` kind: a power-of-two subsample, the long edge
+    capped at PHOTOS_LONG_EDGE with a bilinear scale, JPEG at PHOTOS_QUALITY with no metadata; returns the scale on
+    each axis. A Photo with an EXIF rotation is refused rather than baked in, since its labels sit on the unrotated
+    pixels."""
+    with Image.open(photo) as image:
+        if image.getexif().get(_EXIF_ORIENTATION, 1) != 1:
+            raise DartsMlError(f"{photo} carries an EXIF rotation, and its labels are on the unrotated pixels")
+        width, height = image.size
+        sample = 1
+        while max(width, height) // (sample * 2) >= PHOTOS_LONG_EDGE:
+            sample *= 2
+        reduced = image.convert("RGB").reduce(sample)
+    longest = max(reduced.size)
+    if longest > PHOTOS_LONG_EDGE:
+        ratio = PHOTOS_LONG_EDGE / longest
+        reduced = reduced.resize((max(1, int(reduced.width * ratio)), max(1, int(reduced.height * ratio))),
+                                 Image.Resampling.BILINEAR)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    reduced.save(target, "JPEG", quality=PHOTOS_QUALITY)
+    return reduced.width / width, reduced.height / height
+
+
+def as_stored_samples(samples: list[Sample], folder: Path) -> list[Sample]:
+    """Each Sample's Photo written through `as_stored` into `folder`, its labels scaled with it (phase-1.md §1)."""
+    stored = []
+    for i, sample in enumerate(samples):
+        sx, sy = as_stored(sample.photo, folder / f"{i:05d}.jpg")
+        stored.append(replace(sample, photo=folder / f"{i:05d}.jpg",
+                              calibration=tuple((c, x * sx, y * sy, w) for c, x, y, w in sample.calibration),
+                              entries=tuple((x * sx, y * sy) for x, y in sample.entries)))
+    return stored
 
 
 def picked(samples: list, count: int) -> list:
