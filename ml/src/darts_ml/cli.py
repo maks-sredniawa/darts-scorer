@@ -142,6 +142,18 @@ def _parser() -> argparse.ArgumentParser:
                        help="CPU thread counts to time, 0 for the runtime's default; default: 0 4")
     bench.add_argument("--warmup", type=_non_negative, default=5)
     bench.add_argument("--runs", type=_positive, default=60)
+    fixtures = step("phone-fixtures", _phone_fixtures, "the files phase 1's Kotlin unit tests hold the port to, "
+                    "written into app/src/test/resources/scoring/ (phase-1.md Tests)", capture_session=False)
+    fixtures.add_argument("--run", help="also the decoding fixtures, from that run's exported LiteRT model on "
+                          "DeepDarts' val Photos; without it, the scoring table, RANSAC's draws and the warp only")
+    fixtures.add_argument("--weights", choices=WEIGHTS, default="best")
+    phone = step("phone-parity", _phone_parity, "phase 1's gate: the app's pipeline on the attached phone or "
+                 "emulator against Python's locate(), on DeepDarts' val Photos written through MediaFiles "
+                 "(phase-1.md §1)", capture_session=False)
+    phone.add_argument("--run", required=True, help="the run whose best.tflite the app ships")
+    phone.add_argument("--weights", choices=WEIGHTS, default="best")
+    phone.add_argument("--photos", type=_positive, default=150, help="how many val Photos; default 150")
+    phone.add_argument("--workers", type=_non_negative, default=4)
     deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
@@ -459,6 +471,55 @@ def _runtime_bench(args) -> int:
     print(f"1×3×{size}×{size} float32 per inference; a Photo runs it twice (phase-M2.md §2)")
     print("\n".join(latency_lines(readings) + skipped))
     return 0
+
+
+def _phone_fixtures(args) -> int:
+    from .phone import FIXTURES, chosen_heads, write_fixtures
+
+    heads = None
+    if args.run:
+        from .export import runtime
+        from .locate import Inference
+        from .training_data import deepdarts_samples
+
+        data = DataDir.from_environment()
+        folder, config = run_config(data, args.run)
+        path = exported_path(folder, args.weights, Format.LITERT)
+        check_record(path, folder / f"{args.weights}.pt")
+        run = Inference(runtime(Format.LITERT, path), "cpu", config["size"], 1, 0)
+        heads = chosen_heads(deepdarts_samples(data, "val"), run, data.root / "phone-parity" / "fixtures")
+    for path in write_fixtures(FIXTURES, heads):
+        print(f"{path}: {path.stat().st_size} bytes")
+    return 0
+
+
+def _phone_parity(args) -> int:
+    import shutil
+
+    from .export import runtime
+    from .locate import Inference, locate
+    from .phone import device_name, picked, run_parity, same_model
+    from .runtime_bench import Device, attached_devices, choose_device, run_tool
+    from .training_data import deepdarts_samples
+
+    sys.stdout.reconfigure(line_buffering=True)
+    data = DataDir.from_environment()
+    folder, config = run_config(data, args.run)
+    path = exported_path(folder, args.weights, Format.LITERT)
+    check_record(path, folder / f"{args.weights}.pt")
+    same_model(path)
+    if shutil.which("adb") is None:
+        raise DartsMlError("adb is not on PATH")
+    serial = choose_device(attached_devices(run_tool(["adb", "devices"])))
+    if serial is None:
+        raise DartsMlError("no device attached (adb devices); start an emulator and install both APKs first")
+    samples = picked(deepdarts_samples(data, "val"), args.photos)
+    run = Inference(runtime(Format.LITERT, path), "cpu", config["size"], 1, args.workers)
+    report = run_parity(Device(serial), [(device_name(s), s.photo) for s in samples],
+                        data.root / "phone-parity" / args.run, args.run, lambda photos: locate(run, photos),
+                        lambda line: print(line, file=sys.stderr, flush=True))
+    print(report)
+    return 0 if report.startswith("PASS") else 1
 
 
 def _deepdarts_score(args) -> int:
