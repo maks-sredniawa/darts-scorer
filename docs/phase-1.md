@@ -220,14 +220,19 @@ On 200 of DeepDarts' 1,070 val Photos, every 5th or so in the split's order
 The design brief behind D3 was taken on 2026-11-20; its wireframes go into the checkpoint C PR.
 
 - **The result:** the Photo cropped to the Board (not warped, so Darts still look like Darts), a
-  numbered marker at each Entry point with the white and black keyline, the total in
-  `displayLarge`, and a chip per Dart (*1 · T20 · 60*). Markers are numbered by position, top to
-  bottom, and the copy never implies throw order: the Photo cannot know it.
-- **Unsure Dart** (confidence below 0.5): a dashed keyline and a *?* badge on the marker, an
+  marker at each Entry point, the total in
+  `displayLarge`, and a chip per Dart (*1 · T20 · 60*). A marker is a thin ring with its centre
+  clear, so the dart tip shows through: an 8 dp hole inside a light, a dark and a light band (1,
+  1.5 and 1 dp, about 23 dp across), so it reads on a dark Board and a light wall. Its number sits
+  beside it in a `labelMedium` badge touching the ring at 45° up and to the right, flipped to
+  whichever side stays inside the crop. Markers are numbered by position, top to bottom, and the
+  copy never implies throw order: the Photo cannot know it.
+- **Unsure Dart** (confidence below 0.5): a dashed ring (4 dp on, 3 dp off) and an *n?* badge in
+  `tertiaryContainer`, where a measured Dart's badge is a plain *n* in `surfaceContainerLowest`; an
   outlined chip with *Check*, and *Check Dart 2* under the total. Shape and text, never colour alone
   (phase T reuses this). Opening it and pressing *Done* confirms it. Nothing blocks *Next Visit*.
 - **Changing a Dart:** its marker or chip opens the sheet; *Done* commits; the marker becomes a
-  hollow ring at the centre of the chosen bed, or for a Miss where it was, so nobody reads it as a
+  badge alone at the centre of the chosen bed, or for a Miss where it was, so nobody reads it as a
   measured Entry point (*The corrected marker*, §4).
 - **The keypad sheet:** each key is a selectable item that exposes its selected state; Single /
   Double / Treble and 1–20 (with the Bulls and *Miss*) are two labelled groups, so two picks read
@@ -300,8 +305,8 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   camera still holds the window, and TalkBack puts its own focus on the first node when the window comes
   back; a request made before that is lost. Read on `pixel-api36` with TalkBack on: focus lands on the
   Score heading, and on the banner when no Board is found.
-- **Markers grow with the font scale up to 1.3** and no further, so at 2.0 they do not cover the Darts
-  they mark; the chips carry the Score at full size.
+- **A marker's number grows with the font scale up to 1.3** and no further, so at 2.0 its badge does
+  not cover the Darts; the ring stays 23 dp, and the chips carry the Score at full size.
 - **The debug build's timing line** R2 and R4 read is `PhotoReader: both passes: <n> ms at <t>
   threads`, from `scoring/ReadTiming.kt` in `src/debug/` with a no-op in `src/release/`.
 - **R2's count is picked in the debug build**, in Settings' Debug section (1, 2, 4 or 6), so one
@@ -320,16 +325,17 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 - **A Dart keeps its number through corrections.** The top-to-bottom rule numbers the model's Darts
   when a result arrives; a corrected marker that moves does not renumber them, and a new Dart takes
   the lowest free number, so a chip never changes under the player's finger.
-- **The corrected marker** is the measured marker's rings at the same size with a hollow centre, the
-  number moved into the badge's place (a corrected Dart is never unsure). Hollow means the player set
-  the Score. **A Miss has no bed, so it keeps its place**: a Dart set to Miss stays where it was, and
-  one added by a tap sits at the tap, both hollow (2026-11-20; until then a Miss set by hand lost its
+- **The corrected marker** has no ring, only its badge centred on its place, in `inverseSurface` with
+  an `inverseOnSurface` number (a corrected Dart is never unsure). No ring means the player set the
+  Score; it sits on a bed's centre, not a tip, so it hides nothing, and it is kept inside the crop.
+  **A Miss has no bed, so it keeps its place**: a Dart set to Miss stays where it was, and one added
+  by a tap sits at the tap, both as a badge (2026-11-20; until then a Miss set by hand lost its
   marker while a measured one kept it). A Dart with no place, a Miss from *Add a Dart* or a Visit
   entered by hand, has no marker.
 - **Which bed's centre:** a single goes to the one of its segment's two single beds nearer where the
   Dart was or the tap landed, and to the outer one from *Add a Dart*; an outer bull keeps that point's
   direction. *Done* on an unchanged Score confirms the Dart where it was measured: it is not moved
-  and not drawn hollow.
+  and keeps its ring.
 - **The keypad's two picks.** While a Bull or *Miss* is picked the ring row shows nothing selected; a
   ring tapped then waits for a number (*Pick a number*, *Done* disabled), and a number tapped then is
   a single. *Add a Dart* opens with Single and no number.
