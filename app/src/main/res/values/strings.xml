@@ -33,6 +33,63 @@
     <string name="visit_tip_ask_accept">Leave a tip</string>
     <string name="visit_tip_ask_decline">No thanks</string>
 
+    <!-- Visit: one Photo of the Board scored (docs/phase-1.md §3). Board, Dart, Visit, Photo and
+         Score are CONTEXT.md's words; a Dart's number counts from the top of the Photo, never throw
+         order. -->
+    <string name="visit_empty_title">Score a Visit</string>
+    <string name="visit_empty_body">After a Visit, take a Photo of the Board with its Darts still in it.</string>
+    <string name="visit_take_photo">Take a Photo</string>
+    <string name="visit_choose_photo">Choose a Photo</string>
+    <string name="visit_take_another">Take another Photo</string>
+    <string name="visit_next">Next Visit</string>
+    <string name="visit_reading">Reading the Photo…</string>
+    <string name="visit_score_label">Visit Score</string>
+    <string name="visit_no_darts">No Darts found</string>
+    <!-- Under the total, once per unsure Dart (below the model's confidence). %1$d is the Dart's number. -->
+    <string name="visit_check_dart">Check Dart %1$d</string>
+    <string name="visit_chip_check">Check</string>
+    <!-- A Dart's chip: its number, its Score in short (T20) and its value, e.g. "1 · T20 · 60". -->
+    <string name="visit_chip">%1$d · %2$s · %3$d</string>
+    <!-- What a screen reader says for a chip: %1$s is the chip's visible text, %2$s the Score spoken
+         ("treble 20"), %3$s the points ("60 points"). It must start with the visible text, so voice
+         control finds the chip by what is on screen. -->
+    <string name="visit_chip_description">%1$s, %2$s, %3$s</string>
+    <string name="visit_chip_description_unsure">%1$s, %2$s, %3$s, check</string>
+    <string name="visit_no_board_title">No Board found</string>
+    <string name="visit_no_board_hint">Take the Photo with the whole Board in the frame, in more light.</string>
+    <string name="visit_no_camera_title">No camera app</string>
+    <string name="visit_no_camera_body">This phone has no camera app to take a Photo with. A Photo already on the phone can still be scored.</string>
+    <string name="visit_unreadable_title">The Photo could not be opened</string>
+    <string name="visit_unreadable_body">Try taking or choosing another Photo.</string>
+    <!-- The screen reader's summary of a result, read when it appears: "Visit Score 81." then the
+         Darts, then which are unsure. -->
+    <string name="visit_summary_score">Visit Score %1$d.</string>
+    <!-- %2$s is the Darts' Scores spoken, joined with commas: "treble 20, single 20, single 1". -->
+    <plurals name="visit_summary_darts">
+        <item quantity="one">%1$d Dart: %2$s.</item>
+        <item quantity="other">%1$d Darts: %2$s.</item>
+    </plurals>
+    <string name="visit_summary_no_darts">No Darts found.</string>
+    <string name="visit_summary_unsure">Dart %1$d is unsure.</string>
+    <plurals name="visit_points">
+        <item quantity="one">%1$d point</item>
+        <item quantity="other">%1$d points</item>
+    </plurals>
+    <!-- A Dart's Score spoken. %1$d is the segment, 1 to 20. -->
+    <string name="score_single">single %1$d</string>
+    <string name="score_double">double %1$d</string>
+    <string name="score_treble">treble %1$d</string>
+    <string name="score_outer_bull">outer bull</string>
+    <string name="score_bull">bull</string>
+    <string name="score_miss">miss</string>
+    <!-- A Dart's Score in short, on its chip: S20, D16, T20, 25, Bull, Miss. -->
+    <string name="score_short_single">S%1$d</string>
+    <string name="score_short_double">D%1$d</string>
+    <string name="score_short_treble">T%1$d</string>
+    <string name="score_short_outer_bull">25</string>
+    <string name="score_short_bull">Bull</string>
+    <string name="score_short_miss">Miss</string>
+
     <!-- Settings -->
     <string name="settings_appearance">Appearance</string>
     <string name="settings_theme_system">System</string>

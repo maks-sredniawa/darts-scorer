@@ -19,6 +19,54 @@
     <string name="visit_tip_ask_accept">Zostaw napiwek</string>
     <string name="visit_tip_ask_decline">Nie, dziękuję</string>
 
+    <string name="visit_empty_title">Policz podejście</string>
+    <string name="visit_empty_body">Po podejściu zrób zdjęcie tarczy z rzutkami, które w niej zostały.</string>
+    <string name="visit_take_photo">Zrób zdjęcie</string>
+    <string name="visit_choose_photo">Wybierz zdjęcie</string>
+    <string name="visit_take_another">Zrób nowe zdjęcie</string>
+    <string name="visit_next">Następne podejście</string>
+    <string name="visit_reading">Odczytywanie zdjęcia…</string>
+    <string name="visit_score_label">Wynik podejścia</string>
+    <string name="visit_no_darts">Nie znaleziono rzutek</string>
+    <string name="visit_check_dart">Sprawdź rzutkę %1$d</string>
+    <string name="visit_chip_check">Sprawdź</string>
+    <string name="visit_chip">%1$d · %2$s · %3$d</string>
+    <string name="visit_chip_description">%1$s, %2$s, %3$s</string>
+    <string name="visit_chip_description_unsure">%1$s, %2$s, %3$s, sprawdź</string>
+    <string name="visit_no_board_title">Nie znaleziono tarczy</string>
+    <string name="visit_no_board_hint">Zrób zdjęcie z całą tarczą w kadrze, przy lepszym świetle.</string>
+    <string name="visit_no_camera_title">Brak aplikacji aparatu</string>
+    <string name="visit_no_camera_body">Na tym telefonie nie ma aplikacji aparatu, którą można zrobić zdjęcie. Zdjęcie zapisane już w telefonie nadal można policzyć.</string>
+    <string name="visit_unreadable_title">Nie udało się otworzyć zdjęcia</string>
+    <string name="visit_unreadable_body">Zrób albo wybierz inne zdjęcie.</string>
+    <string name="visit_summary_score">Wynik podejścia %1$d.</string>
+    <plurals name="visit_summary_darts">
+        <item quantity="one">%1$d rzutka: %2$s.</item>
+        <item quantity="few">%1$d rzutki: %2$s.</item>
+        <item quantity="many">%1$d rzutek: %2$s.</item>
+        <item quantity="other">%1$d rzutki: %2$s.</item>
+    </plurals>
+    <string name="visit_summary_no_darts">Nie znaleziono rzutek.</string>
+    <string name="visit_summary_unsure">Rzutka %1$d jest niepewna.</string>
+    <plurals name="visit_points">
+        <item quantity="one">%1$d punkt</item>
+        <item quantity="few">%1$d punkty</item>
+        <item quantity="many">%1$d punktów</item>
+        <item quantity="other">%1$d punktu</item>
+    </plurals>
+    <string name="score_single">pojedyncze %1$d</string>
+    <string name="score_double">podwójne %1$d</string>
+    <string name="score_treble">potrójne %1$d</string>
+    <string name="score_outer_bull">zewnętrzny bull</string>
+    <string name="score_bull">bull</string>
+    <string name="score_miss">pudło</string>
+    <string name="score_short_single">S%1$d</string>
+    <string name="score_short_double">D%1$d</string>
+    <string name="score_short_treble">T%1$d</string>
+    <string name="score_short_outer_bull">25</string>
+    <string name="score_short_bull">Bull</string>
+    <string name="score_short_miss">Pudło</string>
+
     <string name="settings_appearance">Wygląd</string>
     <string name="settings_theme_system">Systemowy</string>
     <string name="settings_theme_light">Jasny</string>
