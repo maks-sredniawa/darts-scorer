@@ -24,7 +24,7 @@ class KeypadPositionTest {
         automation.serviceInfo =
             automation.serviceInfo.apply { flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS }
         compose.setContent {
-            KeypadSheet(Keypad(dart = 1), {}, {}, {}, {}, {}, {})
+            KeypadSheet(Keypad(dart = 1), {}, {}, {}, {}, {}, {}, {})
         }
         compose.waitForIdle()
 
