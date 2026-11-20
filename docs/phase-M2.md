@@ -14,7 +14,8 @@ bar is code (`darts-ml evaluate`). After this phase, `ml/` trains one keypoint m
 writes its predictions in the format `evaluate` reads. The difference a reader can check:
 **`darts-ml evaluate --predictions <the final model's file>` exits 0 on the frozen Held-out set**,
 or, if it does not, the phase closes with the figures it reached and the decision that follows
-(§7). Phase 1 opens only on the first.
+(§7). Phase 1 closes only on the first; since 2026-11-20 it is built alongside this phase rather
+than after it (`PLAN.md`).
 
 **`PLAN.md`'s paragraph holds, with three additions said here first.** It says the Board comes first
 and the Darts second; that is checkpoints C and D. It says the Board is found "from a handheld
@@ -463,7 +464,7 @@ three readings in this phase.
 - **Before each reading**: the run is chosen on the Validation sessions alone; `verify-held-out`
   passes; the commit and the weights' SHA-256 are written into the readings below *before* `evaluate`
   runs.
-- **Met** → phase 1 opens with that model.
+- **Met** → phase 1 ships that model and may close.
 - **Missed** → the figures beside the bar (phase-M1.md §7) say where: Board or Darts, which wires,
   which hard cases. The next run changes something the Validation sessions can show helped. A third
   miss stops the phase and goes to the owner with those figures and the options: more training

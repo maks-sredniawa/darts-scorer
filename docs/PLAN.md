@@ -21,10 +21,11 @@ was extracted from and the first app built from it settled on exactly this split
   for the board photo, Darts Scorer's palette and mark
 - [ ] **Phase M1** — The data, off the phone (ADR-0008): the `ml/` folder (code only), the DeepDarts
   dataset, the owner's own handheld photos taken and labelled, a held-out set put aside, and the bar
-  for opening phase 1 written down. **It runs alongside phases 0 and P**
+  that phase 1's model must meet written down. **It runs alongside phases 0 and P**
 - [ ] **Phase M2** — The model, off the phone (ADR-0008): a detector trained with permissively licensed code,
   the board first and the darts second, its accuracy measured on the held-out handheld photos.
-  **Phase 1 waits for it**
+  **Phase 1 is built alongside it, and closes only on a model that met the bar** (amended
+  2026-11-20; it used to wait for M2)
 - [ ] **Phase P** — The pipeline: repository setup, upload key, Play entry, secrets, a green internal upload
 - [ ] **Phase 1** — The mechanism on the phone: one photo in, the darts drawn on the board with their
   score, offline, plus tapping the board to correct a dart, and the camera ask with its denial path.
@@ -182,9 +183,9 @@ than code. The owner takes handheld photos of a real board from the angles a pla
 at and labels their calibration points and Entry points; the DeepDarts dataset is added beside them,
 and a share of the owner's photos is held out and never trained on. The `ml/` folder holds the code
 that prepares them; the photos, labels and weights stay out of git (ADR-0008). Before M1 closes, the
-bar for opening phase 1 is written in `phase-M1.md`, so it is set before training starts, not fitted
-to the first result. Labelling costs the owner's hours, training costs compute and iterations, so per
-rule 2 they are two phases.
+bar phase 1's model must meet is written in `phase-M1.md`, so it is set before training starts, not
+fitted to the first result. Labelling costs the owner's hours, training costs compute and iterations,
+so per rule 2 they are two phases.
 
 ## Phase M2 — The model
 

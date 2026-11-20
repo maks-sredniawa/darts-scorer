@@ -34,7 +34,7 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 ## Phase M1 — the data
 
-[`phase-M1.md`](phase-M1.md). Runs alongside phase P; phase 1 waits for M2, which waits for this.
+[`phase-M1.md`](phase-M1.md). Runs alongside phase P. Phase 1 is built alongside M2 and closes only on a model that met this phase's bar.
 
 - [x] **Answer the six decisions** at the top of `phase-M1.md`, the bar (D1) first: it is set before
       any training, never after a result. All six taken as recommended on 2026-11-13.

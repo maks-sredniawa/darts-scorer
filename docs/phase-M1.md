@@ -13,7 +13,7 @@ are about 800 of the owner's handheld Photos of about 270 Visits, every one labe
 Calibration points and Entry points, and every Visit carries the Score the owner read at the Board.
 DeepDarts' 16,050 Photos are converted into the same records, unless the labels cannot be had (D5).
 A third of the owner's Capture sessions are frozen as the Held-out set, by a hash manifest in git.
-The bar for opening phase 1 is written below and computed by code that has been tested on perfect
+The bar phase 1's model must meet is written below and computed by code that has been tested on perfect
 and on broken predictions. No model exists yet. The difference a reader can check: **`darts-ml
 verify-held-out` passes against the committed manifest, and `darts-ml evaluate --predictions
 labels` reads 100% found and 0 mm on the Held-out set, with B2 short of 100% only by the counted
@@ -757,6 +757,9 @@ is recorded in the sheet as an **open mismatch**, with the Photo it is on and it
   bar's reading. Each reading is logged in `phase-M2.md`, so a bar met on the fifth look says so.
 
 ## 7. The bar for opening phase 1 — decided 2026-11-13 (D1)
+
+**Amended 2026-11-20:** phase 1 no longer waits for this bar to open. It is built alongside M2,
+and the bar now decides when it may close: the app ships a model that met it. The bar is unchanged.
 
 Set now, before any training. Every figure below is computed by `darts-ml evaluate` (F) on the
 Held-out set. Photos and Visits are counted from the frozen manifest, never from what a model
