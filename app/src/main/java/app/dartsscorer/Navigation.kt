@@ -3,11 +3,8 @@ package app.dartsscorer
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -159,10 +156,8 @@ private fun AppNavigationRail(
     current: TopLevelDestination,
     onSelect: (TopLevelDestination) -> Unit,
 ) {
-    // The Scaffold has already padded and consumed the system bars; a side cutout is not one of them.
-    NavigationRail(
-        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Start),
-    ) {
+    // The Row around it has already padded the Scaffold's insets, the system bars and the cutout alike.
+    NavigationRail(windowInsets = WindowInsets(0)) {
         for (destination in TopLevelDestination.entries) {
             val selected = destination == current
             NavigationRailItem(
