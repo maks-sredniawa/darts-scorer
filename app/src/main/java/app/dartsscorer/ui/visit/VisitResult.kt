@@ -20,9 +20,9 @@ data class Crop(
 
 /**
  * A Dart as the screen shows it. [number] counts from the top of the Photo, never throw order, and
- * stays with the Dart through corrections. [at] is its marker in Photo pixels, null for none: a Miss
- * set by hand, or a Visit entered by hand. A [corrected] Dart sits at its bed's centre and is drawn
- * hollow, so nobody reads it as a measured Entry point.
+ * stays with the Dart through corrections. [at] is its marker in Photo pixels, null where the Dart has
+ * no place: a Miss added with no tap, or a Visit entered by hand. A [corrected] Dart's Score is the
+ * player's, so it is drawn hollow: at its bed's centre, or for a Miss where it was or was tapped.
  */
 data class ShownDart(
     val number: Int,

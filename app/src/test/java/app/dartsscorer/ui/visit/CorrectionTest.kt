@@ -67,12 +67,28 @@ class CorrectionTest {
     }
 
     @Test
-    fun `a Dart set to Miss loses its marker`() {
+    fun `a Dart set to Miss stays where it was, drawn hollow`() {
         val darts = listOf(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20)))
         val miss = Correction.commit(darts, Correction.open(darts[0], BOARD).withBullOrMiss(Ring.MISS), BOARD).single()
-        assertNull(miss.at)
+        assertNear(Point(400.0, 194.0), miss.at!!)
+        assertTrue(miss.corrected)
         assertEquals(0, listOf(miss).total)
     }
+
+    @Test
+    fun `a Miss added by a tap sits at the tap, and one added with no tap has no marker`() {
+        val tapped = Point(400.0, 30.0)
+        val atTap = Correction.commit(emptyList(), Correction.openAt(tapped, BOARD).withBullOrMiss(Ring.MISS), BOARD)
+        assertNear(tapped, atTap.single().at!!)
+        assertTrue(atTap.single().corrected)
+        val noTap = Correction.commit(emptyList(), Keypad(dart = null).withBullOrMiss(Ring.MISS), BOARD)
+        assertNull(noTap.single().at)
+    }
+
+    private fun assertNear(
+        expected: Point,
+        actual: Point,
+    ) = assertTrue("$actual is not $expected", hypot(expected.x - actual.x, expected.y - actual.y) < 1e-6)
 
     @Test
     fun `nothing picked commits nothing`() {

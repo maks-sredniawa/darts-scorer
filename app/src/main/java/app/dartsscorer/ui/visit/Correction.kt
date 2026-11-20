@@ -74,8 +74,8 @@ object Correction {
 
     /**
      * [keypad]'s Score committed: a new Dart takes the lowest free number; a changed one moves to its
-     * bed's centre and is drawn hollow; the same Score only confirms it. Either way it is no longer
-     * unsure. Unchanged when nothing is picked yet.
+     * bed's centre, or stays where it was or was tapped when it is a Miss, and is drawn hollow; the
+     * same Score only confirms it. Either way it is no longer unsure. Unchanged when nothing is picked.
      */
     fun commit(
         darts: List<ShownDart>,
@@ -83,7 +83,8 @@ object Correction {
         toBoard: Homography?,
     ): List<ShownDart> {
         val score = keypad.score ?: return darts
-        val placed = toBoard?.let { board -> Board.bedCentre(score, keypad.near)?.let(board.inverse()::project) }
+        val place = if (score.ring == Ring.MISS) keypad.near else Board.bedCentre(score, keypad.near)
+        val placed = toBoard?.let { board -> place?.let(board.inverse()::project) }
         val existing = darts.firstOrNull { it.number == keypad.dart }
         val committed =
             when {
