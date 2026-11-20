@@ -26,6 +26,7 @@ user-facing word genuinely differ, both are written here with the difference sta
 | **Score** | a Dart's value (e.g. *treble 20*, 60) or a Visit's total | points, result |
 | **Bed** | one scoring area of the Board: a segment's single (each segment has two), double or treble, the outer bull or the bull. A Dart corrected on the keypad is drawn at its bed's centre, one whose ring was dragged where it was dropped; a Miss has no bed, so it stays where it was or was tapped | area, zone, field. The UI never says it: the keypad says *Ring* and *Number* |
 | **Miss** | a thrown Dart that scored 0, outside the double ring | removed, which is a Dart that was never there |
+| **the app's reading** | the model's own point, Score and unsure flag for a Dart, kept through every correction so *Back to the app's reading* can restore them; in code `DartRead`, held as `ShownDart.read` | the original, the prediction, in the UI |
 | **unsure** | a Dart below the model's confidence of 0.5, shown with *Check* (docs/phase-1.md §3) | low confidence, in the UI |
 | **Tip** | a one-off payment to the developer through Google Play that **unlocks nothing** (ADR-0007). The Visit screen mentions it once, and the answer follows the user to a new phone; Help and feedback offers it for good | donation, support the project, premium, supporter |
 
