@@ -172,6 +172,8 @@ def _parser() -> argparse.ArgumentParser:
     scorer.add_argument("--workers", type=_non_negative, default=4)
     scorer.add_argument("--as-stored", action="store_true", help="score copies written as MediaFiles writes the "
                         "photos kind (2048 px long edge, JPEG q85) instead of the Photos as they are (phase-1.md §1)")
+    scorer.add_argument("--entry-threshold", type=_probability, default=None,
+                        help="the heat an Entry point must reach to be kept; the shipped ENTRY_THRESHOLD by default")
     scorer.set_defaults(handler=_deepdarts_score)
     tuner = actions.add_parser("tune", help="a run's figures on DeepDarts' val split under each rule for keeping Entry points")
     tuner.add_argument("--run", required=True)
@@ -205,6 +207,13 @@ def _non_negative_float(text: str) -> float:
     value = float(text)
     if not value >= 0:
         raise argparse.ArgumentTypeError(f"{text} is not a non-negative number")
+    return value
+
+
+def _probability(text: str) -> float:
+    value = float(text)
+    if not 0 < value < 1:
+        raise argparse.ArgumentTypeError(f"{text} is not between 0 and 1")
     return value
 
 
@@ -526,6 +535,7 @@ def _phone_parity(args) -> int:
 
 
 def _deepdarts_score(args) -> int:
+    from .decode import EntryRule
     from .locate import Inference, Speed, figures, locate
     from .train import load_weights, resolve_device, use_tuned_kernels
     from .training_data import deepdarts_reading_samples
@@ -544,8 +554,10 @@ def _deepdarts_score(args) -> int:
             samples = as_stored_samples(samples, Path(scratch))
         print(f"{len(samples)} DeepDarts {args.split} Photos{' as stored' if args.as_stored else ''} ...",
               file=sys.stderr, flush=True)
+        rule = EntryRule() if args.entry_threshold is None else EntryRule(threshold=args.entry_threshold)
         reading = figures(samples, locate(Inference(model, device, config["size"], config["batch"], args.workers,
-                                                    speed), [s.photo for s in samples]))
+                                                    speed, rule), [s.photo for s in samples]))
+    print(f"Entry threshold {rule.threshold}")
     print("\n".join(reading.lines()))
     return 0
 

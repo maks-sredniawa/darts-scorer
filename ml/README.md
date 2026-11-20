@@ -111,6 +111,7 @@ uv run --directory ml darts-ml train --name darts-512 --init <run>   # D: Entry 
 uv run --directory ml darts-ml train --name darts-640-s2-ring --size 640 --init <run>   # after D: Entry head at stride 2
 uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, R3: a run's figures on DeepDarts
 uv run --directory ml darts-ml deepdarts score --run <run> --as-stored   # phase 1 §1: on val, as MediaFiles stores a Photo
+uv run --directory ml darts-ml deepdarts score --run <run> --entry-threshold 0.3   # on val, keeping Entry points at that heat
 uv run --directory ml darts-ml deepdarts tune --run <run>            # each rule for keeping Entry points, on val only
 uv run --directory ml darts-ml deepdarts grouped                     # pairs under 10 mm the targets decode as two
 uv run --directory ml darts-ml predict --run <run>                   # the predictions file, on the Held-out set

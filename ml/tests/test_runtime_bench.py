@@ -233,7 +233,7 @@ class RuntimeBenchCliTest(unittest.TestCase):
         self.data = DataDir(Path(self.enterContext(tempfile.TemporaryDirectory())).resolve())
         self.folder = self.data.runs() / self.RUN
         self.folder.mkdir(parents=True)
-        (self.folder / "config.json").write_text(json.dumps({"size": 64}), encoding="utf-8")
+        (self.folder / "config.json").write_text(json.dumps({"size": 64, "batch": 1}), encoding="utf-8")
         (self.folder / "best.pt").write_bytes(b"weights")
         aar = self.data.root / "empty.aar"
         with zipfile.ZipFile(aar, "w") as archive:
