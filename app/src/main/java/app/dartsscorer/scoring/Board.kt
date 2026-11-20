@@ -1,5 +1,6 @@
 package app.dartsscorer.scoring
 
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.floor
@@ -69,6 +70,46 @@ object Board {
     }
 
     fun score(mm: Point): Score = score(mm.x, mm.y)
+
+    /**
+     * The middle of [score]'s bed, where a Dart set by hand is drawn (phase-1.md §3); null for a Miss,
+     * which has no bed. A single has two beds, and the one nearer [near] is taken, the outer one
+     * without it. An outer bull keeps [near]'s direction.
+     */
+    fun bedCentre(
+        score: Score,
+        near: Point? = null,
+    ): Point? {
+        val nearRadius = near?.let { hypot(it.x, it.y) }
+        return when (score.ring) {
+            Ring.MISS -> null
+            Ring.BULL -> Point(0.0, 0.0)
+            Ring.OUTER_BULL -> {
+                val degrees = near?.takeIf { nearRadius != 0.0 }?.let { Math.toDegrees(atan2(it.x, it.y)) } ?: 0.0
+                point(between(BULL_RING, OUTER_BULL_RING), degrees)
+            }
+            Ring.TREBLE -> point(between(INNER_TREBLE, OUTER_TREBLE), segmentDegrees(score.number))
+            Ring.DOUBLE -> point(between(INNER_DOUBLE, OUTER_DOUBLE), segmentDegrees(score.number))
+            Ring.SINGLE -> {
+                val inner = between(OUTER_BULL_RING, INNER_TREBLE)
+                val outer = between(OUTER_TREBLE, INNER_DOUBLE)
+                val radius =
+                    if (nearRadius != null && abs(nearRadius - inner) < abs(nearRadius - outer)) inner else outer
+                point(radius, segmentDegrees(score.number))
+            }
+        }
+    }
+
+    private fun between(
+        inside: Wire,
+        outside: Wire,
+    ): Double = (inside.centreMm + outside.centreMm) / 2
+
+    private fun segmentDegrees(number: Int): Double {
+        val index = SEGMENTS.indexOf(number)
+        require(index >= 0) { "no segment $number" }
+        return SEGMENT_DEGREES * index
+    }
 }
 
 data class Point(

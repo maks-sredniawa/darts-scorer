@@ -10,6 +10,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.dartsscorer.MainApplication
 import app.dartsscorer.data.AppPreferences
+import app.dartsscorer.scoring.Point
+import app.dartsscorer.scoring.Ring
 import app.dartsscorer.tip.TipJar
 import app.dartsscorer.tip.tipAskDue
 import kotlinx.coroutines.CancellationException
@@ -36,6 +38,12 @@ data class VisitUiState(
     val notice: VisitNotice? = null,
     /** False wherever Play will not sell a tip: nothing is asked for that cannot be bought. */
     val showTipAsk: Boolean = false,
+    /** The keypad sheet, open while set. */
+    val keypad: Keypad? = null,
+    /** The Dart last removed, offered back with *Undo* until the next change or the snackbar's dismissal. */
+    val removed: ShownDart? = null,
+    /** Where focus goes next, once the sheet has closed; cleared by [VisitViewModel.focusPlaced]. */
+    val focus: VisitFocus? = null,
 )
 
 class VisitViewModel(
@@ -108,7 +116,9 @@ class VisitViewModel(
     ) {
         arriving?.cancel()
         val before = visit.value.phase.takeUnless { it == VisitPhase.Reading } ?: VisitPhase.Empty
-        visit.update { it.copy(phase = VisitPhase.Reading, notice = null) }
+        visit.update {
+            it.copy(phase = VisitPhase.Reading, notice = null, keypad = null, removed = null, focus = null)
+        }
         arriving =
             viewModelScope.launch {
                 swept.join()
@@ -131,6 +141,110 @@ class VisitViewModel(
                 show(photo)
             }
     }
+
+    fun openDart(number: Int) {
+        visit.update { state ->
+            val shown = state.phase as? VisitPhase.Shown ?: return@update state
+            val dart = shown.darts.firstOrNull { it.number == number } ?: return@update state
+            state.copy(keypad = Correction.open(dart, (shown as? VisitPhase.Scored)?.toBoard))
+        }
+    }
+
+    /** *Add a Dart*, and on no Board found *Enter the Score yourself* (D6): the keypad with nothing picked. */
+    fun addDart() {
+        visit.update { state ->
+            val phase = state.phase
+            val open = phase is VisitPhase.NoBoard || (phase is VisitPhase.Shown && Correction.canAdd(phase.darts))
+            if (open) state.copy(keypad = Keypad(dart = null)) else state
+        }
+    }
+
+    /** A tap on an empty spot of the Photo, in its pixels: a new Dart with the bed under the finger. */
+    fun addDartAt(photo: Point) {
+        visit.update { state ->
+            val scored = state.phase as? VisitPhase.Scored ?: return@update state
+            if (Correction.canAdd(
+                    scored.darts,
+                )
+            ) {
+                state.copy(keypad = Correction.openAt(photo, scored.toBoard))
+            } else {
+                state
+            }
+        }
+    }
+
+    fun pickRing(ring: Ring) = visit.update { state -> state.copy(keypad = state.keypad?.withRing(ring)) }
+
+    fun pickNumber(number: Int) = visit.update { state -> state.copy(keypad = state.keypad?.withNumber(number)) }
+
+    fun pickOther(other: Ring) = visit.update { state -> state.copy(keypad = state.keypad?.withOther(other)) }
+
+    fun dismissKeypad() {
+        visit.update { state ->
+            val keypad = state.keypad ?: return@update state
+            state.copy(keypad = null, focus = keypad.dart?.let { VisitFocus.Chip(it) } ?: VisitFocus.AddDart)
+        }
+    }
+
+    /** *Done*: the keypad's Score onto its Dart. The first Dart entered by hand counts the Visit, once. */
+    fun commitKeypad() {
+        val before = visit.value
+        val keypad = before.keypad ?: return
+        if (keypad.score == null) return
+        val (shown, darts) =
+            when (val phase = before.phase) {
+                is VisitPhase.Scored -> phase to Correction.commit(phase.darts, keypad, phase.toBoard)
+                is VisitPhase.Entered -> phase to Correction.commit(phase.darts, keypad, null)
+                is VisitPhase.NoBoard ->
+                    VisitPhase.Entered(phase.photo, phase.width, phase.height, emptyList()).let {
+                        it to Correction.commit(it.darts, keypad, null)
+                    }
+                else -> return
+            }
+        val committed = keypad.dart ?: darts.map { it.number }.firstOrNull { n -> shown.darts.none { it.number == n } }
+        visit.value =
+            before.copy(
+                phase = shown.withDarts(darts),
+                keypad = null,
+                removed = null,
+                focus = committed?.let { VisitFocus.Chip(it) },
+            )
+        if (shown is VisitPhase.Entered && darts.isNotEmpty()) {
+            saved.get<String>(PHOTO)?.let { viewModelScope.launch { preferences.incrementVisitsScored(it) } }
+        }
+    }
+
+    /** *Remove Dart*, from the sheet or a chip's custom action; offered back with *Undo*. */
+    fun removeDart(number: Int) {
+        visit.update { state ->
+            val shown = state.phase as? VisitPhase.Shown ?: return@update state
+            val dart = shown.darts.firstOrNull { it.number == number } ?: return@update state
+            val darts = Correction.remove(shown.darts, number)
+            state.copy(
+                phase = shown.withDarts(darts),
+                keypad = null,
+                removed = dart,
+                focus = Correction.focusAfterRemoving(darts, number),
+            )
+        }
+    }
+
+    fun undoRemove() {
+        visit.update { state ->
+            val shown = state.phase as? VisitPhase.Shown ?: return@update state
+            val dart = state.removed ?: return@update state
+            state.copy(
+                phase = shown.withDarts(Correction.restore(shown.darts, dart)),
+                removed = null,
+                focus = VisitFocus.Chip(dart.number),
+            )
+        }
+    }
+
+    fun removalSettled() = visit.update { it.copy(removed = null) }
+
+    fun focusPlaced() = visit.update { it.copy(focus = null) }
 
     private suspend fun show(photo: String) {
         val reading = readOrNull(photo)

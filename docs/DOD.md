@@ -85,6 +85,10 @@ only on a model that met this phase's bar.
       no-camera paths, the Visit count and the start-up sweep (`phase-1.md` §4, *What moved while
       building B*). Read on `pixel-api36` and `urgent-api26`; *Enter the Score yourself* waits for C.
 - [ ] **Correcting a Dart (C)** with the keypad sheet (D3) and *Enter the Score yourself* (D6).
+      Built, awaiting merge: the keypad from a marker or chip, change, confirm, remove with *Undo*,
+      add by *Add a Dart* or a tap on the Photo, a Visit entered by hand (counted once), focus into
+      and out of the sheet, and the Photo beside the Score in landscape (`phase-1.md` *What moved
+      while building C*). Read on `pixel-api36` and `urgent-api26`.
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
 
