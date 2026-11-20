@@ -224,7 +224,9 @@ checkpoint A ships it.
   replaces both files.
 - **The Credits list is final**, from the first build that carries the model: LiteRT (Apache-2.0,
   in the dependency list), and through `SupportConfig.BUNDLED_CREDITS` Eigen (MPL-2.0, with a link to
-  its source), XNNPACK (BSD-3-Clause), ruy, gemmlowp and FlatBuffers (Apache-2.0), cpuinfo
-  (BSD-2-Clause), fft2d (Takuya Ooura's own terms, linked) and the DeepDarts dataset (CC BY 4.0).
-  Each SPDX licence's text, with the copyright lines its BSD notice asks for, is in
+  its source), XNNPACK (BSD-3-Clause), ruy, gemmlowp and FlatBuffers (Apache-2.0), cpuinfo and
+  pthreadpool (BSD-2-Clause), FP16 and FXdiv (MIT), fft2d (Takuya Ooura's own terms, linked) and the
+  DeepDarts dataset (CC BY 4.0). pthreadpool, FP16 and FXdiv leave no symbols in the stripped
+  library; they are in it by TensorFlow's build, whose XNNPACK delegate and XNNPACK itself depend on
+  them. Each SPDX licence's text, with the copyright lines its notice asks for, is in
   `assets/licences/`.

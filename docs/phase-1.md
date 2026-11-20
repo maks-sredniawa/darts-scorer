@@ -117,7 +117,8 @@ there and through Python's `locate()` on this machine, from the same written fil
 A second question rides along, answered in Python alone: does storing the Photo as `MediaFiles`'
 2048 px q85 JPEG (D2) move the exactly-right share by more than one point? Read with `darts-ml
 deepdarts score --split val`, once on the val Photos as they are and once on a copy of them
-re-encoded to 2048 px q85.
+re-encoded to 2048 px q85 (`--as-stored`, which writes the copies as `MediaFiles` writes the
+`photos` kind and scales the labels with them).
 
 ### The apparatus
 
@@ -185,6 +186,12 @@ On 200 of DeepDarts' 1,070 val Photos, every 5th or so in the split's order
   holds it to Pillow's bytes (`warp.json`). What is left between the two sides is the JPEG decoder
   (Android's against Pillow's libjpeg-turbo) and float order; it moved no crossing by more than
   0.006 mm.
+- **The second question: 0.5 points, so D2 holds.** On all 1,070 val Photos, exactly right read
+  740 (69.2%) as they are and 735 (68.7%) as stored; Darts right 1,857 and 1,845 of 2,114; the
+  Board found in all 1,070 both times, wire medians 0.282 and 0.285 mm (treble), 0.320 and
+  0.324 mm (double). Every val Photo is 800 px square with no EXIF rotation, so this reads the q85
+  re-encode alone: the 2048 px cap on a phone's 12 MP Photo is not exercised here, and R3's real
+  Visits are where it is.
 - **The times are not R2 or R4.** They are a debuggable build on an emulator's CPU, with the warp
   and decoding in Kotlin counted in. The same pipeline in a release-shaped build (R8 on, not
   debuggable) read about 260 ms a Photo on `urgent-api26`, and LiteRT ran there with no keep rule
@@ -201,9 +208,10 @@ On 200 of DeepDarts' 1,070 val Photos, every 5th or so in the split's order
   (R2), since LiteRT's default of one thread read about three times slower on the emulator. The
   emulator's AVX-only CPU is not a phone's, so the choice is not taken there.
 - **Credits** (ADR-0008, ADR-0007's licences screen): LiteRT (Apache-2.0), Eigen (MPL-2.0, link to
-  its source), XNNPACK, ruy, gemmlowp, FlatBuffers, fft2d and cpuinfo under their own licences, and
-  the DeepDarts dataset (CC BY 4.0) the model was trained on. Those the dependency list cannot see
-  go in `SupportConfig.BUNDLED_CREDITS`, with the licence texts in `assets/licences/`. **They ship
+  its source), XNNPACK, ruy, gemmlowp, FlatBuffers, fft2d, cpuinfo, pthreadpool, FP16 and FXdiv under
+  their own licences, and the DeepDarts dataset (CC BY 4.0) the model was trained on. Those the
+  dependency list cannot see go in `SupportConfig.BUNDLED_CREDITS`, with the licence texts in
+  `assets/licences/`. **They ship
   in A** (moved from B on 2026-11-20): A's merge is the first build that carries LiteRT and the
   model, and the obligation travels with the binary, not with the screen that first calls it.
 
@@ -322,3 +330,4 @@ direction is still asymmetric, and lowering later is free.
 | R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat` | |
 | R3 | Real Visits on a real Board in room light: exactly right, corrected, and taps per correction | by hand, at the Board | |
 | R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count | the debug build's timing line in `logcat` | |
+| R5 | A's second question: the exactly-right share on DeepDarts' val Photos as they are and as `MediaFiles` stores them (D2) | `darts-ml deepdarts score --split val`, then the same with `--as-stored` | **2026-11-20**, run `2026-11-19-darts-640-s2-ring-ext`, `ENTRY_THRESHOLD` 0.25, all 1,070 val Photos: 740 (69.2%) as they are, 735 (68.7%) re-encoded at q85, 0.5 points down against the 1-point bound. D2 holds (§1) |
