@@ -27,7 +27,7 @@ and the app is on Play with a tip purchase:
 | MMPose/RTMPose, MMDetection/RTMDet, YOLOX, RF-DETR N/S/M/L | Apache-2.0 | yes |
 | `MultimediaTechLab/YOLO` (YOLOv9) | MIT | yes |
 | LiteRT / ONNX Runtime / ncnn | Apache-2.0 / MIT / BSD-3 | yes |
-| `maks-sredniawa/darts-render`, the owner's fork of `ahie/darts-model` (added 2026-11-21) | Apache-2.0; its numerals and printed marks from SIL OFL 1.1 fonts | yes, its rendered frames; not darts-model's weights, nor Places365 backgrounds |
+| `maks-sredniawa/darts-render`, the owner's fork of `ahie/darts-model` (added 2026-11-21) | Apache-2.0; its numerals and printed marks from SIL OFL 1.1 fonts, from the commit that merges its PR #1 (`feat: owner-like renders with licence-clean assets`) | yes, its rendered frames from that commit or later; not darts-model's weights, nor Places365 backgrounds |
 
 ## Decision
 
@@ -243,6 +243,11 @@ taken up now, before the bar's readings.
   wire centres. Only its rendered frames and their labels are used: not darts-model's trained
   weights, and no frame is composited over Places365 photographs, whose terms limit them to
   non-commercial research. Nothing from the renderer ships in the app.
+- **Only from darts-render PR #1 on.** The OFL assets and the wire-centre rings arrive with
+  darts-render PR #1, `feat: owner-like renders with licence-clean assets`; the pipeline uses the
+  renderer at the commit that merges it or later. Frames from an earlier commit carry darts-model's
+  original assets and must not be used; their rings are off the wires, so `renders import`'s
+  residual check refuses them.
 - **Renders train, they do not choose.** A run is still chosen on DeepDarts val (and the Validation
   sessions once F has them); a held-out tenth of the rendered frames is read beside it and reported
   apart. Each render set's manifest names the renderer commit and options that made it.

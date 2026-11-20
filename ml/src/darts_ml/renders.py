@@ -128,7 +128,7 @@ def import_renders(data: DataDir, source: Path, name: str, renderer: Renderer, m
     part = Path(tempfile.mkdtemp(prefix=f".{name}-", dir=data.renders()))
     try:
         imported = _convert_all(source, name, annotations, part, max_residual_px, log)
-        records, residuals, refused, darts, off_image, zones_differ = imported
+        records, residuals, refused, refused_residuals, darts, off_image, zones_differ = imported
         if not records:
             raise DartsMlError(f"every one of the {len(annotations)} frames was refused, the first because "
                                f"{refused[0][1]}; nothing written")
@@ -142,7 +142,8 @@ def import_renders(data: DataDir, source: Path, name: str, renderer: Renderer, m
             "frames": len(annotations), "records": len(records), "darts": darts,
             "darts_off_image": off_image, "zones_differ": zones_differ,
             "residual_px": {"median": float(np.median(residuals)), "max": float(max(residuals))} if residuals else None,
-            "refused": [{"frame": frame, "reason": reason} for frame, reason in refused],
+            "refused": [{"frame": frame, "reason": reason, "residual_px": refused_residuals.get(frame)}
+                        for frame, reason in refused],
         }
         (part / MANIFEST).write_text(json.dumps(manifest, indent=1), encoding="utf-8")
         part.rename(target)
@@ -154,7 +155,7 @@ def import_renders(data: DataDir, source: Path, name: str, renderer: Renderer, m
 
 def _convert_all(source: Path, name: str, annotations: list[Path], part: Path, max_residual_px: float, log):
     (part / "rgb").mkdir()
-    records, residuals, refused = [], [], []
+    records, residuals, refused, refused_residuals = [], [], [], {}
     darts = off_image = zones_differ = 0
     for index, path in enumerate(annotations, 1):
         if index % 100 == 0 or index == len(annotations):
@@ -169,15 +170,17 @@ def _convert_all(source: Path, name: str, annotations: list[Path], part: Path, m
             refused.append((frame_id, "its image is missing or lies outside the renderer's folder"))
             continue
         frame = convert_frame(annotation, max_residual_px)
-        residuals.append(frame.residual_px)
         if frame.refusal:
             refused.append((frame_id, frame.refusal))
+            refused_residuals[frame_id] = frame.residual_px
             continue
         with Image.open(image) as opened:
             if opened.size != (frame.width, frame.height):
                 refused.append((frame_id, f"the image is {opened.size[0]}×{opened.size[1]}, the annotation says "
                                           f"{frame.width}×{frame.height}"))
+                refused_residuals[frame_id] = frame.residual_px
                 continue
+        residuals.append(frame.residual_px)
         copy = part / "rgb" / f"{frame_id}.jpg"
         shutil.copyfile(image, copy)
         darts += len(frame.entries)
@@ -192,7 +195,7 @@ def _convert_all(source: Path, name: str, annotations: list[Path], part: Path, m
             "entries": [{"x": x, "y": y, "inferred": False} for x, y, _ in frame.entries],
             "scores": [token for _, _, token in frame.entries],
         })
-    return records, residuals, refused, darts, off_image, zones_differ
+    return records, residuals, refused, refused_residuals, darts, off_image, zones_differ
 
 
 def _image(source: Path, annotation: dict, frame_id: str) -> Path | None:

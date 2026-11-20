@@ -106,6 +106,9 @@ Frames from the owner's renderer, `maks-sredniawa/darts-render` (an Apache-2.0 f
 `ahie/darts-model`; ADR-0008's 2026-11-21 amendment). Render without `--bg_image_dir`, so no Places365
 photograph is in a frame, and at 768×1024: a 1536×2048 frame can outlast the laptop GPU driver's job
 timeout. Only the renderer's images and labels are used, never darts-model's trained weights.
+Use the renderer at or after the commit that merges darts-render PR #1, `feat: owner-like renders
+with licence-clean assets`, which brings the OFL assets, the wire-centre rings and `--look owner`.
+Frames from any earlier commit must not be used; `renders import`'s residual check refuses them.
 
 ```bash
 dartboard_gen --look owner --width 768 --height 1024 --num_frames 2000 --seed 1 --output_dir <folder>
@@ -123,7 +126,8 @@ uv run --directory ml darts-ml renders import <folder> --set owner-768 --rendere
   differ from the renderer's own zone.
 - **`manifest.json`** beside the records names the renderer's commit (from `--renderer`, a clone whose
   HEAD it reads, or `--renderer-commit`), `--look`, each `--option`, the renderer's own `manifest.json`,
-  the fit residuals and every frame refused. A set is written once; another import needs another `--set`.
+  the fit residuals of the frames kept, and every frame refused with its own residual. A set is written
+  once; another import needs another `--set`.
 
 ## Training (phase M2)
 
@@ -162,8 +166,10 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   `render_figures`, never used to keep `best.pt`, which stays DeepDarts val's. `--render-weight W`
   (default 0.5) draws renders W times as often as DeepDarts Photos overall, whatever the sizes, so
   0.5 makes them a third of each batch; an epoch is then DeepDarts' count times 1 + W draws.
-  `config.json` records the sets, each set's renderer commit and look, and both counts. Without
-  `--renders` the loader is the one before renders came. Nothing under `phone-captures/` is ever a
+  `config.json` records the sets, each set's renderer commit and look, and both counts. With
+  `--renders`, DeepDarts Photos are drawn with replacement, so about 63% of them are seen in an
+  epoch and a renders run's DeepDarts sampling differs from a baseline's. Without `--renders` the
+  loader is the one before renders came. Nothing under `phone-captures/` is ever a
   training or a choosing sample.
 - **The samples** are augmented by default (`--no-augment` turns it off): the Board plane re-viewed
   from a camera orbiting it up to 60° to either side, 20° up or down and rolled up to 30°; framed as
@@ -246,7 +252,8 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   included), Darts right, and how far each Entry point lies from the owner's in Board mm through the
   run's own homography, split into the Darts the owner moved and those whose point the owner kept; a
   Dart whose Score was corrected without moving it gives no point. Beside it, the app's reading as
-  kept on the phone, from the same records. It writes nothing. **Read once:** these Visits choose no
+  kept on the phone, from the same records. A Visit whose Photo is not the record's width×height, or
+  carries an EXIF orientation other than 1, is skipped and named with the reason. It writes nothing. **Read once:** these Visits choose no
   run, threshold or setting, or they stop measuring anything; the step says so as it reads them.
 - **`phone-fixtures`** writes what the app's JVM tests hold the Kotlin port to, into
   `app/src/test/resources/scoring/`: `scores.tsv` (every bed, 0.1 mm either side of every wire, and

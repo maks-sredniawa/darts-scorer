@@ -7,6 +7,7 @@ from unittest import mock
 
 import numpy as np
 import torch
+from PIL import Image
 
 from darts_ml.board import Score
 from darts_ml.cli import main
@@ -34,11 +35,14 @@ class MarkedFixture:
         self.day.mkdir(parents=True)
         self.to_image = camera(yaw_deg=5.0, pitch_deg=6.0, distance_mm=1100.0, focal_px=1500.0, size=SIZE)
 
-    def visit(self, uuid: str, darts, removed=(), found=True, photo=True) -> None:
+    def visit(self, uuid: str, darts, removed=(), found=True, photo=True, size=SIZE, orientation=None) -> None:
         if photo:
-            board_image(self.to_image, size=SIZE).save(self.day / f"{uuid}.jpg", "JPEG", quality=90)
-        record = {"versionName": "0.1.0", "versionCode": 179, "photo": f"{uuid}.jpg", "width": SIZE[0],
-                  "height": SIZE[1], "boardFound": found, "toBoard": None, "crop": None, "total": 0,
+            exif = Image.Exif()
+            if orientation is not None:
+                exif[0x0112] = orientation
+            board_image(self.to_image, size=SIZE).save(self.day / f"{uuid}.jpg", "JPEG", quality=90, exif=exif)
+        record = {"versionName": "0.1.0", "versionCode": 179, "photo": f"{uuid}.jpg", "width": size[0],
+                  "height": size[1], "boardFound": found, "toBoard": None, "crop": None, "total": 0,
                   "darts": list(darts), "removed": [{"number": 9, "read": {"at": {"x": 0, "y": 0}, "score": s,
                                                                           "unsure": True}} for s in removed]}
         (self.day / f"{uuid}.json").write_text(json.dumps(record), encoding="utf-8")
@@ -69,6 +73,19 @@ class MarkedVisitsTest(unittest.TestCase):
         visits, skipped = marked_visits(self.td.data.phone_captures())
         self.assertEqual(visits, [])
         self.assertEqual(sorted(name for name, _ in skipped), ["broken.json", "gone.json"])
+
+    def test_a_photo_not_in_the_records_pixel_space_is_skipped_with_the_reason(self):
+        self.fixture.visit("resized", [], size=(SIZE[0] * 2, SIZE[1] * 2))
+        self.fixture.visit("rotated", [], orientation=6)
+        self.fixture.visit("garbled", [])
+        (self.fixture.day / "garbled.jpg").write_bytes(b"not a jpeg")
+        self.fixture.visit("kept", [], orientation=1)
+        visits, skipped = marked_visits(self.td.data.phone_captures())
+        self.assertEqual([v.name for v in visits], ["kept"])
+        reasons = dict(skipped)
+        self.assertIn(f"is {SIZE[0]}×{SIZE[1]}, the record says {SIZE[0] * 2}×{SIZE[1] * 2}", reasons["resized.json"])
+        self.assertIn("EXIF orientation 6", reasons["rotated.json"])
+        self.assertIn("cannot be read", reasons["garbled.json"])
 
 
 class ReadMarkedTest(unittest.TestCase):
