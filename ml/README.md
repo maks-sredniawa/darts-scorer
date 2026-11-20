@@ -193,6 +193,17 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   ```
 
   Without the pushed files both test methods are skipped, so CI's instrumented legs stay green.
+- **`pull-marked`** copies the debug build's marked Visits (`docs/phase-1.md` §4) off the phone or
+  emulator `--serial` names into `$DARTS_DATA/phone-captures/<date>/`: each Photo
+  (`<photo-uuid>.jpg`) and its record (`<photo-uuid>.json`), read from the app's `files/marked/`
+  over `adb run-as`, so only a debug build answers. A file already under any date is skipped while
+  its size and time match the phone's, and copied again over its first copy when the Visit was kept
+  again since; each copy takes the phone's time. `--delete-after` then deletes on the phone each file
+  that is here unchanged, and nothing else.
+
+  ```bash
+  uv run --directory ml darts-ml pull-marked --serial <serial> [--delete-after]
+  ```
 - **`phone-fixtures`** writes what the app's JVM tests hold the Kotlin port to, into
   `app/src/test/resources/scoring/`: `scores.tsv` (every bed, 0.1 mm either side of every wire, and
   `tests/scoring-cases.toml`, each with `board.score`'s answer), `rng.json` (the sets of four

@@ -108,6 +108,7 @@ uv run --directory ml darts-ml paths            # where DARTS_DATA is; refuses o
 uv run --directory ml darts-ml <step> s01       # ingest, label, prefill, review, check, overlay, repeatability
 uv run --directory ml darts-ml train --name <name>   # a training run into $DARTS_DATA/runs/<date>-<name>/
 uv run --directory ml darts-ml predict --run <run>    # the predictions file `evaluate` reads, on the Held-out set
+uv run --directory ml darts-ml pull-marked --serial <serial>   # the debug build's marked Visits into $DARTS_DATA/phone-captures/
 uv run --directory ml python -m unittest discover -s tests   # ml/'s tests (need jpegtran and a synced PyTorch extra)
 ```
 
@@ -130,7 +131,7 @@ app/src/main/java/<namespace>/
                arrive from android-starter's scripts/sync-support.py, so change them there
 
 app/src/debug/    the developer-only build: Settings' debug section (R2's thread count, the marked
-                  Visits kept), the timing line, each marked Visit kept for scripts/pull-marked.py,
+                  Visits kept), the timing line, each marked Visit kept for `darts-ml pull-marked`,
                   and the debug app name
 app/src/release/  only the no-op half of each seam, so main/ can call it unconditionally
 scripts/          the Python toolchain. project.py is the one place the app's identity lives

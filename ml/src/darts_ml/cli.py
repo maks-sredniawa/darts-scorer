@@ -14,6 +14,7 @@ from .export_format import Format, check_record, exported_path
 from .heldout import MANIFEST, HeldOutError, HeldOutSet, file_sha256, freeze, frozen_before, verify
 from .ingest import ingest, jpegtran_version
 from .kernel_search import explain_failed_search, seconds_asleep
+from .marked import PACKAGE
 from .overlay import overlay
 from .paths import DataDir, Round, repo_roots, run_config
 from .prefill import prefill
@@ -155,6 +156,12 @@ def _parser() -> argparse.ArgumentParser:
     phone.add_argument("--weights", choices=WEIGHTS, default="best")
     phone.add_argument("--photos", type=_positive, default=150, help="how many val Photos; default 150")
     phone.add_argument("--workers", type=_non_negative, default=4)
+    puller = step("pull-marked", _pull_marked, "copy the debug build's marked Visits off a phone into "
+                  "$DARTS_DATA/phone-captures/<date>/, and again each one kept again since", capture_session=False)
+    puller.add_argument("--serial", required=True, help="the adb serial of the phone or emulator to pull from")
+    puller.add_argument("--package", default=PACKAGE, help=f"the debug build's applicationId; default {PACKAGE}")
+    puller.add_argument("--delete-after", action="store_true",
+                        help="then delete on the phone each file that is here unchanged")
     deepdarts = steps.add_parser("deepdarts", help="DeepDarts' labels: convert them safely, and check the conversion by eye",
                                  description="DeepDarts' labels (phase-M1.md §4)")
     actions = deepdarts.add_subparsers(dest="action", required=True)
@@ -532,6 +539,20 @@ def _phone_parity(args) -> int:
                         lambda line: print(line, file=sys.stderr, flush=True))
     print(report)
     return 0 if report.startswith("PASS") else 1
+
+
+def _pull_marked(args) -> int:
+    import shutil
+
+    from .marked import Phone, pull
+
+    captures = DataDir.from_environment().phone_captures()
+    if shutil.which("adb") is None:
+        raise DartsMlError("adb is not on PATH")
+    copied = pull(Phone(args.serial, args.package), captures, dt.date.today().isoformat(),
+                  lambda line: print(line, file=sys.stderr, flush=True), args.delete_after)
+    print(f"{copied} copied into {captures}")
+    return 0
 
 
 def _deepdarts_score(args) -> int:
