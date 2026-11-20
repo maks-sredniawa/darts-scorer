@@ -117,6 +117,8 @@ uv run --directory ml darts-ml export --run <run> --format onnx      # E: the mo
 uv run --directory ml darts-ml export-parity --run <run> --format onnx   # E: its points against PyTorch's, on val
 ANDROID_SERIAL=emulator-5610 uv run --directory ml darts-ml runtime-bench --run <run>   # E: each runtime's size per ABI, and the model's latency on a device
 uv run --directory ml darts-ml train --probe                         # gate A: time 200 steps (--device cpu for parity)
+uv run --directory ml darts-ml phone-parity --run <run> --photos 200   # phase 1's gate: the app's pipeline against locate()
+uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's unit-test fixtures, into app/src/test/resources/
 ```
 
 - **`train`** writes each run to `$DARTS_DATA/runs/<date>-<name>/` and refuses a folder that exists:
@@ -169,6 +171,34 @@ uv run --directory ml darts-ml train --probe                         # gate A: t
   PyTorch flavour (the CPU build plus the converter), because its `xdsl` holds typing-extensions below
   4.13; give it a venv of its own and run with the same variable:
   `UV_PROJECT_ENVIRONMENT=~/.venvs/darts-ml-litert uv sync --locked --directory ml --extra litert --extra export`.
+- **`phone-parity`** is phase 1's gate (`docs/phase-1.md` §1, R1). It needs the `export` extra (the
+  LiteRT interpreter), one device in `adb devices` (or the one `ANDROID_SERIAL` names) with the debug
+  app and its test APK installed, and the run's `best.tflite` byte for byte the app's
+  `assets/model/darts.tflite`. It takes `--photos` of DeepDarts' val Photos spread evenly through the
+  split, the same ones every time, pushes them to the app's external files (`parity/source/`), has
+  `PhoneParityTest#writesEachPhotoThroughMediaFiles` write each through `MediaFiles` as a Photo,
+  pulls the written files back, runs `locate()` on them here with the same model, pushes that as
+  `expected.json`, has `PhoneParityTest#matchesPythonOnEachPhoto` run the app's `PhotoReader` on each
+  and compare, and prints the phone's report. Everything it moves lives under
+  `$DARTS_DATA/phone-parity/<run>/` and on the device, never in the repo. Install with `adb install`,
+  not `connectedAndroidTest`, which uninstalls the app, and its files, when it finishes:
+
+  ```bash
+  ./gradlew assembleDebug assembleDebugAndroidTest
+  adb install -r -t app/build/outputs/apk/debug/app-debug.apk
+  adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+  uv run --directory ml darts-ml phone-parity --run 2026-11-19-darts-640-s2-ring-ext --photos 200
+  ```
+
+  Without the pushed files both test methods are skipped, so CI's instrumented legs stay green.
+- **`phone-fixtures`** writes what the app's JVM tests hold the Kotlin port to, into
+  `app/src/test/resources/scoring/`: `scores.tsv` (every bed, 0.1 mm either side of every wire, and
+  `tests/scoring-cases.toml`, each with `board.score`'s answer), `rng.json` (the sets of four
+  `default_rng(0)` draws for RANSAC), `warp.json` (a small Photo through `warp`, Pillow's bytes) and,
+  with `--run`, `heads-*.json`: three Photos' heads from that run's LiteRT model, every logit under
+  −3 lowered so the files stay small, with what `decode` and `_board` give for them (a strip with
+  Calibration points and no Board, two Darts in one bed, three in three beds). Run it again after
+  changing `board.py`, `decode.py`, `homography.py` or `augment.py`, and commit what changed.
 - **`runtime-bench`** downloads each runtime's Android AAR, pinned by version and SHA-256 in
   `runtime_bench.py` (LiteRT 2.3.2 from Google Maven, `litert` and `litert-api`; ONNX Runtime 1.32.0
   from Maven Central), into `$DARTS_DATA/runtimes/`, and prints the native libraries each would add
