@@ -11,7 +11,8 @@ import app.dartsscorer.scoring.Score
  * The keypad sheet's selection (phase-1.md §3). [ring] is the ring row's key, Single, Double or
  * Treble; [number] the segment picked. [dart] is the number of the Dart being changed, null for a new
  * one. [near] is where on the Board, in millimetres, the Dart was or the tap landed: it picks which
- * of a segment's two single beds a single goes to.
+ * of a segment's two single beds a single goes to. [restorable] offers *Back to the app's reading*,
+ * for a Dart that differs from what the model read.
  */
 data class Keypad(
     val dart: Int?,
@@ -19,6 +20,7 @@ data class Keypad(
     val number: Int? = null,
     val bullOrMiss: Ring? = null,
     val near: Point? = null,
+    val restorable: Boolean = false,
 ) {
     /** Null until a number, a Bull or Miss is picked. */
     val score: Score? get() = bullOrMiss?.let(::Score) ?: number?.let { Score(ring, it) }
@@ -59,7 +61,10 @@ object Correction {
     fun open(
         dart: ShownDart,
         toBoard: Homography?,
-    ): Keypad = Keypad.showing(dart.number, dart.score, dart.at?.let { toBoard?.project(it) })
+    ): Keypad =
+        Keypad
+            .showing(dart.number, dart.score, dart.at?.let { toBoard?.project(it) })
+            .copy(restorable = dart.differsFromRead)
 
     /** The keypad for a new Dart where the Photo was tapped, the bed under the finger preselected. */
     fun openAt(
@@ -94,10 +99,36 @@ object Correction {
                     ShownDart(freeNumber(darts), placed, score, corrected = true)
                 }
                 existing.score == score -> existing.copy(unsure = false)
-                else -> existing.copy(at = placed, score = score, unsure = false, corrected = true)
+                else -> existing.copy(at = placed, score = score, unsure = false, corrected = true, moved = false)
             }
         return (darts.filter { it.number != committed.number } + committed).sortedBy { it.number }
     }
+
+    /** Dart [number] dragged to [at], in Photo pixels: its Score read from there, no longer unsure. */
+    fun move(
+        darts: List<ShownDart>,
+        number: Int,
+        at: Point,
+        toBoard: Homography,
+    ): List<ShownDart> =
+        darts.map {
+            if (it.number != number) {
+                it
+            } else {
+                it.copy(
+                    at = at,
+                    score = Board.score(toBoard.project(at)),
+                    unsure = false,
+                    corrected = true,
+                    moved = true,
+                )
+            }
+        }
+
+    fun backToReading(
+        darts: List<ShownDart>,
+        number: Int,
+    ): List<ShownDart> = darts.map { if (it.number == number) it.asRead else it }
 
     fun remove(
         darts: List<ShownDart>,

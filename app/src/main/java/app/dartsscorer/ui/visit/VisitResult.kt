@@ -18,12 +18,26 @@ data class Crop(
     val height: Double get() = bottom - top
 }
 
+/** Where the model put a Dart, its Score and whether it was unsure, before any correction. */
+data class DartRead(
+    val at: Point,
+    val score: Score,
+    val unsure: Boolean,
+)
+
 /**
  * A Dart as the screen shows it. [number] counts from the top of the Photo, never throw order, and
  * stays with the Dart through corrections. [at] is its marker in Photo pixels, null where the Dart has
  * no place: a Miss added with no tap, or a Visit entered by hand. A [corrected] Dart's Score is the
  * player's, so it is drawn as a badge alone: at its bed's centre, or for a Miss where it was or was
- * tapped.
+ * tapped. A [moved] one was dragged onto its Entry point, so it keeps a ring at [at] and its Score is
+ * read from there; a keypad commit after the drag clears it, and only [moved] tells a dragged point
+ * from a bed's centre.
+ *
+ * [read] is the model's reading, set once when the result arrives and never written by a correction;
+ * null for a Dart added by hand. With [moved], `read.at` to [at] and both Scores is a point-level
+ * correction; a keypad correction is a Score-only one. Nothing from either is kept
+ * (phase-1.md, *The tempting one*).
  */
 data class ShownDart(
     val number: Int,
@@ -31,7 +45,17 @@ data class ShownDart(
     val score: Score,
     val unsure: Boolean = false,
     val corrected: Boolean = false,
-)
+    val moved: Boolean = false,
+    val read: DartRead? = null,
+) {
+    /** The Dart as the model read it, or itself when it was added by hand. */
+    val asRead: ShownDart
+        get() =
+            read?.let { copy(at = it.at, score = it.score, unsure = it.unsure, corrected = false, moved = false) }
+                ?: this
+
+    val differsFromRead: Boolean get() = read != null && asRead != this
+}
 
 val List<ShownDart>.total: Int get() = sumOf { it.score.value }
 
@@ -104,6 +128,9 @@ fun phaseOf(
     val darts =
         reading.located.darts
             .sortedWith(compareBy({ it.y }, { it.x }))
-            .mapIndexed { i, dart -> ShownDart(i + 1, Point(dart.x, dart.y), dart.score, dart.unsure) }
+            .mapIndexed { i, dart ->
+                val at = Point(dart.x, dart.y)
+                ShownDart(i + 1, at, dart.score, dart.unsure, read = DartRead(at, dart.score, dart.unsure))
+            }
     return VisitPhase.Scored(photo, reading.width, reading.height, crop, toBoard, darts)
 }

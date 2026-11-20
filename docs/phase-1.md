@@ -35,7 +35,7 @@ All six were decided on **2026-11-20**, each as recommended.
 | --- | --- | --- |
 | **D1** | **Where the model file the app ships lives** (§2) | **Committed to git, at `app/src/main/assets/model/`, beside its export record.** CLAUDE.md and ADR-0008 keep weights out of git, but they were written about `ml/`'s training weights (`best.pt`) and the data; the exported `.tflite` is a build input like an icon, and anyone can unzip it from the public APK anyway. About 12.8 MB per model, and a model is swapped a handful of times. The alternatives cost more: Git LFS's free 1 GiB of bandwidth a month runs out at about 75 CI checkouts; a release asset downloaded by a Gradle task needs a pinned SHA-256, a cache and a network step in every build, local ones included. ADR-0008 and CLAUDE.md's stack line are amended to say training weights stay out and the shipped model is in |
 | **D2** | **Is the Photo kept after scoring?** (§4) | **No.** The first version stores no Visit history (phase 0), so the Photo lives only while its Visit is on screen: written through `MediaFiles` as the `photos` kind (2048 px long edge, q85), deleted when the next Visit's Photo arrives, and any left over swept at start, except the one whose path `SavedStateHandle` still holds after process death (§4). Already outside Auto Backup (ADR-0005). Keeping Photos comes with history, in its own phase and ADR |
-| **D3** | **Where a result is shown and corrected** (§3) | **On the Photo, cropped to the Board, and corrected with a keypad.** The crop shows what the model saw, so a phantom Dart or a wall hole read as a Miss is obvious. A tap on a Dart's marker or its chip opens a sheet with Single / Double / Treble, 1–20, Bull 25, Bull 50 and Miss, the current Score preselected, so a wrong ring or neighbour is one tap. A tap on an empty spot proposes a new Dart with the bed under the finger. The Photo zooms and pans for viewing (pinch, double-tap), but a point is never dragged: nothing later needs the corrected point in millimetres. The alternative, a drawn Board that snaps to beds, still has the 8 dp problem and needs the ring chosen anyway |
+| **D3** | **Where a result is shown and corrected** (§3) | **On the Photo, cropped to the Board, and corrected with a keypad.** The crop shows what the model saw, so a phantom Dart or a wall hole read as a Miss is obvious. A tap on a Dart's marker or its chip opens a sheet with Single / Double / Treble, 1–20, Bull 25, Bull 50 and Miss, the current Score preselected, so a wrong ring or neighbour is one tap. A tap on an empty spot proposes a new Dart with the bed under the finger. The Photo zooms and pans for viewing (pinch, double-tap), but a point is never dragged: nothing later needs the corrected point in millimetres. The alternative, a drawn Board that snaps to beds, still has the 8 dp problem and needs the ring chosen anyway. **Amended 2026-11-20:** now that the Photo zooms, a Dart's ring can be long-pressed and dragged onto its Entry point, its Score read through the homography from where it is dropped (§3, *Moving a Dart's ring*). The model's point, Score and unsure flag are kept on the Dart as `ShownDart.read`, never written by a correction, so a drop back on that point or the sheet's *Back to the app's reading* restores them. For a dragged Dart, `read.at` → `at` with both Scores is a point-level correction label; a keypad correction is a Score-only one. Neither is kept (*The tempting one*, below) |
 | **D4** | **A game (501, a countdown) in this phase?** | **No: phase 1 scores single Visits.** A game adds its own words (Leg, Checkout, bust), state that has to survive process death, and a screen; it is worth a phase of its own once a Visit's Score is trusted. Each Visit's total is shown, and nothing is carried between Visits |
 | **D5** | **Which model ships until M2's bar is met** | **The chosen D run, `2026-11-19-darts-640-s2-ring-ext`** with `ENTRY_THRESHOLD` 0.25: 69.2% of validation Visits exactly right. It is swapped for the run that meets the bar (F); until then no build reaches a track anyone but the owner sees (phase P has not uploaded anything yet) |
 | **D6** | **"Enter the Score yourself" when no Board is found** (§3) | **Yes.** The same keypad with no Darts, so a Visit is never lost to a bad Photo. It makes the app usable with no model result at all, which at 69% exactly right is worth one more button |
@@ -82,7 +82,9 @@ Visit count the tip reads.
 
 **The tempting one: sending a corrected Visit back to train the model.** A correction is exactly the
 label M1 is short of, and storing it would look free. It is a Photo leaving the phone, which only
-phase S's opt-in may do, with its own ADR and privacy policy. Nothing from a correction is kept.
+phase S's opt-in may do, with its own ADR and privacy policy. Nothing from a correction is kept: a
+dragged Dart's two points and two Scores (D3's 2026-11-20 amendment) would be a point-level label,
+and they live only in the ViewModel, gone with the Visit.
 
 ---
 
@@ -235,7 +237,8 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   starts at 1×; a correction keeps the zoom. With no drag (TalkBack, switch access, a keyboard;
   WCAG 2.5.7), the Photo's accessibility actions do the same: *Zoom in* and *Zoom out* step ×2
   about its centre, and while zoomed *Move left*, *right*, *up* and *down* show a third of the box
-  further that way. The Photo stays one node and the chips are still the path to each Dart.
+  further that way. The Photo stays one node and the chips are still the path to each Dart. A
+  finger held still on a marker for a long press drags its ring instead (*Moving a Dart's ring*).
 - **Unsure Dart** (confidence below 0.5): a dashed ring (4 dp on, 3 dp off) and an *n?* badge in
   `tertiaryContainer`, where a measured Dart's badge is a plain *n* in `surfaceContainerLowest`; an
   outlined chip with *Check*, and *Check Dart 2* under the total. Shape and text, never colour alone
@@ -243,6 +246,19 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
 - **Changing a Dart:** its marker or chip opens the sheet; *Done* commits; the marker becomes a
   badge alone at the centre of the chosen bed, or for a Miss where it was, so nobody reads it as a
   measured Entry point (*The corrected marker*, §4).
+- **Moving a Dart's ring** (2026-11-20): a long press on a marker, on its badge or within 24 dp of its
+  point, lifts the ring with a haptic tick and draws it one touch target (48 dp) above the finger,
+  so the finger never hides the tip: a solid ring with four 8 dp hairline arms in `inverseSurface`
+  over a `surfaceContainerLowest` keyline, its badge showing the live Score. The chip and the total
+  follow it, and a faint ring stays at the model's point while the finger is down. The drop moves
+  the Dart there, scored through the homography, no longer unsure, drawn as a solid ring with its
+  badge beside it (*The corrected marker*, §4). A release within touch slop moves nothing, and a
+  drop within the ring's outer radius of the model's point snaps back to the model's reading whole,
+  with a lighter tick. A keypad-corrected Dart can be dragged too. The sheet's *Back to the app's
+  reading*, shown only while a Dart differs from the model's reading, does the same without a drag
+  and also undoes a keypad change. Dragging fixes a misplaced Dart, not a misplaced Board: the
+  Score still comes through the same homography. There is no drag accessibility action; the chips
+  and the keypad stay the complete path, and the Photo stays one node.
 - **The keypad sheet:** each key is a selectable item that exposes its selected state; Single /
   Double / Treble and 1–20 (with the Bulls and *Miss*) are two labelled groups, so two picks read
   as one Score; the preselected key shows a check and a fill, never tint alone; every key is at
@@ -340,7 +356,10 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   **A Miss has no bed, so it keeps its place**: a Dart set to Miss stays where it was, and one added
   by a tap sits at the tap, both as a badge (2026-11-20; until then a Miss set by hand lost its
   marker while a measured one kept it). A Dart with no place, a Miss from *Add a Dart* or a Visit
-  entered by hand, has no marker.
+  entered by hand, has no marker. **A dragged Dart keeps a ring** (2026-11-20): the player put its
+  point on the Entry point, so it is drawn as a solid ring there with its badge beside it, in
+  `inverseSurface` with an `inverseOnSurface` number. A keypad commit after a drag deliberately
+  clears that and draws the badge alone at the new bed's centre, like any keypad change.
 - **Which bed's centre:** a single goes to the one of its segment's two single beds nearer where the
   Dart was or the tap landed, and to the outer one from *Add a Dart*; an outer bull keeps that point's
   direction. *Done* on an unchanged Score confirms the Dart where it was measured: it is not moved
@@ -353,7 +372,8 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   TalkBack reads each group's name with its keys (*5, radio button, in list Number*); the visible
   labels are hidden from it so they are not read twice. Unselected keys are outlined in `outline`.
 - **A tap on the Photo** on a marker's badge, or within 24 dp of its point, opens that Dart, at any
-  zoom; anywhere else proposes a new one
+  zoom, and a long press there drags its ring (§3, *Moving a Dart's ring*); anywhere else, held or
+  not, proposes a new one
   while fewer than three are shown, *Miss* when it lands off the Board.
 - ***Undo* is a snackbar with no timer** (WCAG 2.2.1: nothing to adjust): it stays until *Undo*, its
   dismiss button, or the Visit's next change (a commit, another removal, a new Photo). The screen

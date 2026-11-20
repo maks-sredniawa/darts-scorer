@@ -107,7 +107,14 @@ fun VisitScreen(
     val photo: (@Composable (beside: Boolean) -> Unit)? =
         when (phase) {
             is VisitPhase.Scored -> { beside ->
-                BoardPhoto(phase, viewModel::openDart, viewModel::addDartAt, beside)
+                BoardPhoto(
+                    phase,
+                    viewModel::openDart,
+                    viewModel::addDartAt,
+                    viewModel::moveDart,
+                    viewModel::backToReading,
+                    beside,
+                )
             }
             is VisitPhase.NoBoard -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
             is VisitPhase.Entered -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
@@ -204,6 +211,7 @@ fun VisitScreen(
             onBullOrMiss = viewModel::pickBullOrMiss,
             onDone = viewModel::commitKeypad,
             onRemove = viewModel::removeDart,
+            onBackToReading = viewModel::backToReading,
             onDismiss = viewModel::dismissKeypad,
         )
     }

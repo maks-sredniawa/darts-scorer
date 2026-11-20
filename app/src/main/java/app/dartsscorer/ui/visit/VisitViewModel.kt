@@ -220,6 +220,34 @@ class VisitViewModel(
         }
     }
 
+    /** A Dart's ring dragged to [to], in Photo pixels, on every move so the chip and total follow it. */
+    fun moveDart(
+        number: Int,
+        to: Point,
+    ) {
+        visit.update { state ->
+            val scored = state.phase as? VisitPhase.Scored ?: return@update state
+            state.copy(
+                phase = scored.copy(darts = Correction.move(scored.darts, number, to, scored.toBoard)),
+                removed = null,
+            )
+        }
+    }
+
+    /** A drop on the model's point, or the sheet's *Back to the app's reading*: the Dart as it was read. */
+    fun backToReading(number: Int) {
+        visit.update { state ->
+            val shown = state.phase as? VisitPhase.Shown ?: return@update state
+            val fromSheet = state.keypad?.dart == number
+            state.copy(
+                phase = shown.withDarts(Correction.backToReading(shown.darts, number)),
+                keypad = if (fromSheet) null else state.keypad,
+                removed = null,
+                focus = if (fromSheet) VisitFocus.Chip(number) else state.focus,
+            )
+        }
+    }
+
     fun removeDart(number: Int) {
         visit.update { state ->
             val shown = state.phase as? VisitPhase.Shown ?: return@update state

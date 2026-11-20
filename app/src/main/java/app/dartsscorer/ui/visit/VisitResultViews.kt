@@ -54,11 +54,15 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -82,6 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import app.dartsscorer.R
 import app.dartsscorer.scoring.Point
+import app.dartsscorer.scoring.Score
 import app.dartsscorer.theme.Spacing
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -164,6 +169,8 @@ private val RING_DASH = 4.dp
 private val RING_GAP = 3.dp
 
 internal val TOUCH_TARGET = 48.dp
+
+private const val GHOST_ALPHA = 0.45f
 
 /**
  * Above the Score: at most two fifths of the window high, so the Score and the chips sit under the
@@ -387,17 +394,21 @@ private fun AddDartButton(
 /**
  * The Photo cropped to the Board, one node for TalkBack; its markers are not focusable, since the
  * chips are the path that needs no precise tap. A tap on a marker opens its Dart, a tap elsewhere
- * proposes a new Dart while fewer than three are shown.
+ * proposes a new Dart while fewer than three are shown, and a long press on a marker drags its ring
+ * onto the Entry point.
  */
 @Composable
 internal fun BoardPhoto(
     result: VisitPhase.Scored,
     onOpenDart: (Int) -> Unit,
     onSpot: (Point) -> Unit,
+    onMoveDart: (Int, Point) -> Unit,
+    onBackToReading: (Int) -> Unit,
     beside: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val description = LocalResources.current.summary(result)
+    val resources = LocalResources.current
+    val description = resources.summary(result)
     val painter =
         rememberAsyncImagePainter(
             ImageRequest
@@ -416,6 +427,64 @@ internal fun BoardPhoto(
     val zoomed by remember(result.photo) { derivedStateOf { zoom.zoom > PhotoZoom.MIN_ZOOM } }
     val zoomable by remember(result.photo) { derivedStateOf { zoom.zoom < PhotoZoom.MAX_ZOOM } }
     val actions = photoActions(zoomable, zoomed) { zoom = it(zoom, box) }
+    var dragging by remember(result.photo) { mutableStateOf<Int?>(null) }
+    val scoreLabel: (Score) -> String = { resources.shortName(it) }
+    val density = LocalDensity.current
+    val haptics = LocalHapticFeedback.current
+    val move by rememberUpdatedState(onMoveDart)
+    val back by rememberUpdatedState(onBackToReading)
+    val ring =
+        remember(result.photo, density, measurer, numberStyle) {
+            object : RingDrag {
+                var onRead = false
+
+                override fun hit(at: Offset): Int? {
+                    val markers =
+                        density.markers(latest, box, zoom.clampedTo(box), measurer, numberStyle, null, scoreLabel)
+                    return markers.map { it.spot }.hitBy(at, with(density) { TOUCH_TARGET.toPx() } / 2)?.let {
+                        markers[it].dart.number
+                    }
+                }
+
+                override fun hold(dart: Int) {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onRead = false
+                    dragging = dart
+                }
+
+                override fun drag(
+                    dart: Int,
+                    ringAt: Offset,
+                ) {
+                    val shown = latest
+                    val crop = shown.crop
+                    val view = zoom.clampedTo(box)
+                    val scale = box.width / crop.width
+                    val base = view.toBase(ringAt)
+                    val point =
+                        Point(
+                            (crop.left + base.x / scale).coerceIn(crop.left, crop.right),
+                            (crop.top + base.y / scale).coerceIn(crop.top, crop.bottom),
+                        )
+                    val read = shown.darts.firstOrNull { it.number == dart }?.read
+                    val screen = view.toScreen(point.screen(crop, scale))
+                    val snaps =
+                        read != null &&
+                            (screen - view.toScreen(read.at.screen(crop, scale))).getDistance() <= density.ringOuter()
+                    if (snaps) {
+                        if (!onRead) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        back(dart)
+                    } else {
+                        move(dart, point)
+                    }
+                    onRead = snaps
+                }
+
+                override fun release() {
+                    dragging = null
+                }
+            }
+        }
     Canvas(
         modifier =
             modifier
@@ -426,7 +495,7 @@ internal fun BoardPhoto(
                     detectTapGestures(onDoubleTap = { at -> zoom = zoom.toggled(at, size.toSize()) }) { tap ->
                         val shown = latest
                         val view = zoom.clampedTo(size.toSize())
-                        val markers = markers(shown, size.toSize(), view, measurer, numberStyle)
+                        val markers = markers(shown, size.toSize(), view, measurer, numberStyle, null, scoreLabel)
                         val hit = markers.map { it.spot }.hitBy(tap, TOUCH_TARGET.toPx() / 2)
                         if (hit != null) {
                             onOpenDart(markers[hit].dart.number)
@@ -436,7 +505,7 @@ internal fun BoardPhoto(
                             onSpot(Point(shown.crop.left + base.x / scale, shown.crop.top + base.y / scale))
                         }
                     }
-                }.zoomGestures(result.photo, { zoom }, { zoom = it })
+                }.zoomGestures(result.photo, { zoom }, { zoom = it }, ring)
                 .semantics {
                     contentDescription = description
                     role = Role.Image
@@ -452,26 +521,62 @@ internal fun BoardPhoto(
         }) {
             with(painter) { draw(Size(result.width.toFloat(), result.height.toFloat())) }
         }
-        markers(result, size, view, measurer, numberStyle).forEach { drawMarker(it, colors) }
+        val scaled = scale.toDouble()
+        result.darts
+            .firstOrNull { it.number == dragging }
+            ?.read
+            ?.let { read -> view.toScreen(read.at.screen(crop, scaled)) to read.unsure }
+            ?.let { (at, unsure) -> drawRing(at, unsure, colors, GHOST_ALPHA) }
+        markers(result, size, view, measurer, numberStyle, dragging, scoreLabel).forEach { drawMarker(it, colors) }
     }
+}
+
+/** A marker's ring held and dragged; [drag]'s point is where the ring is drawn, above the finger. */
+private interface RingDrag {
+    fun hit(at: Offset): Int?
+
+    fun hold(dart: Int)
+
+    fun drag(
+        dart: Int,
+        ringAt: Offset,
+    )
+
+    fun release()
 }
 
 /**
  * Pinch, and a one-finger drag once zoomed in. A drag is consumed only while it moves the Photo, so
  * at 1× or at a pan edge it falls through to the scroll around the Photo; a consumed move also
- * cancels the tap, so a pan never adds a Dart.
+ * cancels the tap, so a pan never adds a Dart. A finger held still on a marker for a long press
+ * takes the gesture instead and drags its [ring].
  */
 private fun Modifier.zoomGestures(
     photo: File,
     current: () -> PhotoZoom,
     onZoom: (PhotoZoom) -> Unit,
+    ring: RingDrag,
 ): Modifier =
     pointerInput(photo) {
         awaitEachGesture {
-            awaitFirstDown(requireUnconsumed = false)
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val held = ring.hit(down.position)
+            val longPressAt = down.uptimeMillis + viewConfiguration.longPressTimeoutMillis
+            var last = down.uptimeMillis
             var travel = 0f
             do {
-                val event = awaitPointerEvent()
+                val waiting = held != null && travel <= viewConfiguration.touchSlop
+                val event =
+                    if (waiting) {
+                        withTimeoutOrNull(maxOf(longPressAt - last, 0L)) { awaitPointerEvent() }
+                    } else {
+                        awaitPointerEvent()
+                    }
+                if (event == null) {
+                    held?.let { dragRing(down, it, ring) }
+                    return@awaitEachGesture
+                }
+                last = event.changes.first().uptimeMillis
                 val box = size.toSize()
                 val now = current().clampedTo(box)
                 val move = event.calculatePan()
@@ -491,6 +596,33 @@ private fun Modifier.zoomGestures(
             } while (event.changes.any { it.pressed })
         }
     }
+
+/**
+ * Every change is consumed, the lift included, so the hold is neither a tap, a pan nor a scroll. The
+ * ring is drawn one touch target above the finger so the finger never hides the tip, and a release
+ * within touch slop moves nothing.
+ */
+private suspend fun AwaitPointerEventScope.dragRing(
+    down: PointerInputChange,
+    dart: Int,
+    ring: RingDrag,
+) {
+    ring.hold(dart)
+    val lift = Offset(0f, TOUCH_TARGET.toPx())
+    var travel = 0f
+    try {
+        while (true) {
+            val event = awaitPointerEvent()
+            event.changes.forEach { it.consume() }
+            val finger = event.changes.firstOrNull { it.id == down.id } ?: break
+            travel = maxOf(travel, (finger.position - down.position).getDistance())
+            if (travel > viewConfiguration.touchSlop) ring.drag(dart, finger.position - lift)
+            if (!finger.pressed) break
+        }
+    } finally {
+        ring.release()
+    }
+}
 
 @Composable
 private fun photoActions(
@@ -535,7 +667,10 @@ private class Marker(
     val dart: ShownDart,
     val text: TextLayoutResult,
     val spot: MarkerSpot,
+    val dragging: Boolean,
 )
+
+private fun Density.ringOuter(): Float = Spacing.tight.toPx() + 2 * HAIRLINE.toPx() + RING_DARK.toPx()
 
 private fun Density.markers(
     shown: VisitPhase.Scored,
@@ -543,23 +678,34 @@ private fun Density.markers(
     zoom: PhotoZoom,
     measurer: TextMeasurer,
     style: TextStyle,
+    dragging: Int?,
+    scoreLabel: (Score) -> String,
 ): List<Marker> {
     val markerDensity = Density(density, fontScale.coerceAtMost(MARKER_MAX_FONT_SCALE))
     val scale = canvas.width / shown.crop.width
     val keyline = HAIRLINE.toPx()
-    val ringOuter = Spacing.tight.toPx() + 2 * keyline + RING_DARK.toPx()
+    val ringOuter = ringOuter()
     val box = Rect(Offset.Zero, canvas)
     return shown.darts.mapNotNull { dart ->
         val at = dart.at?.let { zoom.toScreen(it.screen(shown.crop, scale)) } ?: return@mapNotNull null
         if (!box.contains(at)) return@mapNotNull null
-        val label = if (dart.unsure && !dart.corrected) "${dart.number}?" else dart.number.toString()
+        val held = dart.number == dragging
+        val label =
+            when {
+                held -> scoreLabel(dart.score)
+                dart.unsure && !dart.corrected -> "${dart.number}?"
+                else -> dart.number.toString()
+            }
         val text = measurer.measure(label, style, density = markerDensity)
         val height = text.size.height.toFloat()
         val outer = Size(maxOf(height, text.size.width + 2 * Spacing.hair.toPx()) + 2 * keyline, height + 2 * keyline)
-        val badge = if (dart.corrected) badgeOn(at, outer, canvas) else badgeBeside(at, outer, ringOuter, canvas)
-        Marker(dart, text, MarkerSpot(at, badge))
+        val badge =
+            if (dart.badgeAlone && !held) badgeOn(at, outer, canvas) else badgeBeside(at, outer, ringOuter, canvas)
+        Marker(dart, text, MarkerSpot(at, badge), held)
     }
 }
+
+private val ShownDart.badgeAlone: Boolean get() = corrected && !moved
 
 /** Drawn as `docs/phase-1.md` §3 describes it, and a corrected one as §4's *The corrected marker*. */
 private fun DrawScope.drawMarker(
@@ -567,31 +713,63 @@ private fun DrawScope.drawMarker(
     colors: ColorScheme,
 ) {
     val dart = marker.dart
-    val (fill, ink) =
-        when {
-            dart.corrected -> colors.inverseSurface to colors.inverseOnSurface
-            dart.unsure -> colors.tertiaryContainer to colors.onTertiaryContainer
-            else -> colors.surfaceContainerLowest to colors.onSurface
+    val at = marker.spot.at
+    when {
+        marker.dragging || dart.moved -> {
+            drawRing(at, false, colors)
+            if (marker.dragging) drawCrosshair(at, colors)
+            drawBadge(marker, colors.inverseSurface, colors.inverseOnSurface, colors.surfaceContainerLowest)
         }
-    if (dart.corrected) {
-        drawBadge(marker, fill, ink, colors.surfaceContainerLowest)
-        return
+        dart.corrected ->
+            drawBadge(
+                marker,
+                colors.inverseSurface,
+                colors.inverseOnSurface,
+                colors.surfaceContainerLowest,
+            )
+        dart.unsure -> {
+            drawRing(at, true, colors)
+            drawBadge(marker, colors.tertiaryContainer, colors.onTertiaryContainer, colors.inverseSurface)
+        }
+        else -> {
+            drawRing(at, false, colors)
+            drawBadge(marker, colors.surfaceContainerLowest, colors.onSurface, colors.inverseSurface)
+        }
     }
-    drawRing(marker.spot.at, dart.unsure, colors)
-    drawBadge(marker, fill, ink, colors.inverseSurface)
 }
 
 private fun DrawScope.drawRing(
     at: Offset,
     dashed: Boolean,
     colors: ColorScheme,
+    alpha: Float = 1f,
 ) {
     val light = HAIRLINE.toPx()
     val dark = RING_DARK.toPx()
     val middle = Spacing.tight.toPx() + light + dark / 2
     val dashes = if (dashed) wholeDashes(middle) else null
-    drawCircle(colors.surfaceContainerLowest, middle, at, style = Stroke(width = 2 * light + dark, pathEffect = dashes))
-    drawCircle(colors.inverseSurface, middle, at, style = Stroke(width = dark, pathEffect = dashes))
+    drawCircle(
+        colors.surfaceContainerLowest,
+        middle,
+        at,
+        alpha,
+        style = Stroke(width = 2 * light + dark, pathEffect = dashes),
+    )
+    drawCircle(colors.inverseSurface, middle, at, alpha, style = Stroke(width = dark, pathEffect = dashes))
+}
+
+/** Four arms out from the held ring, so where it sits reads at a glance while the finger is down. */
+private fun DrawScope.drawCrosshair(
+    at: Offset,
+    colors: ColorScheme,
+) {
+    val light = HAIRLINE.toPx()
+    val from = ringOuter()
+    val to = from + Spacing.tight.toPx()
+    listOf(Offset(1f, 0f), Offset(-1f, 0f), Offset(0f, 1f), Offset(0f, -1f)).forEach { arm ->
+        drawLine(colors.surfaceContainerLowest, at + arm * from, at + arm * to, 3 * light)
+        drawLine(colors.inverseSurface, at + arm * from, at + arm * to, light)
+    }
 }
 
 /** Stretched to a whole number of dashes, so no short one is left where the circle closes. */
