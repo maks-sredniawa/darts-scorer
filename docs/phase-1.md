@@ -402,16 +402,20 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   means a saveable Visit replayed onto the recomputed reading, which is not trivial, so they stay in
   the ViewModel's state alone.
 - **The debug build keeps each marked Visit** (2026-11-20), so the owner's corrections become labels
-  for checking the model and for training later. When a new Photo ends a Visit with a result (a Board
-  found, or Darts entered by hand), the Photo is copied byte for byte into `filesDir/marked/` before it
-  is deleted, beside a JSON with the app's version, the Photo's size, the homography and crop, each
-  Dart's reading (`read`, in Photo pixels, null for one added by hand) and its final place, Score and
-  flags, and the Darts read that the player removed. `ui/visit/KeepMarked.kt`, one per variant: a
-  release build keeps nothing. `marked/` is outside Auto Backup's include list (ADR-0005), and
-  Settings' Debug section counts the Visits kept. `python3 scripts/pull-marked.py --serial <serial>`
-  copies them into `$DARTS_DATA/phone-captures/<date>/` over `adb run-as`, skipping what it has
-  already, and deletes on the phone only with `--delete-after`. A process death still loses the
-  corrections, and that Visit is not kept.
+  for checking the model and for training later. A Visit with a result (a Board found, or Darts
+  entered by hand) is kept each time the Visit screen stops, which every close, trip to the camera,
+  move to the background and kill passes through, and again when a new Photo ends it, before its
+  Photo is deleted. The Photo is copied byte for byte into `filesDir/marked/<photo-uuid>.jpg`, beside
+  `<photo-uuid>.json` with the time it was kept, the app's version, the Photo's size, the homography
+  and crop, each Dart's reading (`read`, in Photo pixels, null for one added by hand) and its final
+  place, Score and flags, and the Darts read that the player removed. Each is written aside and
+  renamed, so a later keep of the same Visit replaces the earlier snapshot whole.
+  `ui/visit/KeepMarked.kt`, one per variant: a release build keeps nothing. `marked/` is outside Auto
+  Backup's include list (ADR-0005), and Settings' Debug section counts the Visits kept.
+  `uv run --directory ml darts-ml pull-marked --serial <serial>` copies them into
+  `$DARTS_DATA/phone-captures/<date>/` over `adb run-as`, again for a record whose size or time
+  changed on the phone (into the folder its first copy went to), and deletes on the phone only with
+  `--delete-after`. Corrections made after the last stop and lost to a process death are not kept.
 
 ## 5. `minSdk`
 
