@@ -28,7 +28,7 @@ class TabStackTest {
     }
 
     @Test
-    fun `a detail screen keeps its tab lit, and a tab tap leaves it`() {
+    fun `a tab tap from a detail screen returns to that tab`() {
         val stack = NavBackStack<NavKey>(Visit, Settings, Licences)
         assertEquals(TopLevelDestination.SettingsTab, stack.currentTab())
         stack.showTopLevel(TopLevelDestination.SettingsTab)
