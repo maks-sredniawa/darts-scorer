@@ -71,6 +71,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import app.dartsscorer.R
 import app.dartsscorer.scoring.Point
 import app.dartsscorer.theme.Spacing
@@ -82,7 +83,6 @@ import kotlinx.coroutines.delay
 import java.io.File
 import kotlin.math.PI
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 import coil3.size.Size as CoilSize
 
 /**
@@ -408,23 +408,15 @@ internal fun BoardPhoto(
             modifier
                 .photoSize(crop.width / crop.height, beside)
                 .clipToBounds()
-                .pointerInput(Unit) {
+                .pointerInput(measurer, numberStyle) {
                     detectTapGestures { tap ->
                         val shown = latest
-                        val scale = size.width / shown.crop.width
-                        val hit = TOUCH_TARGET.toPx() / 2
-                        val nearest =
-                            shown.darts
-                                .mapNotNull { dart ->
-                                    dart.at?.let {
-                                        dart to
-                                            (it.screen(shown.crop, scale) - tap).getDistance()
-                                    }
-                                }.minByOrNull { it.second }
-                                ?.takeIf { it.second <= hit }
-                        if (nearest != null) {
-                            onOpenDart(nearest.first.number)
+                        val markers = markers(shown, size.toSize(), measurer, numberStyle)
+                        val hit = markers.map { it.spot }.hitBy(tap, TOUCH_TARGET.toPx() / 2)
+                        if (hit != null) {
+                            onOpenDart(markers[hit].dart.number)
                         } else {
+                            val scale = size.width / shown.crop.width
                             onSpot(Point(shown.crop.left + tap.x / scale, shown.crop.top + tap.y / scale))
                         }
                     }
@@ -440,10 +432,7 @@ internal fun BoardPhoto(
         }) {
             with(painter) { draw(Size(result.width.toFloat(), result.height.toFloat())) }
         }
-        result.darts.forEach { dart ->
-            val at = dart.at ?: return@forEach
-            drawMarker(at.screen(crop, scale.toDouble()), dart, measurer, numberStyle, colors)
-        }
+        markers(result, size, measurer, numberStyle).forEach { drawMarker(it, colors) }
     }
 }
 
@@ -452,35 +441,51 @@ private fun Point.screen(
     scale: Double,
 ): Offset = Offset(((x - crop.left) * scale).toFloat(), ((y - crop.top) * scale).toFloat())
 
-/**
- * A thin ring with its centre left clear, so the dart tip shows through, and the number in a badge
- * beside it. Light, dark and light bands, so it reads on a dark Board and a light wall. Unsure: the
- * ring dashed and the badge *n?*. Corrected: no ring, only the badge on its place, since the player
- * set the Score: drawn at its bed's centre, or for a Miss where it was or was tapped, so it hides no
- * tip.
- */
-private fun DrawScope.drawMarker(
-    at: Offset,
-    dart: ShownDart,
+private class Marker(
+    val dart: ShownDart,
+    val text: TextLayoutResult,
+    val spot: MarkerSpot,
+)
+
+private fun Density.markers(
+    shown: VisitPhase.Scored,
+    canvas: Size,
     measurer: TextMeasurer,
     style: TextStyle,
+): List<Marker> {
+    val markerDensity = Density(density, fontScale.coerceAtMost(MARKER_MAX_FONT_SCALE))
+    val scale = canvas.width / shown.crop.width
+    val keyline = HAIRLINE.toPx()
+    val ringOuter = Spacing.tight.toPx() + 2 * keyline + RING_DARK.toPx()
+    return shown.darts.mapNotNull { dart ->
+        val at = dart.at?.screen(shown.crop, scale) ?: return@mapNotNull null
+        val label = if (dart.unsure && !dart.corrected) "${dart.number}?" else dart.number.toString()
+        val text = measurer.measure(label, style, density = markerDensity)
+        val height = text.size.height.toFloat()
+        val outer = Size(maxOf(height, text.size.width + 2 * Spacing.hair.toPx()) + 2 * keyline, height + 2 * keyline)
+        val badge = if (dart.corrected) badgeOn(at, outer, canvas) else badgeBeside(at, outer, ringOuter, canvas)
+        Marker(dart, text, MarkerSpot(at, badge))
+    }
+}
+
+/** Drawn as `docs/phase-1.md` §3 describes it, and a corrected one as §4's *The corrected marker*. */
+private fun DrawScope.drawMarker(
+    marker: Marker,
     colors: ColorScheme,
 ) {
-    val markerDensity = Density(density, fontScale.coerceAtMost(MARKER_MAX_FONT_SCALE))
+    val dart = marker.dart
     val (fill, ink) =
         when {
             dart.corrected -> colors.inverseSurface to colors.inverseOnSurface
             dart.unsure -> colors.tertiaryContainer to colors.onTertiaryContainer
             else -> colors.surfaceContainerLowest to colors.onSurface
         }
-    val label = if (dart.unsure && !dart.corrected) "${dart.number}?" else dart.number.toString()
-    val text = measurer.measure(label, style.copy(color = ink), density = markerDensity)
     if (dart.corrected) {
-        drawBadge(text, inside(at, text), fill, colors.surfaceContainerLowest)
+        drawBadge(marker, fill, ink, colors.surfaceContainerLowest)
         return
     }
-    drawRing(at, dart.unsure, colors)
-    drawBadge(text, besideRing(at, text), fill, colors.inverseSurface)
+    drawRing(marker.spot.at, dart.unsure, colors)
+    drawBadge(marker, fill, ink, colors.inverseSurface)
 }
 
 private fun DrawScope.drawRing(
@@ -504,71 +509,16 @@ private fun DrawScope.wholeDashes(radius: Float): PathEffect {
     return PathEffect.dashPathEffect(floatArrayOf(RING_DASH.toPx() * stretch, RING_GAP.toPx() * stretch))
 }
 
-private fun DrawScope.ringOuter(): Float = Spacing.tight.toPx() + 2 * HAIRLINE.toPx() + RING_DARK.toPx()
-
-private fun DrawScope.badgeSize(text: TextLayoutResult): Size {
-    val height = text.size.height.toFloat()
-    return Size(maxOf(height, text.size.width + 2 * Spacing.hair.toPx()), height)
-}
-
-/**
- * The badge's rounded end touches the ring at 45° up and to the right, flipped to whichever side
- * stays inside the crop.
- */
-private fun DrawScope.besideRing(
-    at: Offset,
-    text: TextLayoutResult,
-): Offset {
-    val keyline = HAIRLINE.toPx()
-    val badge = badgeSize(text)
-    val halfWidth = badge.width / 2 + keyline
-    val halfHeight = badge.height / 2 + keyline
-    val reach = (ringOuter() + halfHeight) / sqrt(2f)
-    val toCentre = reach + halfWidth - halfHeight
-    val right = at.x + toCentre + halfWidth <= size.width
-    val up = at.y - reach - halfHeight >= 0
-    val beside =
-        Offset(
-            if (right) at.x + toCentre else at.x - toCentre,
-            if (up) at.y - reach else at.y + reach,
-        )
-    return inside(beside, text)
-}
-
-private fun DrawScope.inside(
-    centre: Offset,
-    text: TextLayoutResult,
-): Offset {
-    val keyline = HAIRLINE.toPx()
-    val badge = badgeSize(text)
-    val halfWidth = badge.width / 2 + keyline
-    val halfHeight = badge.height / 2 + keyline
-    return Offset(
-        centre.x.coerceAtMost(size.width - halfWidth).coerceAtLeast(halfWidth),
-        centre.y.coerceAtMost(size.height - halfHeight).coerceAtLeast(halfHeight),
-    )
-}
-
 private fun DrawScope.drawBadge(
-    text: TextLayoutResult,
-    centre: Offset,
+    marker: Marker,
     fill: Color,
+    ink: Color,
     keyline: Color,
 ) {
-    val line = HAIRLINE.toPx()
-    val badge = badgeSize(text)
-    val outer = Size(badge.width + 2 * line, badge.height + 2 * line)
-    drawRoundRect(
-        keyline,
-        topLeft = centre - Offset(outer.width / 2, outer.height / 2),
-        size = outer,
-        cornerRadius = CornerRadius(outer.height / 2),
-    )
-    drawRoundRect(
-        fill,
-        topLeft = centre - Offset(badge.width / 2, badge.height / 2),
-        size = badge,
-        cornerRadius = CornerRadius(badge.height / 2),
-    )
-    drawText(text, topLeft = centre - Offset(text.size.width / 2f, text.size.height / 2f))
+    val outer = marker.spot.badge
+    val badge = outer.deflate(HAIRLINE.toPx())
+    drawRoundRect(keyline, topLeft = outer.topLeft, size = outer.size, cornerRadius = CornerRadius(outer.height / 2))
+    drawRoundRect(fill, topLeft = badge.topLeft, size = badge.size, cornerRadius = CornerRadius(badge.height / 2))
+    val text = marker.text.size
+    drawText(marker.text, ink, topLeft = outer.center - Offset(text.width / 2f, text.height / 2f))
 }
