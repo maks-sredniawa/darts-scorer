@@ -277,8 +277,8 @@ class EvaluateTest(unittest.TestCase):
         lenient = "\n".join(report(result, dataclasses.replace(BAR, visits_counted=3)))
         self.assertIn("B2, the Visits: met", lenient)
         self.assertIn("over ≥ 3 Visits", lenient)
-        self.assertIn("The bar for opening phase 1: met", lenient)
-        self.assertIn("The bar for opening phase 1: NOT met", "\n".join(report(result)))
+        self.assertIn("The bar for phase 1's model: met", lenient)
+        self.assertIn("The bar for phase 1's model: NOT met", "\n".join(report(result)))
 
     def test_a_prediction_naming_no_calibration_point_is_refused(self):
         self.freeze()
@@ -296,7 +296,7 @@ class EvaluateTest(unittest.TestCase):
         text = out.getvalue()
         self.assertIn("Board found              12/12 (100.0%)", text)
         self.assertIn("exactly right from p1    3/3 (100.0%)", text)
-        self.assertIn("The bar for opening phase 1: NOT met", text)
+        self.assertIn("The bar for phase 1's model: NOT met", text)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Phase M1 — The owner's Photos are taken, labelled and split beside DeepDarts, and the bar for phase 1 is set before training
+# Phase M1 — The owner's Photos are taken, labelled and split beside DeepDarts, and the bar for phase 1's model is set before training
 
 Sequence lives in [`PLAN.md`](PLAN.md); the live worklist lives in [`DOD.md`](DOD.md). This phase
 serves [ADR-0008](adr/0008-darts-are-found-by-an-on-device-keypoint-model-and-a-homography.md) and
@@ -13,7 +13,7 @@ are about 800 of the owner's handheld Photos of about 270 Visits, every one labe
 Calibration points and Entry points, and every Visit carries the Score the owner read at the Board.
 DeepDarts' 16,050 Photos are converted into the same records, unless the labels cannot be had (D5).
 A third of the owner's Capture sessions are frozen as the Held-out set, by a hash manifest in git.
-The bar for opening phase 1 is written below and computed by code that has been tested on perfect
+The bar phase 1's model must meet is written below and computed by code that has been tested on perfect
 and on broken predictions. No model exists yet. The difference a reader can check: **`darts-ml
 verify-held-out` passes against the committed manifest, and `darts-ml evaluate --predictions
 labels` reads 100% found and 0 mm on the Held-out set, with B2 short of 100% only by the counted
@@ -35,7 +35,7 @@ asks for a subscription (§4). B2's rule is why D3 now has 18 Capture sessions r
 
 | # | Decision | Decided 2026-11-13 |
 | --- | --- | --- |
-| **D1** | **The bar for opening phase 1** (§7) | **Board:** found in ≥ 98% of held-out Photos. At the treble wires and at the double wires separately, the error has a median ≤ 0.5 mm and a 95th percentile ≤ 1.0 mm. **Visits:** ≥ 80% of the held-out Visits whose Darts are all visible in their front Photo are scored exactly right from it alone, over at least 60 such Visits. A Visit with a Dart hidden in p1 is left out of the bar and counted in a figure of its own, which is phase 2's input |
+| **D1** | **The bar for phase 1's model** (§7; amended 2026-11-20) | **Board:** found in ≥ 98% of held-out Photos. At the treble wires and at the double wires separately, the error has a median ≤ 0.5 mm and a 95th percentile ≤ 1.0 mm. **Visits:** ≥ 80% of the held-out Visits whose Darts are all visible in their front Photo are scored exactly right from it alone, over at least 60 such Visits. A Visit with a Dart hidden in p1 is left out of the bar and counted in a figure of its own, which is phase 2's input |
 | **D2** | **Which phones** | Two phones of different makes: your own and one other, such as an old phone or one borrowed for a few Capture sessions. If the second falls through, the model has only ever seen one lens and one image pipeline; that becomes a *Known gap* |
 | **D3** | **How much to capture**: your hours | 18 Capture sessions of 15 Visits, about 810 Photos: 12 training and 6 held-out. The two held-out Capture sessions beyond the 16 first proposed follow from D1's B2 rule (§6). That is about 9 hours at the Board and about 31 at the labelling tool (*The owner's hours*). The floor is 8 training Capture sessions, and §3 says which go first. The pilot (B) measures the real minutes per Photo before the rest is taken |
 | **D4** | **Where the data lives, and its backup** | `~/darts-scorer-data` on this machine (`DARTS_DATA`), backed up to an external disk. **No cloud drive**, and no phone's cloud backup either (§3): the Photos show your home, and the labels are hours of work you cannot buy back |
@@ -756,7 +756,10 @@ is recorded in the sheet as an **open mismatch**, with the Photo it is on and it
   on a validation split from training Capture sessions and reads the Held-out set only to take the
   bar's reading. Each reading is logged in `phase-M2.md`, so a bar met on the fifth look says so.
 
-## 7. The bar for opening phase 1 — decided 2026-11-13 (D1)
+## 7. The bar for phase 1's model — decided 2026-11-13 (D1), amended 2026-11-20
+
+**Amended 2026-11-20:** phase 1 no longer waits for this bar to open. It is built alongside M2,
+and the bar now decides when it may close: the app ships a model that met it. The bar is unchanged.
 
 Set now, before any training. Every figure below is computed by `darts-ml evaluate` (F) on the
 Held-out set. Photos and Visits are counted from the frozen manifest, never from what a model

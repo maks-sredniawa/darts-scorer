@@ -106,7 +106,9 @@ and the app is on Play with a tip purchase:
 
 - **Most of the work is data.** Hundreds of labelled handheld photos from several angles have to be
   taken and labelled before any accuracy figure means anything. Phase M1 is that work and phase M2
-  trains on it; both come before the app shows anything real.
+  trains on it; both come before the app shows anything real. (Amended 2026-11-20: phase 1 is
+  built alongside M2 with an interim model, and no build reaches a tester before a model meets
+  phase M1's bar.)
 - **A dart on a wire needs 1–2 mm of accuracy.** Lens distortion, a calibration point hidden by a
   dart, or the wrong spot on a dart taken for its Entry point each cost that much. So the app will sometimes be
   unsure, says so, and lets the player correct a dart by tapping the board.
