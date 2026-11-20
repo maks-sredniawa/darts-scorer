@@ -97,7 +97,8 @@ object Decoding {
                     for (dx in -1..1) {
                         val ny = y + dy
                         val nx = x + dx
-                        if (ny in 0 until rows && nx in 0 until columns &&
+                        if (ny in 0 until rows &&
+                            nx in 0 until columns &&
                             heat[ny * columns + nx] > value
                         ) {
                             highest = false
