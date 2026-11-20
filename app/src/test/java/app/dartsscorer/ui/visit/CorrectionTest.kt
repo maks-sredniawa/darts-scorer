@@ -145,6 +145,28 @@ class CorrectionTest {
     }
 
     @Test
+    fun `a drop on the model's point in the same bed restores the reading`() {
+        val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = true)
+        val shown = ShownDart(1, read.at, read.score, unsure = true, read = read)
+        val nudged = Point(401.0, 196.0)
+        assertTrue(Correction.snapsBack(shown, nudged, BOARD, nearRead = true))
+        assertEquals(listOf(shown), Correction.move(listOf(shown), 1, nudged, BOARD, nearRead = true))
+    }
+
+    @Test
+    fun `a drop near the model's point but across a wire keeps the move and its new Score`() {
+        val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = false)
+        val shown = ShownDart(1, read.at, read.score, read = read)
+        val single = Point(400.0, 208.0)
+        assertFalse(Correction.snapsBack(shown, single, BOARD, nearRead = true))
+        val moved = Correction.move(listOf(shown), 1, single, BOARD, nearRead = true).single()
+        assertEquals(single, moved.at)
+        assertEquals(Score(Ring.SINGLE, 20), moved.score)
+        assertTrue(moved.moved)
+        assertEquals(read, moved.read)
+    }
+
+    @Test
     fun `a keypad change after a drag puts the Dart on its bed's centre and keeps the reading`() {
         val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = false)
         val moved =

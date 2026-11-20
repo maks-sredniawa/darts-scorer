@@ -112,7 +112,6 @@ fun VisitScreen(
                     viewModel::openDart,
                     viewModel::addDartAt,
                     viewModel::moveDart,
-                    viewModel::backToReading,
                     beside,
                 )
             }

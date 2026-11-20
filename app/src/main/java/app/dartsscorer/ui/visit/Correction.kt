@@ -104,26 +104,36 @@ object Correction {
         return (darts.filter { it.number != committed.number } + committed).sortedBy { it.number }
     }
 
-    /** Dart [number] dragged to [at], in Photo pixels: its Score read from there, no longer unsure. */
+    /**
+     * Dart [number]'s ring dragged to [at], in Photo pixels: its Score read from there, no longer
+     * unsure. A drop [nearRead], on the model's point, restores the reading if it scores the same.
+     */
     fun move(
         darts: List<ShownDart>,
         number: Int,
         at: Point,
         toBoard: Homography,
-    ): List<ShownDart> =
-        darts.map {
-            if (it.number != number) {
-                it
-            } else {
-                it.copy(
-                    at = at,
-                    score = Board.score(toBoard.project(at)),
-                    unsure = false,
-                    corrected = true,
-                    moved = true,
-                )
-            }
-        }
+        nearRead: Boolean = false,
+    ): List<ShownDart> {
+        val dart = darts.firstOrNull { it.number == number } ?: return darts
+        if (snapsBack(dart, at, toBoard, nearRead)) return backToReading(darts, number)
+        val moved =
+            dart.copy(
+                at = at,
+                score = Board.score(toBoard.project(at)),
+                unsure = false,
+                corrected = true,
+                moved = true,
+            )
+        return darts.map { if (it.number == number) moved else it }
+    }
+
+    fun snapsBack(
+        dart: ShownDart,
+        at: Point,
+        toBoard: Homography,
+        nearRead: Boolean,
+    ): Boolean = nearRead && dart.read?.score == Board.score(toBoard.project(at))
 
     fun backToReading(
         darts: List<ShownDart>,

@@ -35,9 +35,7 @@ data class DartRead(
  * from a bed's centre.
  *
  * [read] is the model's reading, set once when the result arrives and never written by a correction;
- * null for a Dart added by hand. With [moved], `read.at` to [at] and both Scores is a point-level
- * correction; a keypad correction is a Score-only one. Nothing from either is kept
- * (phase-1.md, *The tempting one*).
+ * null for a Dart added by hand.
  */
 data class ShownDart(
     val number: Int,
