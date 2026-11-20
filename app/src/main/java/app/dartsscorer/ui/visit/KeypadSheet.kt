@@ -43,9 +43,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -235,28 +239,32 @@ private fun BedGroup(
     Column {
         GroupLabel(name)
         Column(
-            modifier = Modifier.selectableGroup().semantics { contentDescription = name },
+            modifier =
+                Modifier.semantics {
+                    contentDescription = name
+                    collectionInfo = CollectionInfo(rowCount = BED_KEYS, columnCount = 1)
+                },
             verticalArrangement = Arrangement.spacedBy(Spacing.tight),
         ) {
-            (1..20).chunked(KEYS_PER_ROW).forEach { row ->
+            (1..NUMBERS).chunked(KEYS_PER_ROW).forEach { row ->
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.tight)) {
                     row.forEach { number ->
                         Key(
                             label = number.toString(),
                             selected = keypad.bullOrMiss == null && keypad.number == number,
                             onClick = { onNumber(number) },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            modifier = Modifier.weight(1f).fillMaxHeight().bedPosition(number - 1),
                         )
                     }
                 }
             }
             Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.tight)) {
-                Keypad.BULLS_AND_MISS.forEach { ring ->
+                Keypad.BULLS_AND_MISS.forEachIndexed { i, ring ->
                     Key(
                         label = bullsAndMiss.getValue(ring),
                         selected = keypad.bullOrMiss == ring,
                         onClick = { onBullOrMiss(ring) },
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = Modifier.weight(1f).fillMaxHeight().bedPosition(NUMBERS + i),
                     )
                 }
             }
@@ -265,6 +273,23 @@ private fun BedGroup(
 }
 
 private const val KEYS_PER_ROW = 5
+private const val NUMBERS = 20
+private val BED_KEYS = NUMBERS + Keypad.BULLS_AND_MISS.size
+
+/**
+ * Not a `selectableGroup()`: Compose would number its keys by their x alone, overriding these, so on a
+ * five-wide grid TalkBack read "5" as "20 of 23". These keep reading order.
+ */
+private fun Modifier.bedPosition(index: Int) =
+    semantics {
+        collectionItemInfo =
+            CollectionItemInfo(
+                rowIndex = index,
+                rowSpan = 1,
+                columnIndex = 0,
+                columnSpan = 1,
+            )
+    }
 
 /** A check and a fill when selected, an outline when not: never tint alone. */
 @Composable
