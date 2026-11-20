@@ -231,8 +231,11 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   back) zooms the Photo, and a one-finger drag pans it once zoomed in. The Photo always fills its
   box; the markers keep their screen size, so zooming uncovers the tip. A drag at 1× or at a pan
   edge scrolls the page instead, a pan never adds a Dart, and a tap still opens a marker (on its
-  badge or within 24 dp of the Dart, on screen) or proposes the bed under the finger. A new Photo starts at 1×; a correction
-  keeps the zoom. TalkBack is unchanged: the Photo stays one node and the chips are the path.
+  badge or within 24 dp of the Dart, on screen) or proposes the bed under the finger. A new Photo
+  starts at 1×; a correction keeps the zoom. With no drag (TalkBack, switch access, a keyboard;
+  WCAG 2.5.7), the Photo's accessibility actions do the same: *Zoom in* and *Zoom out* step ×2
+  about its centre, and while zoomed *Move left*, *right*, *up* and *down* show a third of the box
+  further that way. The Photo stays one node and the chips are still the path to each Dart.
 - **Unsure Dart** (confidence below 0.5): a dashed ring (4 dp on, 3 dp off) and an *n?* badge in
   `tertiaryContainer`, where a measured Dart's badge is a plain *n* in `surfaceContainerLowest`; an
   outlined chip with *Check*, and *Check Dart 2* under the total. Shape and text, never colour alone
