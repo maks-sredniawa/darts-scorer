@@ -1,12 +1,19 @@
 package app.dartsscorer
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +29,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import app.dartsscorer.ui.common.isShortWindow
 import app.dartsscorer.ui.settings.SettingsScreen
 import app.dartsscorer.ui.support.LicenceTextScreen
 import app.dartsscorer.ui.support.LicencesScreen
@@ -52,7 +60,8 @@ internal fun appEntryDecorators(): List<NavEntryDecorator<NavKey>> =
     )
 
 /**
- * The app shell: a bottom bar over a [NavDisplay].
+ * The app shell: a bottom bar over a [NavDisplay], or a rail beside it in a short window, where a
+ * bar's height would come out of the Photo.
  *
  * The back stack is rooted at [Visit], so Back from any top-level destination returns there and
  * Back from there exits. That is one rule rather than per-screen behaviour, and it is why
@@ -72,75 +81,99 @@ fun MainNavigation(modifier: Modifier = Modifier) {
                 ?: TopLevelDestination.VisitTab
         }
     val onDetailScreen = backStack.size > 1
+    // Hidden on a detail screen: a detail screen has its own back affordance, and tabs that stay
+    // visible invite a tap that silently discards an unsaved form.
+    val showTabs = !onDetailScreen
+    val rail = isShortWindow()
+    val onSelect = { destination: TopLevelDestination -> backStack.showTopLevel(destination) }
 
     Scaffold(
         modifier = modifier,
-        bottomBar = {
-            // Hidden on a detail screen: a detail screen has its own back affordance, and a bar
-            // that stays visible invites a tab tap that silently discards an unsaved form.
-            if (!onDetailScreen) {
-                AppNavigationBar(
-                    current = current,
-                    onSelect = { destination -> backStack.showTopLevel(destination) },
-                )
-            }
-        },
+        bottomBar = { if (showTabs && !rail) AppNavigationBar(current, onSelect) },
     ) { insets ->
-        NavDisplay(
-            backStack = backStack,
-            // **The keyboard is an inset like any other, and this Scaffold owns them.**
-            //
-            // `MainActivity` sets `decorFitsSystemWindows = false` for edge-to-edge, which makes the
-            // manifest's `adjustResize` inoperative from API 30 — the window manager downgrades it
-            // to a *pan*. With nothing consuming `WindowInsets.ime`, the system then pans the whole
-            // window to keep the focused field in view, which slides the top of a long form under
-            // the status bar and pushes its top bar — Save included — off the screen entirely.
-            //
-            // `consumeWindowInsets` before `imePadding` is what stops it double-counting: the
-            // keyboard's inset is measured from the bottom of the *screen*, so it already contains
-            // the navigation-bar height that `padding(insets)` just applied. Consuming says "that
-            // part is handled", leaving `imePadding` to add only the rest.
-            modifier = Modifier.padding(insets).consumeWindowInsets(insets).imePadding(),
-            entryDecorators = appEntryDecorators(),
-            onBack = {
-                if (backStack.size > 1) backStack.removeLastOrNull() else activity?.finish()
-            },
-            // Kotlin note: this is a builder DSL, not a map literal — `entry<Visit> { … }` registers
-            // the composable that renders that key, and the lambda receives the key itself, which is
-            // how a key carrying arguments passes them in.
-            entryProvider =
-                entryProvider {
-                    entry<Visit> {
-                        VisitScreen(onOpenSupport = { backStack.add(Support) })
-                    }
-                    entry<Settings> {
-                        SettingsScreen(
-                            onOpenLicences = { backStack.add(Licences) },
-                            onOpenSupport = { backStack.add(Support) },
-                        )
-                    }
-                    entry<Support> {
-                        SupportScreen(
-                            onBack = { backStack.removeLastOrNull() },
-                            onOpenCredits = { backStack.add(Licences) },
-                            tip = { TipSection() },
-                        )
-                    }
-                    entry<Licences> {
-                        LicencesScreen(
-                            onBack = { backStack.removeLastOrNull() },
-                            onOpenLicenceText = { spdxId, title -> backStack.add(LicenceText(spdxId, title)) },
-                        )
-                    }
-                    entry<LicenceText> { key ->
-                        LicenceTextScreen(
-                            spdxId = key.spdxId,
-                            title = key.title,
-                            onBack = { backStack.removeLastOrNull() },
-                        )
-                    }
+        // The NavDisplay stays in this Row whether or not the rail is shown, so rotating never
+        // moves it to a new parent and loses the screens' state.
+        Row(Modifier.padding(insets).consumeWindowInsets(insets)) {
+            if (showTabs && rail) AppNavigationRail(current, onSelect)
+            NavDisplay(
+                backStack = backStack,
+                // **The keyboard is an inset like any other, and this Scaffold owns them.**
+                //
+                // `MainActivity` sets `decorFitsSystemWindows = false` for edge-to-edge, which makes the
+                // manifest's `adjustResize` inoperative from API 30 — the window manager downgrades it
+                // to a *pan*. With nothing consuming `WindowInsets.ime`, the system then pans the whole
+                // window to keep the focused field in view, which slides the top of a long form under
+                // the status bar and pushes its top bar — Save included — off the screen entirely.
+                //
+                // The Row's `consumeWindowInsets` is what stops `imePadding` double-counting: the
+                // keyboard's inset is measured from the bottom of the *screen*, so it already contains
+                // the navigation-bar height that the Row's `padding(insets)` applied. Consuming says
+                // "that part is handled", leaving `imePadding` to add only the rest.
+                modifier = Modifier.weight(1f).imePadding(),
+                entryDecorators = appEntryDecorators(),
+                onBack = {
+                    if (backStack.size > 1) backStack.removeLastOrNull() else activity?.finish()
                 },
-        )
+                // Kotlin note: this is a builder DSL, not a map literal — `entry<Visit> { … }` registers
+                // the composable that renders that key, and the lambda receives the key itself, which is
+                // how a key carrying arguments passes them in.
+                entryProvider =
+                    entryProvider {
+                        entry<Visit> {
+                            VisitScreen(onOpenSupport = { backStack.add(Support) })
+                        }
+                        entry<Settings> {
+                            SettingsScreen(
+                                onOpenLicences = { backStack.add(Licences) },
+                                onOpenSupport = { backStack.add(Support) },
+                            )
+                        }
+                        entry<Support> {
+                            SupportScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onOpenCredits = { backStack.add(Licences) },
+                                tip = { TipSection() },
+                            )
+                        }
+                        entry<Licences> {
+                            LicencesScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onOpenLicenceText = { spdxId, title -> backStack.add(LicenceText(spdxId, title)) },
+                            )
+                        }
+                        entry<LicenceText> { key ->
+                            LicenceTextScreen(
+                                spdxId = key.spdxId,
+                                title = key.title,
+                                onBack = { backStack.removeLastOrNull() },
+                            )
+                        }
+                    },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppNavigationRail(
+    current: TopLevelDestination,
+    onSelect: (TopLevelDestination) -> Unit,
+) {
+    // The Scaffold has already padded and consumed the system bars; a side cutout is not one of them.
+    NavigationRail(
+        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical),
+    ) {
+        for (destination in TopLevelDestination.entries) {
+            val selected = destination == current
+            NavigationRailItem(
+                selected = selected,
+                onClick = { onSelect(destination) },
+                icon = {
+                    Icon(if (selected) destination.selectedIcon else destination.icon, contentDescription = null)
+                },
+                label = { Text(stringResource(destination.label)) },
+            )
+        }
     }
 }
 

@@ -356,9 +356,10 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   unsure, no container is an action.
 - **Landscape (QA's B follow-up).** A window under 480 dp high puts the Photo beside the Score at the
   full height left, at most half the window wide, and scrolls the Score, the chips and the buttons
-  beside it; the keypad sheet splits into two panes. The shell's top bar and bottom bar still take
-  most of a phone's landscape height (about 210 dp is left for the Photo on `pixel-api36`); a
-  navigation rail would be the shell's fix, not this checkpoint's.
+  beside it; the keypad sheet splits into two panes. In the same short window the shell's tabs move
+  to a navigation rail and the Visit result drops its title, so the Photo gets the window's height
+  less the system bars (2026-11-20; until then a top bar and a bottom bar left it about 210 dp on
+  `pixel-api36`). `ui/common/Windows.kt` holds the one 480 dp breakpoint all three read.
 - **Corrections are still lost on process death** (Known gaps). Keeping them in `SavedStateHandle`
   means a saveable Visit replayed onto the recomputed reading, which is not trivial, so they stay in
   the ViewModel's state alone.
