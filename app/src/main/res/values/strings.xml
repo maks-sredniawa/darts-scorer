@@ -99,6 +99,9 @@
     <!-- Shown instead of the Score after a ring is picked and before a number is. -->
     <string name="keypad_pick_number">Pick a number</string>
     <string name="keypad_done">Done</string>
+    <!-- Puts a Dart back where the model found it, with the Score it read, undoing a drag or a keypad
+         change. -->
+    <string name="keypad_back_to_reading">Back to the app\'s reading</string>
     <!-- The screen reader's summary of a result, read when it appears: "Visit Score 81." then the
          Darts, then which are unsure. -->
     <string name="visit_summary_score">Visit Score %1$d.</string>

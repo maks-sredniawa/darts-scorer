@@ -256,7 +256,26 @@ class VisitViewModelTest {
         visit.openDart(1)
         visit.commitKeypad()
         val dart = visit.scored().darts.single()
-        assertEquals(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20)), dart)
+        val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = true)
+        assertEquals(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20), read = read), dart)
+    }
+
+    @Test
+    fun `a dragged ring changes the Score as it moves, and the sheet puts it back`() {
+        photos.next = board(FoundDart(400.0, 194.0, 0.9, Score(Ring.TREBLE, 20)))
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        val before = visit.scored()
+        visit.moveDart(1, Point(400.0 + 2 * 60.0, 400.0))
+        assertEquals(6, visit.scored().darts.total)
+        visit.moveDart(1, Point(400.0, 400.0))
+        assertEquals(50, visit.scored().darts.total)
+        visit.openDart(1)
+        assertTrue(visit.stateWhen { it.keypad != null }.keypad!!.restorable)
+        visit.backToReading(1)
+        val back = visit.stateWhen { it.keypad == null }
+        assertEquals(before, back.phase)
+        assertEquals(VisitFocus.Chip(1), back.focus)
     }
 
     @Test

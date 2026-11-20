@@ -65,6 +65,7 @@
     <string name="keypad_score_description">%1$s, %2$s</string>
     <string name="keypad_pick_number">Wybierz liczbę</string>
     <string name="keypad_done">Gotowe</string>
+    <string name="keypad_back_to_reading">Wróć do odczytu aplikacji</string>
     <string name="visit_summary_score">Wynik podejścia %1$d.</string>
     <plurals name="visit_summary_darts">
         <item quantity="one">%1$d rzutka: %2$s.</item>

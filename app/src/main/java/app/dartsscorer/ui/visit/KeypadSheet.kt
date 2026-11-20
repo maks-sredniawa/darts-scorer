@@ -72,6 +72,7 @@ internal fun KeypadSheet(
     onBullOrMiss: (Ring) -> Unit,
     onDone: () -> Unit,
     onRemove: (Int) -> Unit,
+    onBackToReading: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val short = isShortWindow()
@@ -87,7 +88,7 @@ internal fun KeypadSheet(
                 Column(modifier = Modifier.weight(2f), verticalArrangement = Arrangement.spacedBy(Spacing.base)) {
                     Header(keypad)
                     RingGroup(keypad, onRing)
-                    Actions(keypad, onDone, onRemove)
+                    Actions(keypad, onDone, onRemove, onBackToReading)
                 }
                 Column(modifier = Modifier.weight(3f)) { BedGroup(keypad, onNumber, onBullOrMiss) }
             }
@@ -96,7 +97,7 @@ internal fun KeypadSheet(
                 Header(keypad)
                 RingGroup(keypad, onRing)
                 BedGroup(keypad, onNumber, onBullOrMiss)
-                Actions(keypad, onDone, onRemove)
+                Actions(keypad, onDone, onRemove, onBackToReading)
             }
         }
     }
@@ -322,7 +323,13 @@ private fun Actions(
     keypad: Keypad,
     onDone: () -> Unit,
     onRemove: (Int) -> Unit,
+    onBackToReading: (Int) -> Unit,
 ) {
+    keypad.dart?.takeIf { keypad.restorable }?.let { dart ->
+        TextButton(onClick = { onBackToReading(dart) }, modifier = Modifier.heightIn(min = TOUCH_TARGET)) {
+            Text(stringResource(R.string.keypad_back_to_reading))
+        }
+    }
     Row(
         modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.base),
         verticalAlignment = Alignment.CenterVertically,

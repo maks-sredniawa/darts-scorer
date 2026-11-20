@@ -129,6 +129,64 @@ class CorrectionTest {
         assertEquals(refilled, Correction.restore(refilled, darts[0]))
     }
 
+    @Test
+    fun `a dragged Dart scores where it was dropped and keeps the model's reading`() {
+        val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = true)
+        val darts = listOf(ShownDart(1, read.at, read.score, unsure = true, read = read))
+        val dropped = Point(400.0 + 2 * 60.0, 400.0)
+        val moved = Correction.move(darts, 1, dropped, BOARD).single()
+        assertEquals(dropped, moved.at)
+        assertEquals(Board.score(Point(60.0, 0.0)), moved.score)
+        assertEquals(Score(Ring.SINGLE, 6), moved.score)
+        assertFalse(moved.unsure)
+        assertTrue(moved.corrected)
+        assertTrue(moved.moved)
+        assertEquals(read, moved.read)
+    }
+
+    @Test
+    fun `a keypad change after a drag puts the Dart on its bed's centre and keeps the reading`() {
+        val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = false)
+        val moved =
+            Correction.move(
+                listOf(ShownDart(1, read.at, read.score, read = read)),
+                1,
+                Point(520.0, 400.0),
+                BOARD,
+            )
+        val keyed = Correction.commit(moved, Correction.open(moved[0], BOARD).withNumber(11), BOARD).single()
+        assertFalse(keyed.moved)
+        assertTrue(keyed.corrected)
+        assertEquals(read, keyed.read)
+    }
+
+    @Test
+    fun `back to the app's reading restores it whole, after a drag or a keypad change`() {
+        val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = true)
+        val shown = ShownDart(1, read.at, read.score, unsure = true, read = read)
+        val other = ShownDart(2, Point(10.0, 10.0), Score.MISS)
+        val moved = Correction.move(listOf(shown, other), 1, Point(520.0, 400.0), BOARD)
+        assertEquals(listOf(shown, other), Correction.backToReading(moved, 1))
+        val keyed = Correction.commit(listOf(shown), Correction.open(shown, BOARD).withNumber(1), BOARD)
+        assertEquals(listOf(shown), Correction.backToReading(keyed, 1))
+        assertEquals(listOf(other), Correction.backToReading(listOf(other), 2))
+    }
+
+    @Test
+    fun `the keypad offers the app's reading only for a Dart that differs from it`() {
+        val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = false)
+        val shown = ShownDart(1, read.at, read.score, read = read)
+        assertFalse(Correction.open(shown, BOARD).restorable)
+        val moved = Correction.move(listOf(shown), 1, Point(520.0, 400.0), BOARD).single()
+        assertTrue(Correction.open(moved, BOARD).restorable)
+        val keyed = Correction.commit(listOf(shown), Correction.open(shown, BOARD).withNumber(5), BOARD).single()
+        assertTrue(Correction.open(keyed, BOARD).restorable)
+        assertFalse(
+            "a Dart added by hand has no reading",
+            Correction.open(ShownDart(2, null, Score.BULL), BOARD).restorable,
+        )
+    }
+
     private companion object {
         /** Photo pixels to Board millimetres: the bull at (400, 400), 2 px a millimetre, y flipped. */
         val BOARD = Homography(doubleArrayOf(0.5, 0.0, -200.0, 0.0, -0.5, 200.0, 0.0, 0.0, 1.0))
