@@ -117,6 +117,9 @@ class DataDir:
     def miopen(self) -> Path:
         return self._fenced(self.root / "miopen")
 
+    def phone_captures(self) -> Path:
+        return self._fenced(self.root / "phone-captures")
+
     def runtimes(self) -> Path:
         return self._fenced(self.root / "runtimes")
 
