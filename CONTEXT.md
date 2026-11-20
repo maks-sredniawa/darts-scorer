@@ -24,6 +24,8 @@ user-facing word genuinely differ, both are written here with the difference sta
 | **Validation sessions** | the training Capture sessions set aside to choose between models (`s09` and `s14`, phase-M2.md D5): never trained on, and never the Held-out set, which no choice is made on | validation set, dev set |
 | **Hand point** | one of the four Calibration points clicked by hand on a Photo, from which pre-fill projects the rest | anchor, which *Calibration point* already rules out |
 | **Score** | a Dart's value (e.g. *treble 20*, 60) or a Visit's total | points, result |
+| **Miss** | a thrown Dart that scored 0, outside the double ring | removed, which is a Dart that was never there |
+| **unsure** | a Dart below the model's confidence of 0.5, shown with *Check* (docs/phase-1.md §3) | low confidence, in the UI |
 | **Tip** | a one-off payment to the developer through Google Play that **unlocks nothing** (ADR-0007). The Visit screen mentions it once, and the answer follows the user to a new phone; Help and feedback offers it for good | donation, support the project, premium, supporter |
 
 ## Words we deliberately avoid

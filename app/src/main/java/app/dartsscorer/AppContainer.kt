@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import app.dartsscorer.data.AppPreferences
 import app.dartsscorer.media.MediaFiles
 import app.dartsscorer.tip.TipJar
+import app.dartsscorer.ui.visit.DeviceVisitPhotos
 import kotlinx.coroutines.CoroutineScope
 import java.time.Instant
 
@@ -46,6 +47,9 @@ class AppContainer(
     private val appContext = context.applicationContext
 
     val media by lazy { MediaFiles(appContext) }
+
+    /** Holds the model, so it outlives the Visit screen and is mapped only when the first Photo needs it. */
+    val visitPhotos by lazy { DeviceVisitPhotos(appContext, media) }
 
     /**
      * The tip (ADR-0007). Here rather than in a `ViewModel` because a purchase can finish after the
