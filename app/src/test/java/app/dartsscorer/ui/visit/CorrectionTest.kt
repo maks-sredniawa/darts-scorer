@@ -56,7 +56,7 @@ class CorrectionTest {
     }
 
     @Test
-    fun `a changed Dart moves to its bed's centre through the homography and is drawn hollow`() {
+    fun `a changed Dart moves to its bed's centre through the homography and is drawn as a badge alone`() {
         val darts = listOf(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = true))
         val keypad = Correction.open(darts[0], BOARD).withRing(Ring.SINGLE).withNumber(1)
         val changed = Correction.commit(darts, keypad, BOARD).single()
@@ -67,7 +67,7 @@ class CorrectionTest {
     }
 
     @Test
-    fun `a Dart set to Miss stays where it was, drawn hollow`() {
+    fun `a Dart set to Miss stays where it was, drawn as a badge alone`() {
         val darts = listOf(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20)))
         val miss = Correction.commit(darts, Correction.open(darts[0], BOARD).withBullOrMiss(Ring.MISS), BOARD).single()
         assertNear(Point(400.0, 194.0), miss.at!!)

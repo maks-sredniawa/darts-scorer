@@ -222,7 +222,7 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
 - **The result:** the Photo cropped to the Board (not warped, so Darts still look like Darts), a
   marker at each Entry point, the total in
   `displayLarge`, and a chip per Dart (*1 · T20 · 60*). A marker is a thin ring with its centre
-  clear, so the dart tip shows through: an 8 dp hole inside a light, a dark and a light band (1,
+  clear, so the dart tip shows through: a 16 dp hole inside a light, a dark and a light band (1,
   1.5 and 1 dp, about 23 dp across), so it reads on a dark Board and a light wall. Its number sits
   beside it in a `labelMedium` badge touching the ring at 45° up and to the right, flipped to
   whichever side stays inside the crop. Markers are numbered by position, top to bottom, and the

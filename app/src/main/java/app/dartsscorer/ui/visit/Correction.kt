@@ -74,8 +74,9 @@ object Correction {
 
     /**
      * [keypad]'s Score committed: a new Dart takes the lowest free number; a changed one moves to its
-     * bed's centre, or stays where it was or was tapped when it is a Miss, and is drawn hollow; the
-     * same Score only confirms it. Either way it is no longer unsure. Unchanged when nothing is picked.
+     * bed's centre, or stays where it was or was tapped when it is a Miss, and is drawn as a badge
+     * alone; the same Score only confirms it. Either way it is no longer unsure. Unchanged when
+     * nothing is picked.
      */
     fun commit(
         darts: List<ShownDart>,
