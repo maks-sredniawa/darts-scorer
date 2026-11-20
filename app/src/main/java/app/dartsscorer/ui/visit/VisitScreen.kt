@@ -103,9 +103,19 @@ fun VisitScreen(
         if (result == SnackbarResult.ActionPerformed) viewModel.undoRemove() else viewModel.removalSettled()
     }
 
+    val phase = state.phase
+    val photo: (@Composable (beside: Boolean) -> Unit)? =
+        when (phase) {
+            is VisitPhase.Scored -> { beside ->
+                BoardPhoto(phase, viewModel::openDart, viewModel::addDartAt, beside)
+            }
+            is VisitPhase.NoBoard -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
+            is VisitPhase.Entered -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
+            else -> null
+        }
     // Beside the Photo in a short window the title would only take height from it; the rail's
     // selected tab already says where the player is.
-    val photoBeside = isShortWindow() && state.phase.showsPhoto
+    val photoBeside = photo != null && isShortWindow()
     Scaffold(
         modifier = modifier,
         topBar = { if (!photoBeside) TopAppBar(title = { Text(stringResource(R.string.tab_visit)) }) },
@@ -114,7 +124,6 @@ fun VisitScreen(
             SnackbarHost(snackbar, Modifier.onSizeChanged { snackbarHeight = with(density) { it.height.toDp() } })
         },
     ) { insets ->
-        val phase = state.phase
         val notice: @Composable () -> Unit = { Notice(state.notice) }
         val details: @Composable ColumnScope.() -> Unit = {
             when (phase) {
@@ -150,16 +159,6 @@ fun VisitScreen(
                 is VisitPhase.Shown -> Actions(stringResource(R.string.visit_next), takePhoto, choosePhoto)
             }
         }
-        val photo: (@Composable (beside: Boolean) -> Unit)? =
-            when (phase) {
-                is VisitPhase.Scored -> { beside ->
-                    BoardPhoto(phase, viewModel::openDart, viewModel::addDartAt, beside)
-                }
-                is VisitPhase.NoBoard -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
-                is VisitPhase.Entered -> { beside -> WholePhoto(phase.photo, phase.width, phase.height, beside) }
-                else -> null
-            }
-
         if (photo != null && photoBeside) {
             Row(modifier = Modifier.fillMaxSize().padding(insets)) {
                 Box(modifier = Modifier.fillMaxHeight().padding(Spacing.base), contentAlignment = Alignment.Center) {
@@ -306,6 +305,3 @@ private class EnterScoreAction(
     val focusRequested: Boolean,
     val onFocusPlaced: () -> Unit,
 )
-
-private val VisitPhase.showsPhoto: Boolean
-    get() = this is VisitPhase.Scored || this is VisitPhase.NoBoard || this is VisitPhase.Entered
