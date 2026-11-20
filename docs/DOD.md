@@ -73,11 +73,13 @@ only on a model that met this phase's bar.
 
 [`phase-1.md`](phase-1.md). Built alongside M2; closes only on a model that met M1's bar (E).
 
-- [x] **Answer the six decisions** at the top of `phase-1.md`. All six taken as recommended on 2026-11-20.
-- [ ] **The gate (A):** the Kotlin pipeline gives the Board and Darts that Python's `locate()` gives,
+- [x] **Answer the six decisions** at the top of `phase-1.md`. All six taken as recommended on
+      2026-11-20.
+- [x] **The gate (A):** the Kotlin pipeline gives the Board and Darts that Python's `locate()` gives,
       as `darts-ml phone-parity` writes them out, on DeepDarts' val Photos written through
-      `MediaFiles` (`phase-1.md` §1, R1).
-- [ ] **A Visit scored from one Photo (B)**, with the Credits ADR-0008 asks for and the Visit count.
+      `MediaFiles` (`phase-1.md` §1, R1). 2026-11-20: 200 of 200 on API 36 and API 26, worst
+      crossing 0.005 mm; the Credits ADR-0008 asks for came with it.
+- [ ] **A Visit scored from one Photo (B)**, with the Visit count.
 - [ ] **Correcting a Dart (C)** with the keypad sheet (D3) and *Enter the Score yourself* (D6).
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
