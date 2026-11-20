@@ -50,7 +50,8 @@ let us do otherwise".">
 | Coil 3 images | Compose-native, local files only |
 | Play Billing (`tip/`), for the tip only | Unlocks nothing; adds `BILLING`, and its merged `INTERNET` is removed — ADR-0007 |
 | On-device storage only | No backend. Auto Backup, include-only: the preferences, never a photo — ADR-0005 |
-| `ml/`: uv, Python 3.12, code only | The data tools, off the phone; Photos, labels and weights live in `DARTS_DATA`, never in git — ADR-0008, `docs/phase-M1.md` |
+| `ml/`: uv, Python 3.12, code only | The data tools, off the phone; Photos, labels and training weights live in `DARTS_DATA`, never in git. The exported model the app ships is committed, in `assets/model/` — ADR-0008 (2026-11-20), `docs/phase-1.md` D1 |
+| LiteRT 1.4.2 (`scoring/`), on the CPU | The model on the phone; its Kotlin pipeline is held to `ml/`'s `locate()` by phase 1's gate — ADR-0008 (2026-11-19) |
 
 ## House rules
 
@@ -120,6 +121,7 @@ app/src/main/java/<namespace>/
   data/        preferences (DataStore)
   media/       MediaFiles.kt — the single path for persisting images, kind-aware
   theme/       generated palette, type scale, spacing, the night-mode window half
+  scoring/     a Photo in, the Board and its Darts out: the port of ml/'s locate(), on LiteRT
   tip/         the tip through Play Billing, held by AppContainer so a purchase finishes after its
                screen is gone, and the rule for its one ask on the home screen (ADR-0007)
   ui/          Compose screens + ViewModels, one package per area; ui/visit/ is the home tab

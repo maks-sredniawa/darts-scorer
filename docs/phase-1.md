@@ -10,11 +10,11 @@ Visit, Photo, Entry point and Score already cover the rest.
 model is in the app. After this phase a player takes one Photo of the Board after a Visit, with the
 system camera or from the Photo Picker, and within a second or two sees each Dart drawn where it
 entered the Board with its Score and the Visit's total, all on the phone with the network removed
-from the manifest. A Dart the model got wrong is moved, added or removed with a tap. The difference a
-device can be asked about: **on an emulator with no network, a Photo from DeepDarts' val split pushed
-with `adb` and picked in the Photo Picker shows the same Darts and total that Python's `locate()`
-gives for the file `MediaFiles` wrote from it, as `darts-ml phone-parity` writes them out (§1), and
-the phone's reading of real Visits on a real Board is recorded in R3.**
+from the manifest. A Dart the model got wrong is moved, added or removed with a tap. The difference
+a device can be asked about: **on an emulator with no network, a Photo from DeepDarts' val split
+pushed with `adb` and picked in the Photo Picker shows the same Darts and total that Python's
+`locate()` gives for the file `MediaFiles` wrote from it, as `darts-ml phone-parity` writes them out
+(§1), and the phone's reading of real Visits on a real Board is recorded in R3.**
 
 **`PLAN.md` is wrong in two places, said here first.**
 
@@ -58,8 +58,8 @@ All six were decided on **2026-11-20**, each as recommended.
 - **The Visit count for the tip** (ADR-0007): `AppPreferences.incrementVisitsScored()` exists, and
   nothing calls it until this phase.
 - **The asymmetry that shapes the phase:** the mechanism (pixels in, Score out) can be proven on the
-  emulator against Python, Photo by Photo; whether it is good enough on a real Board can only be read
-  on the owner's phone, and is bounded by the model rather than by this phase's code.
+  emulator against Python, Photo by Photo; whether it is good enough on a real Board can only be
+  read on the owner's phone, and is bounded by the model rather than by this phase's code.
 
 ## What is in, and what is deliberately not
 
@@ -90,15 +90,15 @@ phase S's opt-in may do, with its own ADR and privacy policy. Nothing from a cor
 
 | | Checkpoint | Merges | Depends on |
 | --- | --- | --- | --- |
-| **A** | **The gate** — does the Kotlin pipeline give Python's Darts on the same Photos? | `test:` and `chore(ml):` for the apparatus; the verdict is a reading | D1 |
-| **B** | **A Visit scored from one Photo**: camera or Picker in, Darts and total out, the no-Board and no-camera paths, Credits, the Visit count | `feat:` | A, D2, D5 |
+| **A** | **The gate** — does the Kotlin pipeline give Python's Darts on the same Photos? With it, the model, LiteRT and their Credits (§2) | `feat:` for the pipeline, the model and the Credits, which ship in the app; the apparatus beside it; the verdict is a reading | D1 |
+| **B** | **A Visit scored from one Photo**: camera or Picker in, Darts and total out, the no-Board and no-camera paths, the Visit count | `feat:` | A, D2, D5 |
 | **C** | **Correcting a Dart** | `feat:` | B, D3 |
 | **D** | **Readings**: the thread count chosen, `minSdk` decided (§5), R3's Visits | `docs:`, `chore:` if `minSdk` moves | C |
 | **E** | **The model that met the bar** swapped in, R3 read again | `feat:` | D, M2's G |
 
 **A comes first** because a port that differs from Python in its resampling or its RANSAC would make
-every later reading measure the port rather than the model, and nothing on screen would show it.
-**C after B** because correcting needs a result to correct, and B alone is already a usable build for
+every later reading measure the port rather than the model, and nothing on screen would show it. **C
+after B** because correcting needs a result to correct, and B alone is already a usable build for
 the owner. **E is the only checkpoint that waits on M2.**
 
 ---
@@ -121,14 +121,36 @@ re-encoded to 2048 px q85.
 
 ### The apparatus
 
-- `darts-ml phone-parity <run> --photos <n>`: picks the Photos, pushes them with `adb`, has the
-  instrumented test write each through `MediaFiles` as the `photos` kind and pulls the written files
-  back, then writes Python's `locate()` result for each written file (Board found, the crossings in
-  mm, the kept Darts' Scores) to a JSON file and pushes it.
-- An instrumented test in `app/src/androidTest/` that reads the written Photos and the JSON, runs the
-  app's own pipeline class on each, and fails on any difference beyond the bounds above, printing the
-  Photo's name. The pipeline class is the one B's screen calls; the test does not get its own copy,
-  and the `MediaFiles` call is the one the Picker's path makes.
+- `darts-ml phone-parity --run <run> --photos <n>`: picks the Photos, pushes them with `adb`, has
+  the instrumented test write each through `MediaFiles` as the `photos` kind and pulls the written
+  files back, then writes Python's `locate()` result for each written file (Board found, the 80
+  crossings in Photo pixels, the kept Darts' Scores) to a JSON file and pushes it. A crossing is
+  compared by mapping Python's pixel through the phone's homography and measuring how far it lands
+  from the crossing's own millimetres.
+- An instrumented test in `app/src/androidTest/` that reads the written Photos and the JSON, runs
+  the app's own pipeline class on each, and fails on any difference beyond the bounds above,
+  printing the Photo's name. The pipeline class is the one B's screen calls; the test does not get
+  its own copy, and the `MediaFiles` call is the one the Picker's path makes. Both methods are
+  skipped when nothing was pushed, so CI's instrumented legs stay green without `DARTS_DATA`.
+- **Running it** (`ml/README.md`, *phone-parity*, says what each step moves where):
+
+  ```bash
+  emulator -avd pixel-api36 -no-window -no-audio &
+  export ANDROID_SERIAL=emulator-5554
+  ./gradlew assembleDebug assembleDebugAndroidTest
+  adb install -r -t app/build/outputs/apk/debug/app-debug.apk
+  adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+  uv run --directory ml darts-ml phone-parity --run 2026-11-19-darts-640-s2-ring-ext --photos 200
+  adb emu kill
+  ```
+
+  `adb install` rather than `connectedAndroidTest`, which uninstalls the app and the pushed files
+  when it finishes. By hand, the same run is: `adb push` the Photos to
+  `/sdcard/Android/data/com.maksforge.dartsscorer.debug/files/parity/source/`; `adb shell am
+  instrument -w -e class app.dartsscorer.scoring.PhoneParityTest#writesEachPhotoThroughMediaFiles
+  com.maksforge.dartsscorer.debug.test/androidx.test.runner.AndroidJUnitRunner`; `adb pull` the
+  folder's `written/`; write `expected.json` from them and `adb push` it beside `source/`; the same
+  `am instrument` with `#matchesPythonOnEachPhoto`; `adb pull` the folder's `report.txt`.
 
 ### The verdicts, decided now
 
@@ -142,7 +164,31 @@ other, where both are near `MIN_INLIERS` (8), is investigated, not counted as a 
 3. **Still apart after that, or the Board differs** → stop, and the figures go to the owner with the
    cause; nothing is built on a port that disagrees with the model it runs.
 
-### The verdict, taken *(date)*
+### The verdict, taken 2026-11-20: 1, both hold → B
+
+On 200 of DeepDarts' 1,070 val Photos, every 5th or so in the split's order
+(`darts-ml phone-parity --run 2026-11-19-darts-640-s2-ring-ext --photos 200`), on two emulators:
+
+| | `pixel-api36` (API 36) | `urgent-api26` (API 26) |
+| --- | --- | --- |
+| Board found by both / neither / one only | 200 / 0 / 0 | 200 / 0 / 0 |
+| Worst crossing, phone's homography against Python's | 0.00513 mm | 0.00513 mm |
+| Photos with a crossing over 0.1 mm | 0 | 0 |
+| Kept Darts' Scores the same, as a multiset | 200 of 200 | 200 of 200 |
+| Both passes per Photo, median, debug build, 4 threads | 560 ms | 341 ms |
+
+- **The RANSAC caveat above did not arise.** The port draws its sets of four from a replica of
+  numpy's `default_rng(0)` and `choice`, checked against numpy's own draws (`rng.json`), so both
+  sides fit the same sets and the Board is compared without the allowance near `MIN_INLIERS`.
+- **Verdict 2's remedy was taken up front.** The warp follows Pillow's arithmetic (its antialiased
+  bilinear reduce in fixed point, then its perspective sample truncated to a byte), and a unit test
+  holds it to Pillow's bytes (`warp.json`). What is left between the two sides is the JPEG decoder
+  (Android's against Pillow's libjpeg-turbo) and float order; it moved no crossing by more than
+  0.006 mm.
+- **The times are not R2 or R4.** They are a debuggable build on an emulator's CPU, with the warp
+  and decoding in Kotlin counted in. The same pipeline in a release-shaped build (R8 on, not
+  debuggable) read about 260 ms a Photo on `urgent-api26`, and LiteRT ran there with no keep rule
+  of our own: its AAR's consumer rules cover it.
 
 ## 2. The model in the app (D1)
 
@@ -151,13 +197,15 @@ other, where both are near `MIN_INLIERS` (8), is investigated, not counted as a 
   maps it instead of copying 12.8 MB onto the heap.
 - **Swapping it** is a commit that replaces both files and changes nothing else; the app reads the
   input size and the heads' shapes from the model and the record, never from constants.
-- **Threads:** `Interpreter.Options().setNumThreads(n)`, with *n* chosen on the phone's reading (R2),
-  since LiteRT's default of one thread read about three times slower on the emulator. The emulator's
-  AVX-only CPU is not a phone's, so the choice is not taken there.
+- **Threads:** `Interpreter.Options().setNumThreads(n)`, with *n* chosen on the phone's reading
+  (R2), since LiteRT's default of one thread read about three times slower on the emulator. The
+  emulator's AVX-only CPU is not a phone's, so the choice is not taken there.
 - **Credits** (ADR-0008, ADR-0007's licences screen): LiteRT (Apache-2.0), Eigen (MPL-2.0, link to
   its source), XNNPACK, ruy, gemmlowp, FlatBuffers, fft2d and cpuinfo under their own licences, and
-  the DeepDarts dataset (CC BY 4.0) the model was trained on. Those the dependency list cannot see go
-  in `SupportConfig.BUNDLED_CREDITS`. They ship in B, the first build carrying the model.
+  the DeepDarts dataset (CC BY 4.0) the model was trained on. Those the dependency list cannot see
+  go in `SupportConfig.BUNDLED_CREDITS`, with the licence texts in `assets/licences/`. **They ship
+  in A** (moved from B on 2026-11-20): A's merge is the first build that carries LiteRT and the
+  model, and the obligation travels with the binary, not with the screen that first calls it.
 
 ## 3. The result and correcting it (D3, D6)
 
@@ -167,9 +215,9 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   numbered marker at each Entry point with the white and black keyline, the total in
   `displayLarge`, and a chip per Dart (*1 · T20 · 60*). Markers are numbered by position, top to
   bottom, and the copy never implies throw order: the Photo cannot know it.
-- **Unsure Dart** (confidence below 0.5): a dashed keyline and a *?* badge on the marker, an outlined
-  chip with *Check*, and *Check Dart 2* under the total. Shape and text, never colour alone (phase T
-  reuses this). Opening it and pressing *Done* confirms it. Nothing blocks *Next Visit*.
+- **Unsure Dart** (confidence below 0.5): a dashed keyline and a *?* badge on the marker, an
+  outlined chip with *Check*, and *Check Dart 2* under the total. Shape and text, never colour alone
+  (phase T reuses this). Opening it and pressing *Done* confirms it. Nothing blocks *Next Visit*.
 - **Changing a Dart:** its marker or chip opens the sheet; *Done* commits; the marker moves to the
   centre of the chosen bed and becomes a hollow ring, so nobody reads it as a measured Entry point.
 - **The keypad sheet:** each key is a selectable item that exposes its selected state; Single /
@@ -187,18 +235,18 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
 - **No Board found:** the whole Photo with no markers, a warning banner with one hint (the whole
   Board in the frame, more light), and *Take another Photo*, *Choose a Photo*, *Enter the Score
   yourself* (D6).
-- **The flow:** empty → camera → *Reading the Photo…* → result → *Next Visit*, which opens the camera
-  directly, so a Visit costs one tap. The previous result stays until a new Photo comes back, so a
-  cancelled camera loses nothing. Controls sit in the bottom third. The tip ask stays on the empty
-  state only.
-- **TalkBack:** the Score is a heading and a polite live region (*Visit Score 81. Three Darts: treble
-  20, single 20, single 1. Dart 2 is unsure.*); *Reading the Photo…*, the *No Board found* banner
-  and *No Darts found* are polite live regions too, so nothing that comes back waits for a swipe. The
-  Photo is one node with that summary and its markers are not focusable; the chips are the focus
-  targets, with *Remove Dart* as a custom action. Each chip's accessible name starts with its
-  visible text (*1 · T20 · 60, treble 20, 60 points*, then *check* when unsure), so voice control's
-  "tap T20" or "tap Check" finds it. The keypad is the path that needs no precise tap, for everyone,
-  so there is no separate accessible mode.
+- **The flow:** empty → camera → *Reading the Photo…* → result → *Next Visit*, which opens the
+  camera directly, so a Visit costs one tap. The previous result stays until a new Photo comes back,
+  so a cancelled camera loses nothing. Controls sit in the bottom third. The tip ask stays on the
+  empty state only.
+- **TalkBack:** the Score is a heading and a polite live region (*Visit Score 81. Three Darts:
+  treble 20, single 20, single 1. Dart 2 is unsure.*); *Reading the Photo…*, the *No Board found*
+  banner and *No Darts found* are polite live regions too, so nothing that comes back waits for a
+  swipe. The Photo is one node with that summary and its markers are not focusable; the chips are
+  the focus targets, with *Remove Dart* as a custom action. Each chip's accessible name starts with
+  its visible text (*1 · T20 · 60, treble 20, 60 points*, then *check* when unsure), so voice
+  control's "tap T20" or "tap Check" finds it. The keypad is the path that needs no precise tap, for
+  everyone, so there is no separate accessible mode.
 - **Focus:** opening the sheet moves focus into it, and *Done* returns it to the Dart's chip; after
   *Remove Dart* it goes to the next chip, or to *Add a Dart* when none is left; a new result puts it
   on the Score heading, and no Board found on the banner.
@@ -213,17 +261,19 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 | *Take a Photo* tapped | `TakePicture` into a `FileProvider` URI in `cacheDir`. No `CAMERA` permission (PLAN.md *Asks*). No camera app: the button says so and the Picker stays |
 | *Pick a Photo* tapped | The Photo Picker, one image. No permission on any API level |
 | Photo arrives | Through `MediaFiles` as the `photos` kind, the camera's file deleted; then both passes off the main thread |
-| No Board found | §3's: the whole Photo with no markers, the banner with its hint (the whole Board in the frame, more light), and *Take another Photo*, *Choose a Photo*, *Enter the Score yourself* (D6) |
-| Board found | §3's result |
-| *Next Visit* | The camera opens directly and the result stays on screen. When a new Photo arrives, the previous one is deleted and `incrementVisitsScored()` is called once for the Visit it held; a cancelled camera changes nothing |
-| Process death mid-Visit | The Photo's relative path survives in `SavedStateHandle`; the result is recomputed from it, and the start-up sweep (D2) skips that path. Corrections made before the death are lost, and that is accepted (Known gaps) |
+| No Board found | §3's: the whole Photo with no markers, the banner with its hint (the whole Board in the frame, more light), and *Take another Photo*, *Choose a Photo*, *Enter the Score yourself* (D6). Nothing is counted |
+| Board found | §3's result. The first time a Photo's result is shown, `incrementVisitsScored()` is called once for it, so the last Visit of a session counts too; a Visit entered by hand (D6) is not counted, since the app read nothing |
+| *Next Visit* | The camera opens directly and the result stays on screen. When a new Photo arrives, the previous one is deleted; a cancelled camera changes nothing |
+| Process death mid-Visit | The Photo's relative path survives in `SavedStateHandle`, with whether it was counted; the result is recomputed from it and not counted again, and the start-up sweep (D2) skips that path. Corrections made before the death are lost, and that is accepted (Known gaps) |
+| The start-up sweep | Runs when the Visit ViewModel is created, not in `Application.onCreate`: only the ViewModel's `SavedStateHandle` knows which Photo survived process death, so only it can tell a leftover from the Photo on screen |
 
 ## 5. `minSdk`
 
 Phase 0 left it here (`phase-0.md`, `DOD.md`): decided before the door, on the runtime's own floor
 and an inference time on a low-end emulator image. The runtime's floor is no constraint: LiteRT
-1.4.2's AAR declares `minSdkVersion` 21, below today's 26. So the question is speed alone, read as R4:
-both passes on an API 26 emulator image with 2 GB of RAM and 2 cores, at the thread count R2 chose.
+1.4.2's AAR declares `minSdkVersion` 21, below today's 26. So the question is speed alone, read as
+R4: both passes on an API 26 emulator image with 2 GB of RAM and 2 cores, at the thread count R2
+chose.
 
 1. **Under 2 s per Photo** → `minSdk` stays 26, and the reason is written beside it in
    `app/build.gradle.kts`.
@@ -268,7 +318,7 @@ direction is still asymmetric, and lowering later is free.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | A's gate: Board and Darts against Python's `locate()` on DeepDarts' val Photos, after `MediaFiles` | `darts-ml phone-parity`, which runs the instrumented test | |
+| R1 | A's gate: Board and Darts against Python's `locate()` on DeepDarts' val Photos, after `MediaFiles` | `darts-ml phone-parity`, which runs the instrumented test | **2026-11-20**, 200 val Photos, run `2026-11-19-darts-640-s2-ring-ext`, on `pixel-api36` and `urgent-api26`: Board found by both in 200 of 200 on each; worst crossing 0.00513 mm against the 0.1 mm bound; kept Darts' Scores the same in 200 of 200. Verdict 1 (§1) |
 | R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat` | |
 | R3 | Real Visits on a real Board in room light: exactly right, corrected, and taps per correction | by hand, at the Board | |
 | R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count | the debug build's timing line in `logcat` | |

@@ -210,3 +210,21 @@ runtime chosen compiles in MPL-2.0 code, which the rule above did not allow.
   `SupportConfig.BUNDLED_CREDITS`. And inference sets its thread count: LiteRT's default is one
   thread, which read about 93 ms against 29–31 ms at four on the emulator (`benchmark_model` 2.3.1),
   and the count is chosen on the phone's reading.
+
+## Amendment — 2026-11-20: the shipped model is committed, and the Credits are final
+
+Phase 1's D1 ([`phase-1.md`](../phase-1.md) §2) settles where the exported model lives, and its
+checkpoint A ships it.
+
+- **Training weights stay out of git; the shipped model is in.** "Weights" in the Decision above
+  meant `ml/`'s training weights (`best.pt`, `last.pt`) and the data, and those still never enter
+  git. The exported `.tflite` the app ships is a build input like an icon, and anyone can unzip it
+  from the public APK: it is committed at `app/src/main/assets/model/darts.tflite`, beside its
+  export record `darts.json` (run, weights SHA-256, size, operations). Swapping it is a commit that
+  replaces both files.
+- **The Credits list is final**, from the first build that carries the model: LiteRT (Apache-2.0,
+  in the dependency list), and through `SupportConfig.BUNDLED_CREDITS` Eigen (MPL-2.0, with a link to
+  its source), XNNPACK (BSD-3-Clause), ruy, gemmlowp and FlatBuffers (Apache-2.0), cpuinfo
+  (BSD-2-Clause), fft2d (Takuya Ooura's own terms, linked) and the DeepDarts dataset (CC BY 4.0).
+  Each SPDX licence's text, with the copyright lines its BSD notice asks for, is in
+  `assets/licences/`.
