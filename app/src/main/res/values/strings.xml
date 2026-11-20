@@ -71,6 +71,14 @@
     <!-- The snackbar after Remove Dart. %1$d is the Dart's number. -->
     <string name="visit_removed">Dart %1$d removed</string>
     <string name="visit_undo">Undo</string>
+    <!-- The screen reader's actions on the Photo. Zoom steps about its centre; each Move shows the
+         part of the zoomed Photo in that direction, and is offered only while zoomed in. -->
+    <string name="visit_photo_zoom_in">Zoom in</string>
+    <string name="visit_photo_zoom_out">Zoom out</string>
+    <string name="visit_photo_move_left">Move left</string>
+    <string name="visit_photo_move_right">Move right</string>
+    <string name="visit_photo_move_up">Move up</string>
+    <string name="visit_photo_move_down">Move down</string>
     <!-- The keypad sheet's title: the Dart being changed (%1$d is its number), or a new one. -->
     <string name="keypad_title_dart">Dart %1$d</string>
     <string name="keypad_title_new">New Dart</string>

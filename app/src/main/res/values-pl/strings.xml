@@ -45,6 +45,12 @@
     <string name="visit_remove_dart">Usuń rzutkę</string>
     <string name="visit_removed">Usunięto rzutkę %1$d</string>
     <string name="visit_undo">Cofnij</string>
+    <string name="visit_photo_zoom_in">Powiększ</string>
+    <string name="visit_photo_zoom_out">Pomniejsz</string>
+    <string name="visit_photo_move_left">Przesuń w lewo</string>
+    <string name="visit_photo_move_right">Przesuń w prawo</string>
+    <string name="visit_photo_move_up">Przesuń w górę</string>
+    <string name="visit_photo_move_down">Przesuń w dół</string>
     <string name="keypad_title_dart">Rzutka %1$d</string>
     <string name="keypad_title_new">Nowa rzutka</string>
     <string name="keypad_ring">Pole</string>

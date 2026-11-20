@@ -64,4 +64,28 @@ class PhotoZoomTest {
         assertEquals(1.5f, zoomed.zoom)
         assertNear(Offset(-200f, -150f), zoomed.pan)
     }
+
+    @Test
+    fun `a zoom step doubles about the centre up to 4x, and back down to 1x`() {
+        val centre = Offset(200f, 150f)
+        val once = PhotoZoom().zoomStepped(true, box)
+        assertEquals(2f, once.zoom)
+        assertNear(centre, once.toScreen(centre))
+        val capped = once.zoomStepped(true, box).zoomStepped(true, box)
+        assertEquals(PhotoZoom.MAX_ZOOM, capped.zoom)
+        assertEquals(PhotoZoom(), PhotoZoom(2.5f, Offset(-300f, -200f)).zoomStepped(false, box).zoomStepped(false, box))
+    }
+
+    @Test
+    fun `a move shows a third of the box further that way, and stops at the edge`() {
+        val zoom = PhotoZoom(2f, Offset(-200f, -150f))
+        assertNear(Offset(-200f + 400f / 3, -150f), zoom.viewMoved(Offset(-1f, 0f), box).pan)
+        assertNear(Offset(-200f, -250f), zoom.viewMoved(Offset(0f, 1f), box).pan)
+        assertNear(Offset(-400f, -150f), zoom.viewMoved(Offset(1f, 0f), box).viewMoved(Offset(1f, 0f), box).pan)
+    }
+
+    @Test
+    fun `at 1x a move does nothing`() {
+        assertEquals(PhotoZoom(), PhotoZoom().viewMoved(Offset(0f, -1f), box))
+    }
 }

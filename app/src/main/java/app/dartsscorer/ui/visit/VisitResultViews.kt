@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +57,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.LocalResources
@@ -385,8 +387,7 @@ private fun AddDartButton(
 /**
  * The Photo cropped to the Board, one node for TalkBack; its markers are not focusable, since the
  * chips are the path that needs no precise tap. A tap on a marker opens its Dart, a tap elsewhere
- * proposes a new Dart while fewer than three are shown. Pinch and double-tap zoom the Photo for a
- * closer look; the markers keep their size, so the zoom uncovers the tip. A new Photo starts at 1×.
+ * proposes a new Dart while fewer than three are shown.
  */
 @Composable
 internal fun BoardPhoto(
@@ -411,12 +412,17 @@ internal fun BoardPhoto(
     val crop = result.crop
     val latest by rememberUpdatedState(result)
     var zoom by remember(result.photo) { mutableStateOf(PhotoZoom()) }
+    var box by remember { mutableStateOf(Size.Zero) }
+    val zoomed by remember(result.photo) { derivedStateOf { zoom.zoom > PhotoZoom.MIN_ZOOM } }
+    val zoomable by remember(result.photo) { derivedStateOf { zoom.zoom < PhotoZoom.MAX_ZOOM } }
+    val actions = photoActions(zoomable, zoomed) { zoom = it(zoom, box) }
     Canvas(
         modifier =
             modifier
                 .photoSize(crop.width / crop.height, beside)
                 .clipToBounds()
-                .pointerInput(measurer, numberStyle) {
+                .onSizeChanged { box = it.toSize() }
+                .pointerInput(measurer, numberStyle, result.photo) {
                     detectTapGestures(onDoubleTap = { at -> zoom = zoom.toggled(at, size.toSize()) }) { tap ->
                         val shown = latest
                         val view = zoom.clampedTo(size.toSize())
@@ -430,10 +436,11 @@ internal fun BoardPhoto(
                             onSpot(Point(shown.crop.left + base.x / scale, shown.crop.top + base.y / scale))
                         }
                     }
-                }.zoomGestures({ zoom }, { zoom = it })
+                }.zoomGestures(result.photo, { zoom }, { zoom = it })
                 .semantics {
                     contentDescription = description
                     role = Role.Image
+                    customActions = actions
                 },
     ) {
         val view = zoom.clampedTo(size)
@@ -455,10 +462,11 @@ internal fun BoardPhoto(
  * cancels the tap, so a pan never adds a Dart.
  */
 private fun Modifier.zoomGestures(
+    photo: File,
     current: () -> PhotoZoom,
     onZoom: (PhotoZoom) -> Unit,
 ): Modifier =
-    pointerInput(Unit) {
+    pointerInput(photo) {
         awaitEachGesture {
             awaitFirstDown(requireUnconsumed = false)
             var travel = 0f
@@ -484,6 +492,40 @@ private fun Modifier.zoomGestures(
         }
     }
 
+@Composable
+private fun photoActions(
+    zoomable: Boolean,
+    zoomed: Boolean,
+    onChange: ((PhotoZoom, Size) -> PhotoZoom) -> Unit,
+): List<CustomAccessibilityAction> {
+    fun action(
+        label: String,
+        change: (PhotoZoom, Size) -> PhotoZoom,
+    ) = CustomAccessibilityAction(label) {
+        onChange(change)
+        true
+    }
+
+    fun move(
+        label: String,
+        direction: Offset,
+    ) = action(label) { zoom, box -> zoom.viewMoved(direction, box) }
+    return buildList {
+        if (zoomable) {
+            add(
+                action(stringResource(R.string.visit_photo_zoom_in)) { zoom, box -> zoom.zoomStepped(true, box) },
+            )
+        }
+        if (zoomed) {
+            add(action(stringResource(R.string.visit_photo_zoom_out)) { zoom, box -> zoom.zoomStepped(false, box) })
+            add(move(stringResource(R.string.visit_photo_move_left), Offset(-1f, 0f)))
+            add(move(stringResource(R.string.visit_photo_move_right), Offset(1f, 0f)))
+            add(move(stringResource(R.string.visit_photo_move_up), Offset(0f, -1f)))
+            add(move(stringResource(R.string.visit_photo_move_down), Offset(0f, 1f)))
+        }
+    }
+}
+
 private fun Point.screen(
     crop: Crop,
     scale: Double,
@@ -495,7 +537,6 @@ private class Marker(
     val spot: MarkerSpot,
 )
 
-/** Placed in screen space, so a zoomed Photo keeps its badges readable; a Dart zoomed out of the box has none. */
 private fun Density.markers(
     shown: VisitPhase.Scored,
     canvas: Size,
