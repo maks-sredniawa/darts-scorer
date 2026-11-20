@@ -189,6 +189,12 @@ private fun AppNavigationBar(
  * never removed, so its ViewModel is not cleared.
  */
 internal fun NavBackStack<NavKey>.showTopLevel(destination: TopLevelDestination) {
+    // A stack saved by a build before 2026-11-20 can be rooted at Settings; without this Visit
+    // would be unreachable after updating from one.
+    if (firstOrNull() != Visit) {
+        clear()
+        add(Visit)
+    }
     while (size > 1) removeAt(lastIndex)
     if (destination.key != Visit) add(destination.key)
 }

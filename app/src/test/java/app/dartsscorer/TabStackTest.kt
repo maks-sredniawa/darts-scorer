@@ -35,4 +35,11 @@ class TabStackTest {
         assertEquals(listOf(Visit, Settings), stack.toList())
         assertEquals(TopLevelDestination.VisitTab, NavBackStack<NavKey>(Visit, Support).currentTab())
     }
+
+    @Test
+    fun `a stack an older build saved with Settings at its root gets Visit back`() {
+        val stack = NavBackStack<NavKey>(Settings)
+        stack.showTopLevel(TopLevelDestination.VisitTab)
+        assertEquals(listOf<NavKey>(Visit), stack.toList())
+    }
 }
