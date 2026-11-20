@@ -69,6 +69,18 @@ only on a model that met this phase's bar.
       part and nothing to the manifest. ADR-0008 amended on 2026-11-19, MPL-2.0 allowed unmodified
       and credited. R4 in `phase-M2.md`.
 
+## Phase 1 — one Photo scored on the phone
+
+[`phase-1.md`](phase-1.md). Built alongside M2; closes only on a model that met M1's bar (E).
+
+- [x] **Answer the six decisions** at the top of `phase-1.md`. All six taken as recommended on 2026-11-20.
+- [ ] **The gate (A):** the Kotlin pipeline gives `darts-ml locate`'s Board and Darts on DeepDarts
+      validation Photos (`phase-1.md` §1, R1).
+- [ ] **A Visit scored from one Photo (B)**, with the Credits ADR-0008 asks for and the Visit count.
+- [ ] **Correcting a Dart (C)** with the keypad sheet (D3) and *Enter the Score yourself* (D6).
+- [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
+- [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
+
 ## Before the first upload
 
 - [x] **Delete what the app does not need.** Phase 0: reminders, the custom backup and sharing, the

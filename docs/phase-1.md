@@ -30,7 +30,9 @@ it, and the phone's reading of real Visits on a real Board is recorded in R3.**
 
 ## Decisions for the owner
 
-| # | Decision | Recommended |
+All six were decided on **2026-11-20**, each as recommended.
+
+| # | Decision | Decided 2026-11-20 |
 | --- | --- | --- |
 | **D1** | **Where the model file the app ships lives** (§2) | **Committed to git, at `app/src/main/assets/model/`, beside its export record.** CLAUDE.md and ADR-0008 keep weights out of git, but they were written about `ml/`'s training weights (`best.pt`) and the data; the exported `.tflite` is a build input like an icon, and anyone can unzip it from the public APK anyway. About 12.8 MB per model, and a model is swapped a handful of times. The alternatives cost more: Git LFS's free 1 GiB of bandwidth a month runs out at about 75 CI checkouts; a release asset downloaded by a Gradle task needs a pinned SHA-256, a cache and a network step in every build, local ones included. ADR-0008 and CLAUDE.md's stack line are amended to say training weights stay out and the shipped model is in |
 | **D2** | **Is the Photo kept after scoring?** (§4) | **No.** The first version stores no Visit history (phase 0), so the Photo lives only while its Visit is on screen: written through `MediaFiles` as the `photos` kind (2048 px long edge, q85), deleted when the next Visit starts, and any left over swept at start. Already outside Auto Backup (ADR-0005). Keeping Photos comes with history, in its own phase and ADR |
@@ -92,7 +94,7 @@ phase S's opt-in may do, with its own ADR and privacy policy. Nothing from a cor
 | **A** | **The gate** — does the Kotlin pipeline give Python's Darts on the same Photos? | `test:` and `chore(ml):` for the apparatus; the verdict is a reading | D1 |
 | **B** | **A Visit scored from one Photo**: camera or Picker in, Darts and total out, the no-Board and no-camera paths, Credits, the Visit count | `feat:` | A, D2, D5 |
 | **C** | **Correcting a Dart** | `feat:` | B, D3 |
-| **D** | **Readings on a real Board**: the thread count chosen, R3's Visits | `docs:` | C |
+| **D** | **Readings**: the thread count chosen, `minSdk` decided (§5), R3's Visits | `docs:`, `chore:` if `minSdk` moves | C |
 | **E** | **The model that met the bar** swapped in, R3 read again | `feat:` | D, M2's G |
 
 **A comes first** because a port that differs from Python in its resampling or its RANSAC would make
@@ -197,6 +199,21 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 | *Next Visit* | The Photo deleted, `incrementVisitsScored()` called once, the screen empty again |
 | Process death mid-Visit | The Photo's relative path survives in `SavedStateHandle`; the result is recomputed from it. Corrections made before the death are lost, and that is accepted (Known gaps) |
 
+## 5. `minSdk`
+
+Phase 0 left it here (`phase-0.md`, `DOD.md`): decided before the door, on the runtime's own floor
+and an inference time on a low-end emulator image. The runtime's floor is no constraint: LiteRT
+1.4.2's AAR declares `minSdkVersion` 21, below today's 26. So the question is speed alone, read as R4:
+both passes on an API 26 emulator image with 2 GB of RAM and 2 cores, at the thread count R2 chose.
+
+1. **Under 2 s per Photo** → `minSdk` stays 26, and the reason is written beside it in
+   `app/build.gradle.kts`.
+2. **2 s or more** → the floor rises to the lowest level whose image reads under 2 s, CI's floor
+   legs move with it in the same commit, and the reason is written beside it.
+
+An emulator's CPU is not a 2018 phone's, so this bounds the decision rather than proving it; the
+direction is still asymmetric, and lowering later is free.
+
 ## Tests
 
 - **Scoring** (`board.score` ported): every segment, ring and both bulls, and points 0.1 mm either
@@ -214,6 +231,8 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 - **`CLAUDE.md`:** the `ml/` stack line (D1), and the Layout gains the inference package.
 - **`CONTEXT.md`:** Miss and unsure (§3).
 - **`PLAN.md`'s phase 1 paragraph:** the tap picks, the keypad sets (D3).
+- **`DOD.md`:** a Phase 1 section with A–E; the `minSdk` and runtime items under *Before the first
+  upload* point here.
 - **`PLAN.md`:** phase 3 loses the DeepDarts attribution; phase 1 is ticked at E.
 - **Privacy policy, Data safety:** no change. Both already say the Photos are processed on the phone
   and never sent; this phase makes that true rather than promised. Re-read at B, not edited.
@@ -233,3 +252,4 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 | R1 | A's gate: Board and Darts against Python on DeepDarts validation Photos | `darts-ml phone-parity`, then the instrumented test | |
 | R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat` | |
 | R3 | Real Visits on a real Board in room light: exactly right, corrected, and taps per correction | by hand, at the Board | |
+| R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count | the debug build's timing line in `logcat` | |
