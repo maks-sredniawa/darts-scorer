@@ -49,9 +49,11 @@ class VisitViewModelTest {
 
     private val dispatcher = UnconfinedTestDispatcher()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val preferences by lazy {
-        AppPreferences(PreferenceDataStoreFactory.create(scope = scope) { folder.newFile("app.preferences_pb") })
-    }
+    private val preferencesOnce =
+        lazy {
+            AppPreferences(PreferenceDataStoreFactory.create(scope = scope) { folder.newFile("app.preferences_pb") })
+        }
+    private val preferences by preferencesOnce
     private val tipJar by lazy { TipJar(scope) { NoBilling } }
     private val photos = FakePhotos()
 
@@ -59,6 +61,9 @@ class VisitViewModelTest {
 
     @After
     fun tearDown() {
+        // A write still in flight resumes its ViewModel coroutine on DataStore's thread, which reads
+        // Dispatchers.Main; DataStore applies edits in order, so one more returns only after that has run.
+        if (preferencesOnce.isInitialized()) runBlocking { preferences.restoreDefaults() }
         scope.cancel()
         Dispatchers.resetMain()
     }
@@ -420,13 +425,47 @@ class VisitViewModelTest {
     }
 
     @Test
-    fun `a Visit with no result is not kept`() {
+    fun `a Visit with no result is not kept, on a stop or on a new Photo`() {
         photos.next = PhotoReading(800, 600, Located(null))
         val visit = viewModel()
         visit.photoChosen("content://picked/1")
         visit.stateWhen { it.phase is VisitPhase.NoBoard }
+        visit.keepShown()
+        visit.addDart()
+        visit.pickRing(Ring.TREBLE)
+        visit.pickNumber(20)
+        visit.commitKeypad()
+        visit.removeDart(1)
+        visit.stateWhen { (it.phase as? VisitPhase.Entered)?.darts?.isEmpty() == true }
+        visit.keepShown()
         visit.photoChosen("content://picked/2")
         visit.stateWhen { it.phase is VisitPhase.NoBoard && photos.stored.size == 1 }
+        assertTrue(photos.kept.isEmpty())
+    }
+
+    @Test
+    fun `a stop keeps the Visit on screen as it stands, and a new Photo keeps it again`() {
+        photos.next =
+            board(
+                FoundDart(400.0, 100.0, 0.9, Score(Ring.SINGLE, 20)),
+                FoundDart(400.0, 500.0, 0.9, Score(Ring.SINGLE, 3)),
+            )
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        val read = visit.scored()
+        visit.removeDart(2)
+        val shown = visit.scored()
+        visit.keepShown()
+        assertEquals(listOf(shown to listOf(read.darts[1])), photos.kept)
+        assertEquals(listOf("photos/0.jpg"), photos.stored)
+        visit.photoChosen("content://picked/2")
+        visit.stateWhen { it.phase is VisitPhase.Scored && photos.stored == listOf("photos/1.jpg") }
+        assertEquals(listOf(shown, shown), photos.kept.map { it.first })
+    }
+
+    @Test
+    fun `a stop with no Visit on screen keeps nothing`() {
+        viewModel().keepShown()
         assertTrue(photos.kept.isEmpty())
     }
 

@@ -118,8 +118,7 @@ class VisitViewModel(
     ) {
         arriving?.cancel()
         val before = visit.value.phase.takeUnless { it == VisitPhase.Reading } ?: VisitPhase.Empty
-        val ended = (before as? VisitPhase.Shown)?.takeIf { it is VisitPhase.Scored || it.darts.isNotEmpty() }
-        val removed = ended?.let(::removedFrom).orEmpty()
+        val ended = marked(before)
         visit.update {
             it.copy(phase = VisitPhase.Reading, notice = null, keypad = null, removed = null, focus = null)
         }
@@ -143,12 +142,18 @@ class VisitViewModel(
                 saved[PHOTO] = photo
                 previous?.let { old ->
                     withContext(io) {
-                        ended?.let { photos.keep(it, removed) }
+                        ended?.let { (shown, removed) -> photos.keep(shown, removed) }
                         photos.delete(old)
                     }
                 }
                 show(photo)
             }
+    }
+
+    /** Called on every stop of the screen, which each close or kill passes through, so the last Visit is kept too. */
+    fun keepShown() {
+        val (shown, removed) = marked(visit.value.phase) ?: return
+        viewModelScope.launch(io) { photos.keep(shown, removed) }
     }
 
     fun openDart(number: Int) {
@@ -302,8 +307,10 @@ class VisitViewModel(
         if (phase is VisitPhase.Scored) preferences.incrementVisitsScored(photo)
     }
 
-    private fun removedFrom(shown: VisitPhase.Shown): List<ShownDart> =
-        readDarts.filter { read -> shown.darts.none { it.read == read.read } }
+    private fun marked(phase: VisitPhase): Pair<VisitPhase.Shown, List<ShownDart>>? {
+        val shown = (phase as? VisitPhase.Shown)?.takeIf { it is VisitPhase.Scored || it.darts.isNotEmpty() }
+        return shown?.let { it to readDarts.filter { read -> it.darts.none { dart -> dart.read == read.read } } }
+    }
 
     // A model that will not load or run, or a Photo too big for memory, is an unreadable Photo, not a crash.
     private suspend fun readOrNull(photo: String): PhotoReading? =

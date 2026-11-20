@@ -9,47 +9,55 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
 import java.time.Instant
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-/**
- * A marked Visit, its Photo copied byte for byte and its reading and corrections beside it, into
- * `filesDir/marked/` for `scripts/pull-marked.py`. Outside the backup's include list (ADR-0005).
- */
 fun keepMarked(
     context: Context,
     visit: VisitPhase.Shown,
     removed: List<ShownDart>,
 ) {
-    val keptAt = Instant.now()
-    val name = "${STAMP.format(keptAt)}-${UUID.randomUUID()}"
-    val dir = markedDir(context)
     try {
-        dir.mkdirs()
-        // Written aside and renamed, so a pull never takes a half-written file for a whole one.
-        write(File(dir, "$name.jpg")) { visit.photo.copyTo(it, overwrite = true) }
-        val record = MarkedVisit.of(visit, removed, keptAt, "$name.jpg")
-        write(File(dir, "$name.json")) { it.writeText(JSON.encodeToString(MarkedVisit.serializer(), record)) }
-    } catch (e: IOException) {
+        keepMarkedIn(markedDir(context), visit, removed, Instant.now())
+    } catch (e: Exception) {
         Log.w("KeepMarked", "the Visit was not kept", e)
     }
+}
+
+/** Named after the Photo, so keeping the same Visit again replaces its record rather than adding one. */
+internal fun keepMarkedIn(
+    dir: File,
+    visit: VisitPhase.Shown,
+    removed: List<ShownDart>,
+    keptAt: Instant,
+) {
+    dir.mkdirs()
+    val name = visit.photo.nameWithoutExtension
+    val photo = File(dir, "$name.jpg")
+    if (!photo.sameSizeAs(visit.photo)) write(photo) { visit.photo.copyTo(it, overwrite = true) }
+    val record = MarkedVisit.of(visit, removed, keptAt, photo.name)
+    write(File(dir, "$name.json")) { it.writeText(JSON.encodeToString(MarkedVisit.serializer(), record)) }
 }
 
 fun markedVisits(context: Context): Int = markedDir(context).listFiles { file -> file.extension == "json" }?.size ?: 0
 
 private fun markedDir(context: Context) = File(context.filesDir, "marked")
 
+private fun File.sameSizeAs(other: File) = exists() && length() == other.length()
+
+// Written aside and renamed, so a pull never takes a half-written file for a whole one; the part's own
+// name lets two keeps of one Visit overlap without writing into the same file.
 private inline fun write(
     target: File,
     body: (File) -> Unit,
 ) {
-    val part = File(target.parentFile, "${target.name}.part")
-    body(part)
-    if (!part.renameTo(target)) throw IOException("could not rename ${part.name}")
+    val part = File(target.parentFile, "${target.name}.${UUID.randomUUID()}.part")
+    try {
+        body(part)
+        if (!part.renameTo(target)) throw IOException("could not rename ${part.name}")
+    } finally {
+        part.delete()
+    }
 }
-
-private val STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC)
 
 private val JSON =
     Json {
@@ -115,7 +123,6 @@ private data class MarkedCrop(
     val bottom: Double,
 )
 
-/** The model's reading of a Dart, in Photo pixels, before any correction. */
 @Serializable
 private data class MarkedRead(
     val at: MarkedPoint,
@@ -127,7 +134,6 @@ private data class MarkedRead(
     }
 }
 
-/** A Dart as the Visit ended; [read] is null for one added by hand. */
 @Serializable
 private data class MarkedDart(
     val number: Int,
