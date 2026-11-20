@@ -272,7 +272,7 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 | No Board found | §3's: the whole Photo with no markers, the banner with its hint (the whole Board in the frame, more light), and *Take another Photo*, *Choose a Photo*, *Enter the Score yourself* (D6). Nothing is counted |
 | Board found | §3's result. The first time a Photo's result is shown, `incrementVisitsScored()` is called once for it, so the last Visit of a session counts too; a Visit entered by hand (D6) is not counted, since the app read nothing |
 | *Next Visit* | The camera opens directly and the result stays on screen. When a new Photo arrives, the previous one is deleted; a cancelled camera changes nothing |
-| Process death mid-Visit | The Photo's relative path survives in `SavedStateHandle`, with whether it was counted; the result is recomputed from it and not counted again, and the start-up sweep (D2) skips that path. Corrections made before the death are lost, and that is accepted (Known gaps) |
+| Process death mid-Visit | The Photo's relative path survives in `SavedStateHandle`, and the last counted Photo's path is in DataStore; the result is recomputed from it and not counted again, and the start-up sweep (D2) skips that path. Corrections made before the death are lost, and that is accepted (Known gaps) |
 | The start-up sweep | Runs when the Visit ViewModel is created, not in `Application.onCreate`: only the ViewModel's `SavedStateHandle` knows which Photo survived process death, so only it can tell a leftover from the Photo on screen |
 
 ### What moved while building B (2026-11-20)
@@ -288,9 +288,10 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 - **The sweep clears the camera's files too.** A camera file in `cacheDir/camera/` left by a death
   between the camera returning and `MediaFiles` writing the Photo is deleted, except the one the camera
   is still writing, whose Uri `SavedStateHandle` holds while the camera is open. A Photo arriving waits
-  for the sweep, so a new file is never taken for a leftover.
-- **Counted is saved before the count is written,** so a death between the two loses one Visit rather
-  than counting one twice.
+  for the sweep, so a new file is never taken for a leftover, and the sweep reads the handle when the
+  ViewModel is created, before a camera result can clear it.
+- **The last counted Photo is kept in DataStore, in the same edit as the count,** so no process death,
+  even one after `onStop` saved the handle, can count a Visit twice or lose one.
 - **The crop** is the window the second pass read the Darts in (the outer double ring's extent over
   `Warp.CROP_FILL`), clamped to the Photo, and at most two fifths of the window high, so the Score and
   the chips stay on screen beside it.

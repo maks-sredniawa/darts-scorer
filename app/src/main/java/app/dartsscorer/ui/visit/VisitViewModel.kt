@@ -12,6 +12,7 @@ import app.dartsscorer.MainApplication
 import app.dartsscorer.data.AppPreferences
 import app.dartsscorer.tip.TipJar
 import app.dartsscorer.tip.tipAskDue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,11 +38,6 @@ data class VisitUiState(
     val showTipAsk: Boolean = false,
 )
 
-/**
- * A Visit's life (phase-1.md §4). The Photo on screen and whether it was counted live in
- * [SavedStateHandle], so after process death the result is read again from the file, not counted
- * again, and the start-up sweep leaves that file alone.
- */
 class VisitViewModel(
     private val preferences: AppPreferences,
     tipJar: TipJar,
@@ -63,9 +59,10 @@ class VisitViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), visit.value)
 
-    // Here rather than in Application.onCreate: only this handle knows which Photo survived process
-    // death. A Photo arriving waits for it, so a fresh file is never taken for a leftover.
-    private val swept: Job = viewModelScope.launch(io) { sweep() }
+    // phase-1.md §4, The start-up sweep. The handle is read here, on the main thread, because
+    // cameraReturned may clear CAMERA before the sweep runs.
+    private val swept: Job =
+        sweep(keep = saved.get<String>(PHOTO), pending = saved.get<String>(CAMERA))
 
     private var arriving: Job? = null
 
@@ -92,7 +89,6 @@ class VisitViewModel(
         visit.update { it.copy(notice = VisitNotice.NoCamera) }
     }
 
-    /** A cancelled camera changes nothing: the result on screen stays. */
     fun cameraReturned(taken: Boolean) {
         val target = saved.remove<String>(CAMERA) ?: return
         if (taken) {
@@ -131,14 +127,13 @@ class VisitViewModel(
                 }
                 val previous = saved.get<String>(PHOTO)
                 saved[PHOTO] = photo
-                saved[COUNTED] = false
                 previous?.let { withContext(io) { photos.delete(it) } }
                 show(photo)
             }
     }
 
     private suspend fun show(photo: String) {
-        val reading = photos.read(photo)
+        val reading = readOrNull(photo)
         if (reading == null) {
             forget(photo)
             visit.update { it.copy(phase = VisitPhase.Empty, notice = VisitNotice.Unreadable) }
@@ -146,30 +141,39 @@ class VisitViewModel(
         }
         val phase = phaseOf(photos.resolve(photo), reading)
         visit.update { it.copy(phase = phase) }
-        // The first time a Photo's result is shown, so the last Visit of a session counts too. Saved
-        // before the write: a death between the two loses one Visit rather than counting one twice.
-        if (phase is VisitPhase.Scored && saved.get<Boolean>(COUNTED) != true) {
-            saved[COUNTED] = true
-            preferences.incrementVisitsScored()
-        }
+        if (phase is VisitPhase.Scored) preferences.incrementVisitsScored(photo)
     }
+
+    // A model that will not load or run, or a Photo too big for memory, is an unreadable Photo, not a crash.
+    private suspend fun readOrNull(photo: String): PhotoReading? =
+        try {
+            photos.read(photo)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        } catch (e: OutOfMemoryError) {
+            null
+        } catch (e: LinkageError) {
+            null
+        }
 
     private suspend fun forget(photo: String) {
         saved.remove<String>(PHOTO)
-        saved.remove<Boolean>(COUNTED)
         withContext(io) { photos.delete(photo) }
     }
 
-    private fun sweep() {
-        val keep = saved.get<String>(PHOTO)
-        photos.storedPhotos().filter { it != keep }.forEach(photos::delete)
-        val pending = saved.get<String>(CAMERA)
-        photos.cameraTargets().filter { it != pending }.forEach(photos::discardCameraTarget)
-    }
+    private fun sweep(
+        keep: String?,
+        pending: String?,
+    ): Job =
+        viewModelScope.launch(io) {
+            photos.storedPhotos().filter { it != keep }.forEach(photos::delete)
+            photos.cameraTargets().filter { it != pending }.forEach(photos::discardCameraTarget)
+        }
 
     companion object {
         internal const val PHOTO = "photo"
-        internal const val COUNTED = "counted"
         internal const val CAMERA = "camera"
 
         val Factory: ViewModelProvider.Factory =
