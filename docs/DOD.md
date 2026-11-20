@@ -89,7 +89,8 @@ only on a model that met this phase's bar.
       while building C*). Read on `pixel-api36` and `urgent-api26`.
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
       R4 taken 2026-11-20: about 0.36 s a Photo on a 2 GB, 2-core API 26 image at 4 threads and at
-      2, so `minSdk` stays 26. R2 and R3 wait on the owner's phone and Board.
+      2, so `minSdk` stays 26. R2 and R3 wait on the owner's phone and Board. If R2 picks 1 or 6
+      threads, read R4 again at that count.
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
 
 ## Before the first upload

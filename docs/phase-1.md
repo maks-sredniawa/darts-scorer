@@ -376,9 +376,9 @@ direction is still asymmetric, and lowering later is free.
 ### The verdict, taken 2026-11-20: 1, under 2 s → `minSdk` stays 26
 
 R4 read both passes at about 0.36 s a Photo on `urgent-api26` held to 2 GB and 2 cores, a fifth of
-the bound, at 4 threads and at 2 alike (Readings). R2 has not been read yet, so the thread count it
-will choose was bracketed rather than waited for: on two cores, 4 threads buys nothing over 2, and
-neither is near 2 s.
+the bound, at 4 threads and at 2 alike (Readings). R2 has not been read yet, so the verdict holds
+for an R2 choice of 2 or 4 threads: on two cores, 4 buys nothing over 2, and neither is near 2 s.
+If R2 picks 1 or 6, R4 is read again at that count, since 6 oversubscribes two cores.
 
 - **The worst Photo is the first.** The reader is created lazily inside the timed region, so the
   first Photo after a start carries the interpreter's creation, 65 to 90 ms more on this image.
