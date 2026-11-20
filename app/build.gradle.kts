@@ -81,6 +81,7 @@ android {
         // package name is fixed the moment the app entry is created. Deliberately allowed to differ
         // from `namespace` for that reason — see docs/adr/0002.
         applicationId = "com.maksforge.dartsscorer"
+        // Stays 26 on R4: both passes well under 2 s on a 2 GB, 2-core API 26 image (docs/phase-1.md §5).
         minSdk = 26
         targetSdk = 36
         versionCode = gitVersionCode

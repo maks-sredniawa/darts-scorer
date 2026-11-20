@@ -373,6 +373,22 @@ chose.
 An emulator's CPU is not a 2018 phone's, so this bounds the decision rather than proving it; the
 direction is still asymmetric, and lowering later is free.
 
+### The verdict, taken 2026-11-20: 1, under 2 s → `minSdk` stays 26
+
+R4 read both passes at about 0.36 s a Photo on `urgent-api26` held to 2 GB and 2 cores, a fifth of
+the bound, at 4 threads and at 2 alike (Readings). R2 has not been read yet, so the thread count it
+will choose was bracketed rather than waited for: on two cores, 4 threads buys nothing over 2, and
+neither is near 2 s.
+
+- **The worst Photo is the first.** The reader is created lazily inside the timed region, so the
+  first Photo after a start carries the interpreter's creation, 65 to 90 ms more on this image.
+- **2 threads was a local build,** `DEFAULT_THREADS` set to 2 and not committed: the count is a
+  constant, and nothing in the debug seam sets it.
+- **API 26's DocumentsUI crashed once** in 20 picks (`removeContentProvider: … not a
+  ContentProviderConnection`, in the system's process) and took the app's activity with it, its
+  Visit unsaved; the app's process lived and the next picks read normally. A platform bug of that
+  image, not ours; noted in case a real API 26 phone shows it.
+
 ## Tests
 
 - **Scoring** (`board.score` ported): every segment, ring and both bulls, and points 0.1 mm either
@@ -411,5 +427,5 @@ direction is still asymmetric, and lowering later is free.
 | R1 | A's gate: Board and Darts against Python's `locate()` on DeepDarts' val Photos, after `MediaFiles` | `darts-ml phone-parity`, which runs the instrumented test | **2026-11-20**, 200 val Photos, run `2026-11-19-darts-640-s2-ring-ext`, on `pixel-api36` and `urgent-api26`: Board found by both in 200 of 200 on each; worst crossing 0.00513 mm against the 0.1 mm bound; kept Darts' Scores the same in 200 of 200. Verdict 1 (§1) |
 | R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat` | |
 | R3 | Real Visits on a real Board in room light: exactly right, corrected, and taps per correction | by hand, at the Board | |
-| R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count | the debug build's timing line in `logcat` | |
+| R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count | the debug build's timing line in `logcat`, on `emulator -avd urgent-api26 -memory 2048 -cores 2 -no-window -no-audio -no-snapshot-save`, 10 val Photos (every 107th in the split's order) through the Picker | **2026-11-20**, R2 not yet read, so at 4 threads (today's `DEFAULT_THREADS`) and 2: median 360 ms and worst 450 ms at 4, median 364 ms and worst 429 ms at 2; the worst both times the first Photo, with the interpreter's creation (warm worst 377 and 372 ms). Under 2 s: `minSdk` stays 26 (§5) |
 | R5 | A's second question: the exactly-right share on DeepDarts' val Photos as they are and as `MediaFiles` stores them (D2) | `darts-ml deepdarts score --split val`, then the same with `--as-stored` | **2026-11-20**, run `2026-11-19-darts-640-s2-ring-ext`, `ENTRY_THRESHOLD` 0.25, all 1,070 val Photos: 740 (69.2%) as they are, 735 (68.7%) re-encoded at q85, 0.5 points down against the 1-point bound. D2 holds (§1) |
