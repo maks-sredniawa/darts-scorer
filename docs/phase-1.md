@@ -303,6 +303,9 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   they mark; the chips carry the Score at full size.
 - **The debug build's timing line** R2 and R4 read is `PhotoReader: both passes: <n> ms at <t>
   threads`, from `scoring/ReadTiming.kt` in `src/debug/` with a no-op in `src/release/`.
+- **R2's count is picked in the debug build**, in Settings' Debug section (1, 2, 4 or 6), so one
+  install reads every count. The next Photo builds a new interpreter at that count; a release build
+  always reads at `LiteRtModel.DEFAULT_THREADS` (`scoring/ReadThreads.kt`, one per variant).
 - **`scripts/edge-to-edge.py`'s scenes are unchanged.** The empty state is still `visit`; a result
   needs a Photo picked through the Picker, which the driver cannot seed.
 
@@ -425,7 +428,7 @@ If R2 picks 1 or 6, R4 is read again at that count, since 6 oversubscribes two c
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | A's gate: Board and Darts against Python's `locate()` on DeepDarts' val Photos, after `MediaFiles` | `darts-ml phone-parity`, which runs the instrumented test | **2026-11-20**, 200 val Photos, run `2026-11-19-darts-640-s2-ring-ext`, on `pixel-api36` and `urgent-api26`: Board found by both in 200 of 200 on each; worst crossing 0.00513 mm against the 0.1 mm bound; kept Darts' Scores the same in 200 of 200. Verdict 1 (§1) |
-| R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat` | |
+| R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat`, each count picked in Settings' Debug section | |
 | R3 | Real Visits on a real Board in room light: exactly right, corrected, and taps per correction | by hand, at the Board | |
 | R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count | the debug build's timing line in `logcat`, on `emulator -avd urgent-api26 -memory 2048 -cores 2 -no-window -no-audio -no-snapshot-save`, 10 val Photos (every 107th in the split's order) through the Picker | **2026-11-20**, R2 not yet read, so at 4 threads (today's `DEFAULT_THREADS`) and 2: median 360 ms and worst 450 ms at 4, median 364 ms and worst 429 ms at 2; the worst both times the first Photo, with the interpreter's creation (warm worst 377 and 372 ms). Under 2 s: `minSdk` stays 26 (§5) |
 | R5 | A's second question: the exactly-right share on DeepDarts' val Photos as they are and as `MediaFiles` stores them (D2) | `darts-ml deepdarts score --split val`, then the same with `--as-stored` | **2026-11-20**, run `2026-11-19-darts-640-s2-ring-ext`, `ENTRY_THRESHOLD` 0.25, all 1,070 val Photos: 740 (69.2%) as they are, 735 (68.7%) re-encoded at q85, 0.5 points down against the 1-point bound. D2 holds (§1) |
