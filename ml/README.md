@@ -100,6 +100,31 @@ uv run --directory ml darts-ml deepdarts overlay --sample 10  # R3: drawn number
   crossings are projected through them as `deepdarts-projected`.
 - **`overlay`** reads the records, not the pickle, and writes into `overlays/deepdarts/`.
 
+## Synthetic renders
+
+Frames from the owner's renderer, `maks-sredniawa/darts-render` (an Apache-2.0 fork of
+`ahie/darts-model`; ADR-0008's 2026-11-21 amendment). Render without `--bg_image_dir`, so no Places365
+photograph is in a frame, and at 768×1024: a 1536×2048 frame can outlast the laptop GPU driver's job
+timeout. Only the renderer's images and labels are used, never darts-model's trained weights.
+
+```bash
+dartboard_gen --look owner --width 768 --height 1024 --num_frames 2000 --seed 1 --output_dir <folder>
+uv run --directory ml darts-ml renders import <folder> --set owner-768 --renderer <darts-render clone> --look owner
+```
+
+- **`renders import`** copies the renderer's `rgb/` and turns each `annotations/*.json` into a record in
+  `$DARTS_DATA/renders/<set>/records.jsonl`, in the common record's field names with `source = "render"`.
+  The renderer's rings are `board.py`'s wire centres, so its 81 keypoints (the bull, 20 segment points
+  on the outer double and 20 on the inner treble wire, 40 crossings on the double wires) fit one
+  homography, and the 80 Calibration points are that homography's projections of `board.py`'s own.
+  A frame whose keypoints fit it worse than `--max-residual-px` (0.5) is refused and listed, which
+  also refuses a frame rendered before the rings moved onto the wires. Each Dart's landing point is an
+  Entry point; one off the image is dropped. Its Score is `board.py`'s, and the manifest counts any that
+  differ from the renderer's own zone.
+- **`manifest.json`** beside the records names the renderer's commit (from `--renderer`, a clone whose
+  HEAD it reads, or `--renderer-commit`), `--look`, each `--option`, the renderer's own `manifest.json`,
+  the fit residuals and every frame refused. A set is written once; another import needs another `--set`.
+
 ## Training (phase M2)
 
 [`docs/phase-M2.md`](../docs/phase-M2.md): the model, its training samples, the decoder and the two
@@ -109,6 +134,8 @@ passes, and the commands that train it and turn it into predictions.
 uv run --directory ml darts-ml train --name board-512 --board-only   # C: Calibration points only
 uv run --directory ml darts-ml train --name darts-512 --init <run>   # D: Entry points added, from C's weights
 uv run --directory ml darts-ml train --name darts-640-s2-ring --size 640 --init <run>   # after D: Entry head at stride 2
+uv run --directory ml darts-ml train --name renders-640 --size 640 --init <run> --renders owner-768 --render-weight 0.5   # DeepDarts plus renders
+uv run --directory ml darts-ml evaluate-marked --run <run>          # the owner's marked Visits: read once a run is chosen
 uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, R3: a run's figures on DeepDarts
 uv run --directory ml darts-ml deepdarts score --run <run> --as-stored   # phase 1 §1: on val, as MediaFiles stores a Photo
 uv run --directory ml darts-ml deepdarts score --run <run> --entry-threshold 0.3   # on val, keeping Entry points at that heat
@@ -129,6 +156,15 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   `best.pt`. After each epoch it reads DeepDarts' `val` split through both passes, as `predict`
   would, and keeps `best.pt` from the epoch that reads best: Photos scored exactly right, then Board
   found; with `--board-only`, Board found, then the worse wire row's median. Weights never enter git.
+- **`--renders SET[,SET]`** adds render sets to the training samples. A tenth of each set's frames,
+  whole frames picked by a hash of `--seed` and the frame, so another set never moves them, is held
+  out as rendered val: read after every epoch through both passes and written to `epochs.jsonl` as
+  `render_figures`, never used to keep `best.pt`, which stays DeepDarts val's. `--render-weight W`
+  (default 0.5) draws renders W times as often as DeepDarts Photos overall, whatever the sizes, so
+  0.5 makes them a third of each batch; an epoch is then DeepDarts' count times 1 + W draws.
+  `config.json` records the sets, each set's renderer commit and look, and both counts. Without
+  `--renders` the loader is the one before renders came. Nothing under `phone-captures/` is ever a
+  training or a choosing sample.
 - **The samples** are augmented by default (`--no-augment` turns it off): the Board plane re-viewed
   from a camera orbiting it up to 60° to either side, 20° up or down and rolled up to 30°; framed as
   the second pass frames it (the outer double ring filling 70–90% of the side) seven times in ten,
@@ -204,6 +240,14 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   ```bash
   uv run --directory ml darts-ml pull-marked --serial <serial> [--delete-after]
   ```
+- **`evaluate-marked`** reads the pulled marked Visits as the owner's real test set: each Photo
+  through a run's model and both passes, against the owner's corrected Darts. It prints Board found,
+  Visits scored exactly right (the Scores as multisets, a Dart the owner added with no point
+  included), Darts right, and how far each Entry point lies from the owner's in Board mm through the
+  run's own homography, split into the Darts the owner moved and those whose point the owner kept; a
+  Dart whose Score was corrected without moving it gives no point. Beside it, the app's reading as
+  kept on the phone, from the same records. It writes nothing. **Read once:** these Visits choose no
+  run, threshold or setting, or they stop measuring anything; the step says so as it reads them.
 - **`phone-fixtures`** writes what the app's JVM tests hold the Kotlin port to, into
   `app/src/test/resources/scoring/`: `scores.tsv` (every bed, 0.1 mm either side of every wire, and
   `tests/scoring-cases.toml`, each with `board.score`'s answer), `rng.json` (the sets of four

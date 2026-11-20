@@ -94,6 +94,18 @@ class PathsTest(unittest.TestCase):
             with self.subTest(bad), self.assertRaises(DartsMlError):
                 data.photos(bad)
 
+    def test_render_sets_are_fenced_and_their_names_cannot_escape(self):
+        with tempfile.TemporaryDirectory() as outside:
+            (Path(outside) / "renders").mkdir()
+            os.symlink(REPO / "ml", Path(outside) / "renders" / "inside")
+            data = DataDir(data_root({"DARTS_DATA": outside}))
+            self.assertEqual(data.render_set("owner-768"), Path(outside).resolve() / "renders" / "owner-768")
+            with self.assertRaises(DataInsideRepo):
+                data.render_set("inside")
+            for bad in ("../x", "Owner", "-x", "a/b", ""):
+                with self.subTest(bad), self.assertRaises(DartsMlError):
+                    data.render_set(bad)
+
 
 if __name__ == "__main__":
     unittest.main()
