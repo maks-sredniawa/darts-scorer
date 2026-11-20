@@ -52,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.dartsscorer.R
 import app.dartsscorer.theme.Spacing
 import app.dartsscorer.ui.appViewModelExtras
+import app.dartsscorer.ui.common.isShortWindow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,9 +103,12 @@ fun VisitScreen(
         if (result == SnackbarResult.ActionPerformed) viewModel.undoRemove() else viewModel.removalSettled()
     }
 
+    // Beside the Photo in a short window the title would only take height from it; the rail's
+    // selected tab already says where the player is.
+    val photoBeside = isShortWindow() && state.phase.showsPhoto
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.tab_visit)) }) },
+        topBar = { if (!photoBeside) TopAppBar(title = { Text(stringResource(R.string.tab_visit)) }) },
         // The snackbar has no timer, so the screen makes room for it rather than hide the buttons under it.
         snackbarHost = {
             SnackbarHost(snackbar, Modifier.onSizeChanged { snackbarHeight = with(density) { it.height.toDp() } })
@@ -156,7 +160,7 @@ fun VisitScreen(
                 else -> null
             }
 
-        if (photo != null && isShortWindow()) {
+        if (photo != null && photoBeside) {
             Row(modifier = Modifier.fillMaxSize().padding(insets)) {
                 Box(modifier = Modifier.fillMaxHeight().padding(Spacing.base), contentAlignment = Alignment.Center) {
                     photo(true)
@@ -302,3 +306,6 @@ private class EnterScoreAction(
     val focusRequested: Boolean,
     val onFocusPlaced: () -> Unit,
 )
+
+private val VisitPhase.showsPhoto: Boolean
+    get() = this is VisitPhase.Scored || this is VisitPhase.NoBoard || this is VisitPhase.Entered

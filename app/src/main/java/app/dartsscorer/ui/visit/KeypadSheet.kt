@@ -60,15 +60,7 @@ import androidx.compose.ui.unit.dp
 import app.dartsscorer.R
 import app.dartsscorer.scoring.Ring
 import app.dartsscorer.theme.Spacing
-
-/** Below this a window is too short to stack the keypad's two groups, and they sit side by side. */
-internal val SHORT_WINDOW = 480.dp
-
-@Composable
-internal fun isShortWindow(): Boolean {
-    val height = LocalWindowInfo.current.containerSize.height
-    return with(LocalDensity.current) { height.toDp() } < SHORT_WINDOW
-}
+import app.dartsscorer.ui.common.isShortWindow
 
 /** phase-1.md §3's keypad: the ring row and the beds as two labelled groups, the live Score, *Done*. */
 @OptIn(ExperimentalMaterial3Api::class)
