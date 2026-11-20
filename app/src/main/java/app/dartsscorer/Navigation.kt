@@ -91,8 +91,8 @@ fun MainNavigation(modifier: Modifier = Modifier) {
         modifier = modifier,
         bottomBar = { if (showTabs && !rail) AppNavigationBar(current, onSelect) },
     ) { insets ->
-        // The NavDisplay stays in this Row whether or not the rail is shown, so rotating never
-        // moves it to a new parent and loses the screens' state.
+        // The NavDisplay keeps this one parent, so neither a window resized across 480 dp without a relaunch
+        // (split screen, freeform) nor the rail coming or going off a detail screen loses the screens' state.
         Row(Modifier.padding(insets).consumeWindowInsets(insets)) {
             if (showTabs && rail) AppNavigationRail(current, onSelect)
             NavDisplay(
