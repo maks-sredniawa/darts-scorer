@@ -327,6 +327,10 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 - **The keypad's two picks.** While a Bull or *Miss* is picked the ring row shows nothing selected; a
   ring tapped then waits for a number (*Pick a number*, *Done* disabled), and a number tapped then is
   a single. *Add a Dart* opens with Single and no number.
+- **The keypad at large text.** No key label is cut to one line; when a ring's name would wrap
+  inside the segmented row (Polish *Pojedyncze* at 200%), the row stacks as three full-width keys.
+  TalkBack reads each group's name with its keys (*5, radio button, in list Number*); the visible
+  labels are hidden from it so they are not read twice. Unselected keys are outlined in `outline`.
 - **A tap on the Photo** within 24 dp of a marker opens that Dart; anywhere else proposes a new one
   while fewer than three are shown, *Miss* when it lands off the Board.
 - ***Undo* is a snackbar with no timer** (WCAG 2.2.1: nothing to adjust): it stays until *Undo*, its
@@ -334,9 +338,9 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   leaves room for it at the end of its scroll, so it never hides *Next Visit* for good. *Undo* puts
   the Dart back with its number unless a new Dart has taken it.
 - **Focus.** After *Remove Dart* it goes to the next chip in order, else *Add a Dart*; closing the
-  sheet without *Done* returns it to the Dart's chip, or to *Add a Dart* for a new one. Chips and
-  *Add a Dart* are made focusable in touch mode, since a button is not, and focus could not be moved
-  back to them otherwise. The sheet's drag handle is drawn without its semantics: as the sheet's first
+  sheet without *Done* returns it to the Dart's chip, or to *Add a Dart* for a new one, or to *Enter
+  the Score yourself* on *No Board found*. Those three are made focusable in touch mode, since a
+  button is not, and focus could not be moved back to them otherwise. The sheet's drag handle is drawn without its semantics: as the sheet's first
   node it took TalkBack's focus on opening, where §3 puts it on the title. Read on `pixel-api36` with
   TalkBack on: into the sheet on *Dart 1*, back to its chip on *Done*.
 - **A Visit entered by hand** replaces the *No Board found* banner with the Score, *Entered by hand*
