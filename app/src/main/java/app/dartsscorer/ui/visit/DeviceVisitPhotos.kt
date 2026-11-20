@@ -66,6 +66,11 @@ class DeviceVisitPhotos(
             }
         }
 
+    override fun keep(
+        visit: VisitPhase.Shown,
+        removed: List<ShownDart>,
+    ) = keepMarked(appContext, visit, removed)
+
     /** A new interpreter only when the count changed, which only the debug build's Settings can do. */
     private fun readerAt(threads: Int): PhotoReader {
         loaded?.takeIf { it.model.threads == threads }?.let { return it.reader }

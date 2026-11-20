@@ -73,6 +73,9 @@ class VisitViewModel(
 
     private var arriving: Job? = null
 
+    /** The Darts as the model read them on the Photo on screen, to tell which the player removed. */
+    private var readDarts: List<ShownDart> = emptyList()
+
     init {
         // Prices are queried only once the ask could be due, saving a product query on every other
         // start. The binding itself happens on every foreground anyway, to settle tips.
@@ -115,6 +118,8 @@ class VisitViewModel(
     ) {
         arriving?.cancel()
         val before = visit.value.phase.takeUnless { it == VisitPhase.Reading } ?: VisitPhase.Empty
+        val ended = (before as? VisitPhase.Shown)?.takeIf { it is VisitPhase.Scored || it.darts.isNotEmpty() }
+        val removed = ended?.let(::removedFrom).orEmpty()
         visit.update {
             it.copy(phase = VisitPhase.Reading, notice = null, keypad = null, removed = null, focus = null)
         }
@@ -136,7 +141,12 @@ class VisitViewModel(
                 }
                 val previous = saved.get<String>(PHOTO)
                 saved[PHOTO] = photo
-                previous?.let { withContext(io) { photos.delete(it) } }
+                previous?.let { old ->
+                    withContext(io) {
+                        ended?.let { photos.keep(it, removed) }
+                        photos.delete(old)
+                    }
+                }
                 show(photo)
             }
     }
@@ -287,9 +297,13 @@ class VisitViewModel(
             return
         }
         val phase = phaseOf(photos.resolve(photo), reading)
+        readDarts = (phase as? VisitPhase.Scored)?.darts.orEmpty()
         visit.update { it.copy(phase = phase) }
         if (phase is VisitPhase.Scored) preferences.incrementVisitsScored(photo)
     }
+
+    private fun removedFrom(shown: VisitPhase.Shown): List<ShownDart> =
+        readDarts.filter { read -> shown.darts.none { it.read == read.read } }
 
     // A model that will not load or run, or a Photo too big for memory, is an unreadable Photo, not a crash.
     private suspend fun readOrNull(photo: String): PhotoReading? =
