@@ -275,6 +275,36 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 | Process death mid-Visit | The Photo's relative path survives in `SavedStateHandle`, with whether it was counted; the result is recomputed from it and not counted again, and the start-up sweep (D2) skips that path. Corrections made before the death are lost, and that is accepted (Known gaps) |
 | The start-up sweep | Runs when the Visit ViewModel is created, not in `Application.onCreate`: only the ViewModel's `SavedStateHandle` knows which Photo survived process death, so only it can tell a leftover from the Photo on screen |
 
+### What moved while building B (2026-11-20)
+
+- ***Enter the Score yourself* is not in B.** It opens C's keypad with no Darts, and B has no keypad,
+  so the button would do nothing. No Board found shows *Take another Photo* and *Choose a Photo*; C
+  adds the third button with its sheet, as `DOD.md` already says.
+- **The chips are not buttons yet.** They are TalkBack's focus targets with the names §3 gives them,
+  but a tap does nothing until C opens the sheet from them, so B does not make them clickable.
+- **No camera app is found by launching, not by asking first.** `TakePicture` throws
+  `ActivityNotFoundException`, and the banner (*No camera app*) appears above the result, which stays.
+  A pre-check would need a `<queries>` entry for `IMAGE_CAPTURE`; launching needs none.
+- **The sweep clears the camera's files too.** A camera file in `cacheDir/camera/` left by a death
+  between the camera returning and `MediaFiles` writing the Photo is deleted, except the one the camera
+  is still writing, whose Uri `SavedStateHandle` holds while the camera is open. A Photo arriving waits
+  for the sweep, so a new file is never taken for a leftover.
+- **Counted is saved before the count is written,** so a death between the two loses one Visit rather
+  than counting one twice.
+- **The crop** is the window the second pass read the Darts in (the outer double ring's extent over
+  `Warp.CROP_FILL`), clamped to the Photo, and at most two fifths of the window high, so the Score and
+  the chips stay on screen beside it.
+- **Focus on a new result waits for the window and 600 ms.** A result arrives while the Picker or the
+  camera still holds the window, and TalkBack puts its own focus on the first node when the window comes
+  back; a request made before that is lost. Read on `pixel-api36` with TalkBack on: focus lands on the
+  Score heading, and on the banner when no Board is found.
+- **Markers grow with the font scale up to 1.3** and no further, so at 2.0 they do not cover the Darts
+  they mark; the chips carry the Score at full size.
+- **The debug build's timing line** R2 and R4 read is `PhotoReader: both passes: <n> ms at <t>
+  threads`, from `scoring/ReadTiming.kt` in `src/debug/` with a no-op in `src/release/`.
+- **`scripts/edge-to-edge.py`'s scenes are unchanged.** The empty state is still `visit`; a result
+  needs a Photo picked through the Picker, which the driver cannot seed.
+
 ## 5. `minSdk`
 
 Phase 0 left it here (`phase-0.md`, `DOD.md`): decided before the door, on the runtime's own floor
