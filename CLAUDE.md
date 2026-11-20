@@ -92,7 +92,7 @@ let us do otherwise".">
 ./gradlew assembleDebug          # build
 ./gradlew installDebug           # build + install on the connected phone
 ./gradlew test                   # JVM unit tests
-./gradlew connectedAndroidTest   # instrumented tests (MediaFilesTest) — needs a device
+./gradlew connectedAndroidTest   # instrumented tests (app/src/androidTest) — needs a device
 ./gradlew lint
 ./gradlew spotlessApply          # format (the CI gate is spotlessCheck)
 ./gradlew assembleDebug -PreleaseShapedDebug   # debug id, R8 on — find minification bugs early

@@ -41,6 +41,7 @@ class KeypadPositionTest {
             assertEquals("\"$label\"'s position", index, item.rowIndex)
             assertEquals("\"$label\"'s column", 0, item.columnIndex)
             val group = key.parent.collectionInfo
+            assertNotNull("\"$label\"'s group states no size", group)
             assertEquals("the group's size", labels.size, group.rowCount)
             assertEquals("the group's columns", 1, group.columnCount)
         }
