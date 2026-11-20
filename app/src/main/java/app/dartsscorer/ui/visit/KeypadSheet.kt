@@ -238,6 +238,8 @@ private fun BedGroup(
     val name = stringResource(R.string.keypad_number)
     Column {
         GroupLabel(name)
+        // Not a selectableGroup(): Compose would number the keys by their x alone, overriding
+        // bedPosition, and TalkBack would read "5" as "20 of 23".
         Column(
             modifier =
                 Modifier.semantics {
@@ -276,10 +278,6 @@ private const val KEYS_PER_ROW = 5
 private const val NUMBERS = 20
 private val BED_KEYS = NUMBERS + Keypad.BULLS_AND_MISS.size
 
-/**
- * Not a `selectableGroup()`: Compose would number its keys by their x alone, overriding these, so on a
- * five-wide grid TalkBack read "5" as "20 of 23". These keep reading order.
- */
 private fun Modifier.bedPosition(index: Int) =
     semantics {
         collectionItemInfo =
