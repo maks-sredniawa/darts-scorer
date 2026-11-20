@@ -30,8 +30,71 @@ object SupportConfig {
      * What the build ships that Licensee never sees — a model or a data set fetched as a file — shown
      * on the Credits screen beside the dependencies.
      */
-    val BUNDLED_CREDITS: List<LicensedArtifact> = emptyList()
+    val BUNDLED_CREDITS: List<LicensedArtifact> =
+        // LiteRT's own artifact is in Licensee's list; these are compiled into its native library, or
+        // trained into the model, where the dependency list cannot see them (ADR-0008, 2026-11-19).
+        listOf(
+            inLiteRt("eigen", "https://gitlab.com/libeigen/eigen", MPL_2_0),
+            inLiteRt("xnnpack", "https://github.com/google/XNNPACK", BSD_3_CLAUSE),
+            inLiteRt("ruy", "https://github.com/google/ruy", APACHE_2_0),
+            inLiteRt("gemmlowp", "https://github.com/google/gemmlowp", APACHE_2_0),
+            inLiteRt("flatbuffers", "https://github.com/google/flatbuffers", APACHE_2_0),
+            inLiteRt("cpuinfo", "https://github.com/pytorch/cpuinfo", BSD_2_CLAUSE),
+            LicensedArtifact(
+                groupId = "ooura",
+                artifactId = "fft2d",
+                version = LITERT,
+                name = "fft2d",
+                source = "https://www.kurims.kyoto-u.ac.jp/~ooura/fft.html",
+                unknownLicenses =
+                    listOf(
+                        UnknownLicence(
+                            "Takuya Ooura's fft2d licence",
+                            "https://github.com/tensorflow/tensorflow/blob/master/third_party/fft2d/LICENSE",
+                        ),
+                    ),
+            ),
+            LicensedArtifact(
+                groupId = "McNally et al.",
+                artifactId = "DeepDarts dataset",
+                version = "2021",
+                name = "DeepDarts dataset",
+                source = "https://ieee-dataport.org/open-access/deepdarts-dataset",
+                spdxLicenses = listOf(CC_BY_4_0),
+            ),
+        )
 
     /** People who helped with this app, shown on Credits under the creator; none hides the section. */
     val CONTRIBUTORS: List<Contributor> = emptyList()
 }
+
+private const val LITERT = "in LiteRT 1.4.2"
+
+private val APACHE_2_0 = SpdxLicence("Apache-2.0", "Apache License 2.0", "https://www.apache.org/licenses/LICENSE-2.0")
+private val BSD_2_CLAUSE =
+    SpdxLicence("BSD-2-Clause", "BSD 2-Clause \"Simplified\" License", "https://opensource.org/licenses/BSD-2-Clause")
+private val BSD_3_CLAUSE =
+    SpdxLicence(
+        "BSD-3-Clause",
+        "BSD 3-Clause \"New\" or \"Revised\" License",
+        "https://opensource.org/licenses/BSD-3-Clause",
+    )
+private val MPL_2_0 = SpdxLicence("MPL-2.0", "Mozilla Public License 2.0", "https://www.mozilla.org/MPL/2.0/")
+private val CC_BY_4_0 =
+    SpdxLicence(
+        "CC-BY-4.0",
+        "Creative Commons Attribution 4.0 International",
+        "https://creativecommons.org/licenses/by/4.0/",
+    )
+
+private fun inLiteRt(
+    project: String,
+    source: String,
+    licence: SpdxLicence,
+) = LicensedArtifact(
+    groupId = project,
+    artifactId = project,
+    version = LITERT,
+    source = source,
+    spdxLicenses = listOf(licence),
+)

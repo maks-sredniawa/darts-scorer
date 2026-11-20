@@ -137,6 +137,11 @@ android {
         shaders = false
     }
 
+    androidResources {
+        // Stored, so LiteRT maps the model rather than copying it onto the heap (phase-1.md §2).
+        noCompress += "tflite"
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -294,6 +299,9 @@ dependencies {
     implementation(libs.billing.ktx)
     // Consumes a cleared tip whenever the app comes to the foreground — see MainApplication.
     implementation(libs.androidx.lifecycle.process)
+
+    // Finds the Board and the Darts in a Photo (ADR-0008); the model is in assets/model/.
+    implementation(libs.litert)
 
     // The licences screen reads licensee's artifact list.
     implementation(libs.kotlinx.serialization.json)

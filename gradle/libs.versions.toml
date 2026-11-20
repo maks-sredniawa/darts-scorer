@@ -29,6 +29,8 @@ lifecycleViewmodelNav3 = "2.10.0"
 licensee = "1.14.1"
 # The tip (ADR-0007). Sells a consumable that unlocks nothing.
 billing = "9.1.0"
+# The on-device runtime (ADR-0008's 2026-11-19 amendment): 1.x, because 2.x pulls in Play's ai-delivery.
+litert = "1.4.2"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
@@ -63,6 +65,7 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
+litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
 
 [plugins]
