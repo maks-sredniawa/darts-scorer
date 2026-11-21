@@ -112,6 +112,7 @@ uv run --directory ml darts-ml pull-marked --serial <serial>   # the debug build
 uv run --directory ml darts-ml evaluate-marked --run <run>      # a chosen run on those Visits, the real test set: never to choose a run
 uv run --directory ml darts-ml renders import <folder> --set <name> --renderer <clone> --look owner   # darts-render frames into $DARTS_DATA/renders/<name>/
 uv run --directory ml darts-ml train --name <name> --renders <set>[,<set>] --render-weight 0.5   # DeepDarts plus renders
+uv run --directory ml darts-ml train --name <name> --public <set>[,<set>] --public-weight 0.3    # DeepDarts plus public real photos
 uv run --directory ml python -m unittest discover -s tests   # ml/'s tests (need jpegtran and a synced PyTorch extra)
 ```
 

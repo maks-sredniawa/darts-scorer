@@ -136,6 +136,44 @@ uv run --directory ml darts-ml renders import <folder> --set owner-768 --rendere
   the fit residuals of the frames kept, and every frame refused with its own residual. A set is written
   once; another import needs another `--set`.
 
+## Public sets
+
+Real photos from a public dataset, in `$DARTS_DATA/public/<set>/`: `records.jsonl` in the common record's
+field names with `source = "public"`, the Photos under `photos/`, and `manifest.json` naming the
+dataset, its author, URL, licence, the mirror it was taken from with that file's SHA-256, the counts,
+every frame refused with its reason, and the credit line. `train --public` refuses a set whose manifest
+lacks any of those. Only a set whose licence allows a public app with a tip is imported (ADR-0008's
+licence table).
+
+**`dart-pose-v6`** (imported 2026-11-21) is *Dart Pose v6* by `jonas-workspace-lm7ia` on Roboflow
+Universe, CC BY 4.0, taken from the zip mirrored at `huggingface.co/datasets/Bayernator/scorelens-rf10-quellen`
+(the SHA-256 is in its manifest). It was imported by hand, not by a `darts-ml` step:
+
+- one copy per source photo, the un-augmented one, cut out of Roboflow's 720×720 letterbox back to
+  640×480 and re-encoded at JPEG quality 95; Roboflow's auto-contrast stays in the pixels;
+- each dart's tip label is an Entry point (`source = "public-label"`), its flight end kept as `flight`;
+- the 80 Calibration points are run `2026-11-19-darts-640-s2-ring-ext`'s: `locate()`'s RANSAC
+  homography projects all 80, and `detected` marks the ones the model itself found as inliers. A
+  frame with under 40 inliers, a fit residual over 2.5 px, a fit that jumps against both neighbouring
+  frames, no board found, or a tip off the board is refused, as are the 4–7-dart images, which carry
+  a second, wrong label per dart. 567 of 1,317 source photos are kept, with 1,574 darts.
+
+Credit, as the Credits screen would carry it if a model trained on the set ships:
+*Dart Pose v6 by jonas-workspace-lm7ia, Roboflow Universe, CC BY 4.0. Photos cropped and re-encoded;
+board points added by this app's model.*
+
+**What it trains, and what it does not.** A detected Calibration point weighs 1, one the model only
+projected weighs `PROJECTED_WEIGHT` (0.5, as DeepDarts' projected crossings do), so a run is not
+pushed hard towards the earlier model's own guesses. The Entry points are the dataset's labels and are
+the real signal. Its frames are consecutive snapshots from moving cameras, `snapshot_N` from one and
+`snapshot_usb_cam1_N` / `snapshot_usb_cam2_N` from two cameras at the same moment, so a random split
+would put a frame's twin in training. The held-out frames are instead, per series (the frame name
+without its number and `_camK`), the last tenth of its frame numbers, every camera's frame at those
+numbers, and the 5 numbers before that block are dropped from training (`public_split`). The figures
+on them are read beside DeepDarts val as `public_figures` and never choose `best.pt`. Their Calibration
+truth is the earlier model's, so their Calibration figures say how far a run stays with it; their
+Entry figures are the useful reading.
+
 ## Training (phase M2)
 
 [`docs/phase-M2.md`](../docs/phase-M2.md): the model, its training samples, the decoder and the two
@@ -146,6 +184,7 @@ uv run --directory ml darts-ml train --name board-512 --board-only   # C: Calibr
 uv run --directory ml darts-ml train --name darts-512 --init <run>   # D: Entry points added, from C's weights
 uv run --directory ml darts-ml train --name darts-640-s2-ring --size 640 --init <run>   # after D: Entry head at stride 2
 uv run --directory ml darts-ml train --name renders-640 --size 640 --init <run> --renders owner-768 --render-weight 0.5   # DeepDarts plus renders
+uv run --directory ml darts-ml train --name public-640 --size 640 --init <run> --public dart-pose-v6 --public-weight 0.3   # DeepDarts plus a public set
 uv run --directory ml darts-ml evaluate-marked --run <run>          # the owner's marked Visits: read once a run is chosen
 uv run --directory ml darts-ml deepdarts score --run <run> --split test   # R2, R3: a run's figures on DeepDarts
 uv run --directory ml darts-ml deepdarts score --run <run> --as-stored   # phase 1 §1: on val, as MediaFiles stores a Photo
@@ -178,6 +217,13 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   epoch and a renders run's DeepDarts sampling differs from a baseline's. Without `--renders` the
   loader is the one before renders came. Nothing under `phone-captures/` is ever a
   training or a choosing sample.
+- **`--public SET[,SET]`** adds public sets (*Public sets*) the same way: their held-out frames are
+  read after every epoch as `public_figures`, never used to keep `best.pt`. `--public-weight W`
+  (default 0.3) draws public frames W times as often as DeepDarts Photos overall, beside renders'
+  own weight; 0.3 alone makes them about a quarter of each batch. `dart-pose-v6` keeps 497 frames
+  for training, so at 0.3 an epoch over DeepDarts' 12,830 draws each about 7.7 times, augmented.
+  `config.json` records each set's title, author, URL, licence, mirror, record count and credit,
+  and both counts.
 - **The samples** are augmented by default (`--no-augment` turns it off): the Board plane re-viewed
   from a camera orbiting it up to 60° to either side, 20° up or down and rolled up to 30°; framed as
   the second pass frames it (the outer double ring filling 70–90% of the side) seven times in ten,

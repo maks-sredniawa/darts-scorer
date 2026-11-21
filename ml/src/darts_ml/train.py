@@ -20,8 +20,8 @@ from .model import (BOARD_OFFSETS, CALIBRATION_CHANNELS, ENTRY_HEAT, ENTRY_OFFSE
                     KeypointNet, load_matching, stride_of_weights)
 from .paths import DataDir
 from .renders import MANIFEST as RENDER_MANIFEST
-from .training_data import (RING_INNER_MM, RING_OUTER_MM, KeypointDataset, Sample, Targets, deepdarts_samples,
-                            render_samples, render_split)
+from .training_data import (PUBLIC_MANIFEST, RING_INNER_MM, RING_OUTER_MM, KeypointDataset, Sample, Targets,
+                            deepdarts_samples, public_samples, public_split, render_samples, render_split)
 
 FOCAL_ALPHA = 2.0
 FOCAL_BETA = 4.0
@@ -29,6 +29,8 @@ OFFSET_WEIGHT = 1.0
 RING_WEIGHT = 4.0
 WARMUP = 10
 RENDER_WEIGHT = 0.5
+PUBLIC_WEIGHT = 0.3
+_PUBLIC_PROVENANCE = ("title", "author", "url", "licence", "licence_url", "mirror", "records", "credit")
 _RUN_NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
 
 
@@ -201,6 +203,8 @@ class RunConfig:
     ring_outer_mm: float = RING_OUTER_MM
     renders: tuple[str, ...] = ()
     render_weight: float = RENDER_WEIGHT
+    public: tuple[str, ...] = ()
+    public_weight: float = PUBLIC_WEIGHT
 
     @property
     def speed(self) -> Speed:
@@ -248,9 +252,14 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
     render_training, render_validation = render_split(render_samples(data, config.renders), config.seed)
     if config.renders and not render_training:
         raise DartsMlError(f"{', '.join(config.renders)} leave no rendered frame for training")
-    loader = training_loader(training, render_training, config)
+    public_training, public_validation = public_split(public_samples(data, config.public))
+    if config.public and not public_training:
+        raise DartsMlError(f"{', '.join(config.public)} leave no public frame for training")
+    public_sets = {name: _public_provenance(data, name) for name in config.public}
+    loader = training_loader(training, render_training, config, public_training)
     if not len(loader):
-        raise DartsMlError(f"{len(training) + len(render_training)} training Photos make no batch of {config.batch}")
+        raise DartsMlError(f"{len(training) + len(render_training) + len(public_training)} training Photos make no "
+                           f"batch of {config.batch}")
     if config.init:
         model = initial_model(data.runs() / config.init / "best.pt", config.entry_stride, log)
         model = model.to(device, memory_format=config.speed.memory)
@@ -268,6 +277,8 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
         "validation": "DeepDarts val", "started": dt.datetime.now().isoformat(timespec="seconds"),
         "training_renders": len(render_training), "validation_renders": len(render_validation),
         "render_sets": {name: _render_provenance(data, name) for name in config.renders},
+        "training_public": len(public_training), "validation_public": len(public_validation),
+        "public_sets": public_sets,
     }, indent=1), encoding="utf-8")
     best = None
     step = 0
@@ -297,6 +308,11 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
                 print(f"[epoch {epoch}/{config.epochs}] reading {len(render_validation)} rendered val frames, "
                       "never chosen on ...", file=log, flush=True)
                 rendered = figures(render_validation, locate(inference, [s.photo for s in render_validation]))
+            public = None
+            if public_validation:
+                print(f"[epoch {epoch}/{config.epochs}] reading {len(public_validation)} public val frames, "
+                      "never chosen on ...", file=log, flush=True)
+                public = figures(public_validation, locate(inference, [s.photo for s in public_validation]))
             key = reading.key(config.board_only)
             chosen = best is None or key > best[1]
             _save_weights(model, epoch, folder / "last.pt")
@@ -306,28 +322,39 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
             epochs.write(json.dumps({"epoch": epoch, "mean_loss": sum(running) / len(running),
                                      "train_seconds": trained, "validate_seconds": time.perf_counter() - started - trained,
                                      "best": chosen, "figures": reading.as_dict(),
-                                     **({"render_figures": rendered.as_dict()} if rendered else {})}) + "\n")
+                                     **({"render_figures": rendered.as_dict()} if rendered else {}),
+                                     **({"public_figures": public.as_dict()} if public else {})}) + "\n")
             epochs.flush()
             for line in reading.lines():
                 print(f"[epoch {epoch}/{config.epochs}] {line}", file=log, flush=True)
             for line in rendered.lines() if rendered else ():
                 print(f"[epoch {epoch}/{config.epochs}] renders: {line}", file=log, flush=True)
+            for line in public.lines() if public else ():
+                print(f"[epoch {epoch}/{config.epochs}] public: {line}", file=log, flush=True)
     return folder
 
 
-def mixing(deepdarts: int, renders: int, render_weight: float) -> tuple[list[float], int]:
-    """Per-sample weights drawing renders render_weight times as often as DeepDarts Photos, and an epoch's draws."""
-    weights = [1 / deepdarts] * deepdarts + [render_weight / renders] * renders
-    return weights, round(deepdarts * (1 + render_weight))
+def mixing(deepdarts: int, renders: int, render_weight: float, public: int = 0,
+           public_weight: float = PUBLIC_WEIGHT) -> tuple[list[float], int]:
+    """Per-sample weights drawing each source its weight times as often as DeepDarts Photos, and an epoch's draws."""
+    weights = [1 / deepdarts] * deepdarts
+    share = 1.0
+    for count, weight in ((renders, render_weight), (public, public_weight)):
+        if count:
+            weights += [weight / count] * count
+            share += weight
+    return weights, round(deepdarts * share)
 
 
-def training_loader(deepdarts: list[Sample], renders: list[Sample], config: RunConfig) -> torch.utils.data.DataLoader:
-    dataset = KeypointDataset(deepdarts + renders, config.size, config.augment, config.entry_stride,
+def training_loader(deepdarts: list[Sample], renders: list[Sample], config: RunConfig,
+                    public: list[Sample] = ()) -> torch.utils.data.DataLoader:
+    public = list(public)
+    dataset = KeypointDataset(deepdarts + renders + public, config.size, config.augment, config.entry_stride,
                               (config.ring_inner_mm, config.ring_outer_mm))
     generator = torch.Generator().manual_seed(config.seed)
     order = {"shuffle": True, "generator": generator}
-    if renders:
-        weights, draws = mixing(len(deepdarts), len(renders), config.render_weight)
+    if renders or public:
+        weights, draws = mixing(len(deepdarts), len(renders), config.render_weight, len(public), config.public_weight)
         order = {"sampler": torch.utils.data.WeightedRandomSampler(weights, draws, generator=generator)}
     return torch.utils.data.DataLoader(dataset, batch_size=config.batch, num_workers=config.workers, drop_last=True,
                                        persistent_workers=config.workers > 0, **order)
@@ -336,6 +363,18 @@ def training_loader(deepdarts: list[Sample], renders: list[Sample], config: RunC
 def _render_provenance(data: DataDir, name: str) -> dict:
     manifest = json.loads((data.render_set(name) / RENDER_MANIFEST).read_text(encoding="utf-8"))
     return {"renderer": manifest["renderer"], "records": manifest["records"]}
+
+
+def _public_provenance(data: DataDir, name: str) -> dict:
+    path = data.public_set(name) / PUBLIC_MANIFEST
+    if not path.exists():
+        raise DartsMlError(f"no {path}; a public set is trained on only with its licence and credit recorded")
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    missing = [key for key in _PUBLIC_PROVENANCE if key not in manifest]
+    if missing:
+        raise DartsMlError(f"{path} has no {', '.join(missing)}; a public set is trained on only with its licence "
+                           "and credit recorded")
+    return {key: manifest[key] for key in _PUBLIC_PROVENANCE}
 
 
 def _rate(step: int, warmup: int, total: int) -> float:

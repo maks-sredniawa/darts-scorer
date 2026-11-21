@@ -16,7 +16,7 @@ from .ingest import ingest, jpegtran_version
 from .kernel_search import explain_failed_search, seconds_asleep
 from .marked import PACKAGE
 from .overlay import overlay
-from .paths import DataDir, Round, render_set, repo_roots, run_config
+from .paths import DataDir, Round, public_set, render_set, repo_roots, run_config
 from .prefill import prefill
 from .records import RECORDS, build
 from .renders import LOOKS, MAX_RESIDUAL_PX
@@ -121,6 +121,11 @@ def _parser() -> argparse.ArgumentParser:
     trainer.add_argument("--render-weight", type=_positive_float, default=None,
                          help="how often a render is drawn against a DeepDarts Photo, overall; 0.5, the default, makes "
                               "renders a third of each batch")
+    trainer.add_argument("--public", type=_public_sets, default=(), metavar="SET[,SET]",
+                         help="also train on these public sets under $DARTS_DATA/public/, the last tenth of each "
+                              "series' frame numbers held out and read each epoch beside DeepDarts val, never chosen on")
+    trainer.add_argument("--public-weight", type=_positive_float, default=None,
+                         help="how often a public frame is drawn against a DeepDarts Photo, overall; default 0.3")
     predictor = step("predict", _predict, "the predictions file `evaluate` reads, from a run's weights, on the Held-out set",
                      capture_session=False)
     predictor.add_argument("--run", required=True, help="the run folder's name under $DARTS_DATA/runs/")
@@ -266,7 +271,17 @@ def _render_set(text: str) -> str:
 
 
 def _render_sets(text: str) -> tuple[str, ...]:
-    names = tuple(map(_render_set, text.split(",")))
+    return _distinct(tuple(map(_render_set, text.split(","))), text)
+
+
+def _public_sets(text: str) -> tuple[str, ...]:
+    try:
+        return _distinct(tuple(map(public_set, text.split(","))), text)
+    except DartsMlError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
+def _distinct(names: tuple[str, ...], text: str) -> tuple[str, ...]:
     if len(set(names)) != len(names):
         raise argparse.ArgumentTypeError(f"{text} names a set twice")
     return names
@@ -424,7 +439,7 @@ def _evaluate(args) -> int:
 
 def _train(args) -> int:
     from .locate import Speed
-    from .train import RENDER_WEIGHT, RING_WEIGHT, RunConfig, probe, probe_path, save, train
+    from .train import PUBLIC_WEIGHT, RENDER_WEIGHT, RING_WEIGHT, RunConfig, probe, probe_path, save, train
     from .training_data import RING_INNER_MM, RING_OUTER_MM
 
     data = DataDir.from_environment()
@@ -446,11 +461,15 @@ def _train(args) -> int:
         raise DartsMlError("name the run with --name, or pass --probe")
     if args.render_weight is not None and not args.renders:
         raise DartsMlError("--render-weight weighs the renders --renders names; name a set")
+    if args.public_weight is not None and not args.public:
+        raise DartsMlError("--public-weight weighs the frames --public names; name a set")
     config = RunConfig(args.name, args.device, args.epochs, args.size, args.batch, args.lr, workers=args.workers,
                        seed=args.seed, augment=args.augment, board_only=args.board_only, bf16=args.bf16,
                        channels_last=args.channels_last, init=args.init, entry_stride=args.entry_stride,
                        ring_weight=ring_weight, ring_inner_mm=inner, ring_outer_mm=outer, renders=args.renders,
-                       render_weight=RENDER_WEIGHT if args.render_weight is None else args.render_weight)
+                       render_weight=RENDER_WEIGHT if args.render_weight is None else args.render_weight,
+                       public=args.public,
+                       public_weight=PUBLIC_WEIGHT if args.public_weight is None else args.public_weight)
     folder = train(data, config)
     print(f"written to {folder}")
     return 0
