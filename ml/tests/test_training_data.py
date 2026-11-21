@@ -20,7 +20,7 @@ from darts_ml.model import (BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_POINT, ENT
 from darts_ml.heldout import FrozenPhoto, FrozenSession, HeldOutSet, file_sha256
 from darts_ml.records import RECORDS as OWNER_RECORDS
 from darts_ml.train import (RING_WEIGHT, WARMUP, Probe, RunConfig, load_weights, loss_terms, probe, probe_path,
-                            resolve_device, save, train)
+                            resolve_device, save, train, training_mode)
 from darts_ml.training_data import (
     PROJECTED_WEIGHT,
     RING_INNER_MM,
@@ -359,6 +359,37 @@ class RunTest(unittest.TestCase):
         self.assertEqual((recorded["entry_stride"], recorded["ring_weight"]), (ENTRY_STRIDE, RING_WEIGHT))
         self.assertEqual((recorded["ring_inner_mm"], recorded["ring_outer_mm"]), (RING_INNER_MM, RING_OUTER_MM))
         self.assertEqual(load_weights(folder / "best.pt", "cpu").entry_stride, ENTRY_STRIDE)
+
+    def test_frozen_norm_keeps_the_init_runs_statistics_and_still_trains_the_weights(self):
+        earlier = self.data.runs() / "2026-11-19-darts-640"
+        earlier.mkdir(parents=True)
+        start = KeypointNet(ENTRY_STRIDE).state_dict()
+        torch.save({"model": start, "epoch": 1}, earlier / "best.pt")
+        statistics = [k for k in start if k.endswith(("running_mean", "running_var"))]
+        for freeze in (True, False):
+            config = RunConfig(f"frozen-{str(freeze).lower()}", device="cpu", epochs=1, size=64, batch=2,
+                               warmup_steps=1, workers=0, init=earlier.name, freeze_norm=freeze)
+            folder = train(self.data, config, dt.date(2026, 11, 21), io.StringIO())
+            ended = torch.load(folder / "last.pt", weights_only=True)["model"]
+            moved = [k for k in statistics if not torch.equal(ended[k], start[k])]
+            with self.subTest(freeze=freeze):
+                self.assertEqual(bool(moved), not freeze, moved[:3])
+                self.assertFalse(all(torch.equal(ended[k], start[k]) for k in start if k not in statistics))
+                self.assertEqual(json.loads((folder / "config.json").read_text())["freeze_norm"], freeze)
+
+    def test_training_mode_leaves_only_batch_norm_in_eval(self):
+        model = KeypointNet(ENTRY_STRIDE).eval()
+        training_mode(model, freeze_norm=True)
+        norms = [m for m in model.modules() if isinstance(m, torch.nn.BatchNorm2d)]
+        self.assertTrue(norms)
+        self.assertTrue(model.training)
+        self.assertFalse(any(m.training for m in norms))
+        training_mode(model)
+        self.assertTrue(all(m.training for m in model.modules()))
+
+    def test_freeze_norm_without_init_is_refused(self):
+        with contextlib.redirect_stderr(io.StringIO()), mock.patch.dict("os.environ", {"DARTS_DATA": str(self.data.root)}):
+            self.assertEqual(main(["train", "--name", "x", "--freeze-norm"]), 2)
 
     def test_a_run_name_is_a_plain_slug(self):
         with self.assertRaisesRegex(DartsMlError, "--name"):
