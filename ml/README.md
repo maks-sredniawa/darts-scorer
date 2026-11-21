@@ -113,8 +113,9 @@ Frames from the owner's renderer, `maks-sredniawa/darts-render` (an Apache-2.0 f
 `ahie/darts-model`; ADR-0008's 2026-11-21 amendment). Render without `--bg_image_dir`, so no Places365
 photograph is in a frame, and at 768×1024: a 1536×2048 frame can outlast the laptop GPU driver's job
 timeout. Only the renderer's images and labels are used, never darts-model's trained weights.
-Use the renderer at or after the commit that merges darts-render PR #1, `feat: owner-like renders
-with licence-clean assets`, which brings the OFL assets, the wire-centre rings and `--look owner`.
+Use the renderer at `6ece137` or later, where darts-render PR #1, `feat: owner-like renders with
+licence-clean assets`, landed by rebase; it brings the OFL assets, the wire-centre rings and
+`--look owner`.
 Frames from any earlier commit must not be used; `renders import`'s residual check refuses them.
 
 ```bash
