@@ -83,6 +83,12 @@ budget; the ADR amendment.
   their own rendered val read beside DeepDarts val and never chosen on (`ml/README.md`, *Synthetic
   renders*). The owner's marked Visits from the debug build (`pull-marked`) are the real test set:
   `evaluate-marked` reads a chosen run on them, and nothing trains or chooses on them.
+- **Public real data.** **Taken up 2026-11-21:** `dart-pose-v6`, real photos of a board from moving
+  cameras on Roboflow Universe, CC BY 4.0 (ADR-0008's 2026-11-21 amendment, *public real photos*),
+  joins DeepDarts with `train --public`, its last tenth of frame numbers per camera series read
+  beside DeepDarts val and never chosen on (`ml/README.md`, *Public sets*). Its Calibration points
+  are an earlier run's, the ones that run only projected weighted down; its Entry points are the
+  dataset's labels.
 - **A model per job.** One network finds both kinds of point (ADR-0008). Two networks would double
   the app's model size and its latency to buy nothing the gate has shown is needed.
 - **Hyper-parameter search against the Held-out set.** The Held-out set is read under D6's budget
@@ -504,6 +510,8 @@ keep the Held-out set unseen and the bar honest:
 | ADR-0008 | dated amendment: the model (D1), the runtime and its readings (D4, §5), where the weights start (D2) | E |
 | ADR-0008 | dated amendment, 2026-11-21: synthetic renders as a training source; the `maks-sredniawa/darts-render` licence row, from its PR #1 on | §7 escalation |
 | `ml/README.md`, `CLAUDE.md` | *Synthetic renders*: `renders import`, `train --renders` and `--render-weight`, `evaluate-marked` | §7 escalation |
+| ADR-0008 | dated amendment, 2026-11-21: public real photos as a training source; the `dart-pose-v6` licence row | §7 escalation |
+| `ml/README.md`, `CLAUDE.md` | *Public sets*: `dart-pose-v6`, how it was imported and its credit, `train --public` and `--public-weight` | §7 escalation |
 | `CONTEXT.md` | **Validation sessions**: the training Capture sessions set aside to choose between models, never the Held-out set | B |
 | `ml/README.md` | `train`, `predict`, the runs folder; PyTorch and torchvision, and every library the ROCm wheel bundles, in the licence table, with the libraries the ROCm runtime bundles under the LGPL, a runtime exception or, by ADR-0008's 2026-11-17 amendment, the GPL | A, B |
 | `CLAUDE.md` | the `train` and `predict` commands | B |

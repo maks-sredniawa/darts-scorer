@@ -106,6 +106,18 @@ class PathsTest(unittest.TestCase):
                 with self.subTest(bad), self.assertRaises(DartsMlError):
                     data.render_set(bad)
 
+    def test_public_sets_are_fenced_and_their_names_cannot_escape(self):
+        with tempfile.TemporaryDirectory() as outside:
+            (Path(outside) / "public").mkdir()
+            os.symlink(REPO / "ml", Path(outside) / "public" / "inside")
+            data = DataDir(data_root({"DARTS_DATA": outside}))
+            self.assertEqual(data.public_set("dart-pose-v6"), Path(outside).resolve() / "public" / "dart-pose-v6")
+            with self.assertRaises(DataInsideRepo):
+                data.public_set("inside")
+            for bad in ("../x", "Dart-Pose", "-x", "a/b", ""):
+                with self.subTest(bad), self.assertRaises(DartsMlError):
+                    data.public_set(bad)
+
 
 if __name__ == "__main__":
     unittest.main()

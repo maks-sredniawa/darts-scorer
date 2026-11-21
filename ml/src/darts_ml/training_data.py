@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
@@ -32,6 +34,12 @@ RING_OUTER_MM = 20.0
 RING_CLEAR_CELLS = 2.0
 VALIDATION_SESSIONS = frozenset({"s09", "s14"})
 RENDER_VALIDATION_SHARE = 0.1
+PUBLIC = "public"
+PUBLIC_RECORDS = "records.jsonl"
+PUBLIC_MANIFEST = "manifest.json"
+PUBLIC_VALIDATION_SHARE = 0.1
+PUBLIC_GUARD_FRAMES = 5
+_PUBLIC_FRAME = re.compile(r"(?P<series>.*?)(?:_cam\d+[_-]|[_-])?(?P<number>\d+)")
 TRAIN, VALIDATION = "train", "validation"
 _INDEX = {point.name: i for i, point in enumerate(CALIBRATION_POINTS)}
 _BOARD = np.array([p.mm for p in CALIBRATION_POINTS])
@@ -147,6 +155,51 @@ def render_split(samples: list[Sample], seed: int,
         key = hashlib.sha256(f"{seed}:{sample.capture_session}:{sample.photo.name}".encode()).digest()
         (validation if int.from_bytes(key[:8]) < share * 2**64 else training).append(sample)
     return training, validation
+
+
+def public_samples(data: DataDir, sets) -> list[Sample]:
+    """A Calibration point the model only projected weighs PROJECTED_WEIGHT, so it does not learn its own guesses."""
+    samples = []
+    for name in sets:
+        path = data.public_set(name) / PUBLIC_RECORDS
+        if not path.exists():
+            raise DartsMlError(f"no {path}; a public set is imported into $DARTS_DATA/public/{name}/ "
+                               "(ml/README.md, *Public sets*)")
+        for line in path.read_text(encoding="utf-8").splitlines():
+            record = json.loads(line)
+            if record.get("source") != PUBLIC:
+                raise RefusedRecord(f"{path} holds a {record.get('source')!r} record; a public set holds public "
+                                    "records only")
+            calibration = tuple((_INDEX[c["name"]], float(c["x"]), float(c["y"]),
+                                 1.0 if c["detected"] else PROJECTED_WEIGHT) for c in record["calibration"])
+            entries = tuple((e["x"], e["y"]) for e in record["entries"] if not e["inferred"])
+            samples.append(Sample(data.root / record["photo"], calibration, entries, record["capture_session"]))
+    return samples
+
+
+def public_split(samples: list[Sample], share: float = PUBLIC_VALIDATION_SHARE,
+                 guard: int = PUBLIC_GUARD_FRAMES) -> tuple[list[Sample], list[Sample]]:
+    """ml/README.md, *Public sets*: the last share of each series' frame numbers, every camera's frame at them."""
+    numbers = defaultdict(set)
+    for sample in samples:
+        series, number = _public_series(sample)
+        numbers[series].add(number)
+    first_held = {series: sorted(found)[-max(1, round(share * len(found)))] for series, found in numbers.items()}
+    training, validation = [], []
+    for sample in samples:
+        series, number = _public_series(sample)
+        if number >= first_held[series]:
+            validation.append(sample)
+        elif number < first_held[series] - guard:
+            training.append(sample)
+    return training, validation
+
+
+def _public_series(sample: Sample) -> tuple[tuple[str, str], int]:
+    match = _PUBLIC_FRAME.fullmatch(sample.photo.stem)
+    if not match:
+        raise DartsMlError(f"{sample.photo.name} has no frame number; a public set is held out by its frames' numbers")
+    return (sample.capture_session, match["series"]), int(match["number"])
 
 
 def normalise(image: Image.Image) -> torch.Tensor:

@@ -28,6 +28,7 @@ and the app is on Play with a tip purchase:
 | `MultimediaTechLab/YOLO` (YOLOv9) | MIT | yes |
 | LiteRT / ONNX Runtime / ncnn | Apache-2.0 / MIT / BSD-3 | yes |
 | `maks-sredniawa/darts-render`, the owner's fork of `ahie/darts-model` (added 2026-11-21) | Apache-2.0; its numerals and printed marks from SIL OFL 1.1 fonts, from the commit that merges its PR #1 (`feat: owner-like renders with licence-clean assets`) | yes, its rendered frames from that commit or later; not darts-model's weights, nor Places365 backgrounds |
+| *Dart Pose v6* (`dart-pose-v6`) by `jonas-workspace-lm7ia`, [Roboflow Universe](https://universe.roboflow.com/jonas-workspace-lm7ia/dart-pose-v6-ovihb) (added 2026-11-21) | CC BY 4.0 | yes, with attribution: on the Credits screen if a model trained on it ships |
 
 ## Decision
 
@@ -253,3 +254,16 @@ taken up now, before the bar's readings.
   apart. Each render set's manifest names the renderer commit and options that made it.
 - **The owner's marked Visits are the real test set.** `evaluate-marked` reads a chosen run on them;
   they are never trained or chosen on.
+
+## Amendment — 2026-11-21: public real photos as a training source
+
+- **`dart-pose-v6` trains beside DeepDarts** (`train --public`, row added to the table above). Its
+  photos are real boards from moving cameras, which DeepDarts and the renders lack in variety; its
+  tip labels are the dataset's, and its Calibration points come from run
+  `2026-11-19-darts-640-s2-ring-ext`, so the ones that run only projected weigh `PROJECTED_WEIGHT`.
+  How it was imported, and its credit line, are in `ml/README.md`, *Public sets*.
+- **It trains, it does not choose.** A run is still chosen on DeepDarts val; the set's last tenth of
+  frame numbers per camera series is read beside it as `public_figures`. Each run's `config.json`
+  records the set's licence, mirror, counts and credit.
+- **Credited if it ships.** A shipped model trained on it adds its credit to the Credits screen
+  (`SupportConfig.BUNDLED_CREDITS`), as DeepDarts' is.
