@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,6 +22,7 @@ from .labelme import label_path
 from .model import BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_POINT, ENTRY_STRIDE
 from .paths import DataDir
 from .records import RECORDS as OWNER_RECORDS
+from .renders import RECORDS as RENDER_RECORDS, SOURCE as RENDER
 
 PROJECTED_WEIGHT = 0.5
 SIGMA_CELLS = 2.0
@@ -29,6 +31,7 @@ RING_INNER_MM = 4.0
 RING_OUTER_MM = 20.0
 RING_CLEAR_CELLS = 2.0
 VALIDATION_SESSIONS = frozenset({"s09", "s14"})
+RENDER_VALIDATION_SHARE = 0.1
 TRAIN, VALIDATION = "train", "validation"
 _INDEX = {point.name: i for i, point in enumerate(CALIBRATION_POINTS)}
 _BOARD = np.array([p.mm for p in CALIBRATION_POINTS])
@@ -118,6 +121,32 @@ def _owner_sample(root: Path, record: dict) -> Sample:
     calibration = tuple((_INDEX[c["name"]], float(c["x"]), float(c["y"]), 1.0) for c in record["calibration"])
     entries = tuple((e["x"], e["y"]) for e in record["entries"] if not e["inferred"])
     return Sample(root / record["photo"], calibration, entries, record["capture_session"])
+
+
+def render_samples(data: DataDir, sets) -> list[Sample]:
+    samples = []
+    for name in sets:
+        path = data.render_set(name) / RENDER_RECORDS
+        if not path.exists():
+            raise DartsMlError(f"no {path}; run `darts-ml renders import <folder> --set {name}` first")
+        for line in path.read_text(encoding="utf-8").splitlines():
+            record = json.loads(line)
+            if record.get("source") != RENDER:
+                raise RefusedRecord(f"{path} holds a {record.get('source')!r} record; a render set holds renders only")
+            calibration = tuple((_INDEX[c["name"]], float(c["x"]), float(c["y"]), 1.0) for c in record["calibration"])
+            entries = tuple((e["x"], e["y"]) for e in record["entries"] if not e["inferred"])
+            samples.append(Sample(data.root / record["photo"], calibration, entries, record["capture_session"]))
+    return samples
+
+
+def render_split(samples: list[Sample], seed: int,
+                 share: float = RENDER_VALIDATION_SHARE) -> tuple[list[Sample], list[Sample]]:
+    """Whole frames by a hash of the seed and the frame, so adding a set never moves another set's frames."""
+    training, validation = [], []
+    for sample in samples:
+        key = hashlib.sha256(f"{seed}:{sample.capture_session}:{sample.photo.name}".encode()).digest()
+        (validation if int.from_bytes(key[:8]) < share * 2**64 else training).append(sample)
+    return training, validation
 
 
 def normalise(image: Image.Image) -> torch.Tensor:

@@ -11,6 +11,7 @@ from . import DartsMlError
 
 DEFAULT_DATA = "~/darts-scorer-data"
 _CAPTURE_SESSION = re.compile(r"s\d{2,3}")
+_RENDER_SET = re.compile(r"[a-z0-9][a-z0-9-]*")
 
 
 class Round(Enum):
@@ -71,6 +72,12 @@ def capture_session(name: str) -> str:
     return name
 
 
+def render_set(name: str) -> str:
+    if not _RENDER_SET.fullmatch(name):
+        raise DartsMlError(f"not a render set name: {name!r}; lower-case letters, digits and hyphens, such as owner-768")
+    return name
+
+
 @dataclass(frozen=True)
 class DataDir:
     root: Path
@@ -119,6 +126,12 @@ class DataDir:
 
     def phone_captures(self) -> Path:
         return self._fenced(self.root / "phone-captures")
+
+    def renders(self) -> Path:
+        return self._fenced(self.root / "renders")
+
+    def render_set(self, name: str) -> Path:
+        return self._fenced(self.renders() / render_set(name))
 
     def runtimes(self) -> Path:
         return self._fenced(self.root / "runtimes")

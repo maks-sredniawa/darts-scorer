@@ -244,12 +244,12 @@ def _matched(truth: np.ndarray, guess: np.ndarray) -> set[int]:
     return {i for i, _, _ in matched_pairs(truth, guess)}
 
 
-def matched_pairs(first: np.ndarray, second: np.ndarray) -> list[tuple[int, int, float]]:
-    """Each point of `first` paired with the nearest free one of `second` within MATCH_MM, closest pairs first."""
+def matched_pairs(first: np.ndarray, second: np.ndarray, within: float = MATCH_MM) -> list[tuple[int, int, float]]:
+    """Each point of `first` paired with the nearest free one of `second` within `within` mm, closest pairs first."""
     pairs = sorted((float(np.linalg.norm(a - b)), i, j) for i, a in enumerate(first) for j, b in enumerate(second))
     taken_first, taken_second, kept = set(), set(), []
     for distance, i, j in pairs:
-        if distance <= MATCH_MM and i not in taken_first and j not in taken_second:
+        if distance <= within and i not in taken_first and j not in taken_second:
             taken_first.add(i)
             taken_second.add(j)
             kept.append((i, j, distance))
