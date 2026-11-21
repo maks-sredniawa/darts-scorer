@@ -367,15 +367,17 @@ def _render_provenance(data: DataDir, name: str) -> dict:
 
 def _public_provenance(data: DataDir, name: str) -> dict:
     path = data.public_set(name) / PUBLIC_MANIFEST
+    reason = ("a public set is trained on only with its source, licence, credit, checksummed mirror and refused "
+              "frames recorded")
     if not path.exists():
-        raise DartsMlError(f"no {path}; a public set is trained on only with its licence and credit recorded")
+        raise DartsMlError(f"no {path}; {reason}")
     manifest = json.loads(path.read_text(encoding="utf-8"))
     missing = [key for key in (*_PUBLIC_PROVENANCE, "refused") if key not in manifest]
-    if "mirror" in manifest and "sha256" not in (manifest["mirror"] if isinstance(manifest["mirror"], dict) else {}):
+    mirror = manifest.get("mirror")
+    if "mirror" in manifest and not (isinstance(mirror, dict) and "sha256" in mirror):
         missing.append("mirror.sha256")
     if missing:
-        raise DartsMlError(f"{path} has no {', '.join(missing)}; a public set is trained on only with its licence "
-                           "and credit recorded")
+        raise DartsMlError(f"{path} has no {', '.join(missing)}; {reason}")
     return {key: manifest[key] for key in _PUBLIC_PROVENANCE}
 
 
