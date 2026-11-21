@@ -142,7 +142,8 @@ Real photos from a public dataset, in `$DARTS_DATA/public/<set>/`: `records.json
 field names with `source = "public"`, the Photos under `photos/`, and `manifest.json` naming the
 dataset, its author, URL, licence, the mirror it was taken from with that file's SHA-256, the counts,
 every frame refused with its reason, and the credit line. `train --public` refuses a set whose manifest
-lacks any of those. Only a set whose licence allows a public app with a tip is imported (ADR-0008's
+lacks any of `title`, `author`, `url`, `licence`, `licence_url`, `mirror`, `records` or `credit`, and
+copies those keys into the run's `config.json`; it checks that they are there, not what they hold. Only a set whose licence allows a public app with a tip is imported (ADR-0008's
 licence table).
 
 **`dart-pose-v6`** (imported 2026-11-21) is *Dart Pose v6* by `jonas-workspace-lm7ia` on Roboflow
@@ -159,18 +160,23 @@ Universe, CC BY 4.0, taken from the zip mirrored at `huggingface.co/datasets/Bay
   a second, wrong label per dart. 567 of 1,317 source photos are kept, with 1,574 darts.
 
 Credit, as the Credits screen would carry it if a model trained on the set ships:
-*Dart Pose v6 by jonas-workspace-lm7ia, Roboflow Universe, CC BY 4.0. Photos cropped and re-encoded;
-board points added by this app's model.*
+*Dart Pose v6 by jonas-workspace-lm7ia, Roboflow Universe,
+https://universe.roboflow.com/jonas-workspace-lm7ia/dart-pose-v6-ovihb, CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Photos cropped and re-encoded; board points added by
+this app's model.*
 
 **What it trains, and what it does not.** A detected Calibration point weighs 1, one the model only
 projected weighs `PROJECTED_WEIGHT` (0.5, as DeepDarts' projected crossings do), so a run is not
 pushed hard towards the earlier model's own guesses. The Entry points are the dataset's labels and are
-the real signal. Its frames are consecutive snapshots from moving cameras, `snapshot_N` from one and
+the real signal. Its frames are consecutive snapshots from fixed USB webcams at steep side angles
+round one board (the frame drifts slightly between snapshots), `snapshot_N` from one and
 `snapshot_usb_cam1_N` / `snapshot_usb_cam2_N` from two cameras at the same moment, so a random split
 would put a frame's twin in training. The held-out frames are instead, per series (the frame name
 without its number and `_camK`), the last tenth of its frame numbers, every camera's frame at those
 numbers, and the 5 numbers before that block are dropped from training (`public_split`). The figures
-on them are read beside DeepDarts val as `public_figures` and never choose `best.pt`. Their Calibration
+on them are read beside DeepDarts val as `public_figures` and never choose `best.pt`. A held-out frame
+shares its camera's viewpoint with that camera's training frames, so `public_figures` read the same rig,
+not new angles. Their Calibration
 truth is the earlier model's, so their Calibration figures say how far a run stays with it; their
 Entry figures are the useful reading.
 

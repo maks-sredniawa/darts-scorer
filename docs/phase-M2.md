@@ -83,8 +83,8 @@ budget; the ADR amendment.
   their own rendered val read beside DeepDarts val and never chosen on (`ml/README.md`, *Synthetic
   renders*). The owner's marked Visits from the debug build (`pull-marked`) are the real test set:
   `evaluate-marked` reads a chosen run on them, and nothing trains or chooses on them.
-- **Public real data.** **Taken up 2026-11-21:** `dart-pose-v6`, real photos of a board from moving
-  cameras on Roboflow Universe, CC BY 4.0 (ADR-0008's 2026-11-21 amendment, *public real photos*),
+- **Public real data.** **Taken up 2026-11-21:** `dart-pose-v6`, real photos of one board from fixed
+  webcams at steep side angles, on Roboflow Universe, CC BY 4.0 (ADR-0008's 2026-11-21 amendment, *public real photos*),
   joins DeepDarts with `train --public`, its last tenth of frame numbers per camera series read
   beside DeepDarts val and never chosen on (`ml/README.md`, *Public sets*). Its Calibration points
   are an earlier run's, the ones that run only projected weighted down; its Entry points are the
