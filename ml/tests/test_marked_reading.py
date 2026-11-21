@@ -13,6 +13,8 @@ from darts_ml.board import Score
 from darts_ml.cli import main
 from darts_ml.evaluate import PredictedEntry, Share
 from darts_ml.homography import invert, project
+from darts_ml.images import open_srgb, to_display_p3
+from darts_ml import locate as locate_module
 from darts_ml.locate import Located
 from darts_ml.marked_reading import NOTE, marked_visits, read_marked
 from darts_ml.model import KeypointNet
@@ -143,6 +145,34 @@ class StepTest(unittest.TestCase):
         self.assertIn("1 marked Visits", out.getvalue())
         self.assertIn("Board found", out.getvalue())
         self.assertIn(NOTE, out.getvalue())
+
+    def test_a_display_p3_photo_reaches_the_model_as_its_srgb_conversion_as_on_the_phone(self):
+        td = TemporaryData()
+        self.addCleanup(td.cleanup)
+        fixture = MarkedFixture(td)
+        fixture.visit("p3", [dart("S5", fixture.to_image, read="S5")])
+        photo = fixture.day / "p3.jpg"
+        p3 = to_display_p3(board_image(fixture.to_image, size=SIZE))
+        p3.save(photo, "JPEG", quality=90, icc_profile=p3.info["icc_profile"])
+        run = td.data.runs() / "2026-11-21-tiny"
+        run.mkdir(parents=True)
+        torch.save({"model": KeypointNet().state_dict(), "epoch": 1}, run / "best.pt")
+        (run / "config.json").write_text(json.dumps({"size": 64, "batch": 2, "bf16": False, "channels_last": False}))
+        warped, warp = [], locate_module.warp
+
+        def recording(image, *rest):
+            warped.append(image.tobytes())
+            return warp(image, *rest)
+
+        with mock.patch.dict(os.environ, {"DARTS_DATA": str(td.data.root)}), \
+             mock.patch.object(locate_module, "warp", recording), contextlib.redirect_stdout(io.StringIO()), \
+             contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(main(["evaluate-marked", "--run", run.name, "--device", "cpu", "--workers", "0"]), 0)
+        with Image.open(photo) as stored:
+            raw = stored.convert("RGB").tobytes()
+        self.assertTrue(warped)
+        self.assertEqual(warped[0], open_srgb(photo).tobytes())
+        self.assertNotEqual(warped[0], raw, "the profile was ignored")
 
     def test_no_marked_visits_is_a_refusal(self):
         td = TemporaryData()
