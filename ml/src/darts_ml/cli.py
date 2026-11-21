@@ -108,6 +108,9 @@ def _parser() -> argparse.ArgumentParser:
     trainer.add_argument("--channels-last", action="store_true", help="channels-last memory layout")
     trainer.add_argument("--init", metavar="RUN",
                          help="start from that run's best weights instead of from scratch; whatever does not fit starts fresh")
+    trainer.add_argument("--freeze-norm", action="store_true",
+                         help="keep the BatchNorm statistics of the run --init names instead of re-estimating them from "
+                              "the training batches")
     trainer.add_argument("--entry-stride", type=int, choices=ENTRY_STRIDES, default=2,
                          help="the Entry heatmap's stride; 4 is C's and D's layout, one output with the Calibration points")
     trainer.add_argument("--ring-weight", type=_non_negative_float, default=None,
@@ -461,6 +464,8 @@ def _train(args) -> int:
         raise DartsMlError("name the run with --name, or pass --probe")
     if args.render_weight is not None and not args.renders:
         raise DartsMlError("--render-weight weighs the renders --renders names; name a set")
+    if args.freeze_norm and not args.init:
+        raise DartsMlError("--freeze-norm keeps the statistics of the run --init names; name one")
     if args.public_weight is not None and not args.public:
         raise DartsMlError("--public-weight weighs the frames --public names; name a set")
     config = RunConfig(args.name, args.device, args.epochs, args.size, args.batch, args.lr, workers=args.workers,
@@ -469,7 +474,8 @@ def _train(args) -> int:
                        ring_weight=ring_weight, ring_inner_mm=inner, ring_outer_mm=outer, renders=args.renders,
                        render_weight=RENDER_WEIGHT if args.render_weight is None else args.render_weight,
                        public=args.public,
-                       public_weight=PUBLIC_WEIGHT if args.public_weight is None else args.public_weight)
+                       public_weight=PUBLIC_WEIGHT if args.public_weight is None else args.public_weight,
+                       freeze_norm=args.freeze_norm)
     folder = train(data, config)
     print(f"written to {folder}")
     return 0

@@ -205,6 +205,7 @@ class RunConfig:
     render_weight: float = RENDER_WEIGHT
     public: tuple[str, ...] = ()
     public_weight: float = PUBLIC_WEIGHT
+    freeze_norm: bool = False
 
     @property
     def speed(self) -> Speed:
@@ -286,7 +287,7 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
          (folder / "epochs.jsonl").open("w", encoding="utf-8") as epochs:
         for epoch in range(1, config.epochs + 1):
             started = time.perf_counter()
-            model.train()
+            training_mode(model, config.freeze_norm)
             running = []
             for batch in loader:
                 loss, heatmap, offset = _step(model, optimiser, batch, device, config.speed, not config.board_only,
@@ -379,6 +380,14 @@ def _public_provenance(data: DataDir, name: str) -> dict:
     if missing:
         raise DartsMlError(f"{path} has no {', '.join(missing)}; {reason}")
     return {key: manifest[key] for key in _PUBLIC_PROVENANCE}
+
+
+def training_mode(model: torch.nn.Module, freeze_norm: bool = False) -> None:
+    model.train()
+    if freeze_norm:
+        for module in model.modules():
+            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+                module.eval()
 
 
 def _rate(step: int, warmup: int, total: int) -> float:
