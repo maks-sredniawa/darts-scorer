@@ -370,7 +370,9 @@ def _public_provenance(data: DataDir, name: str) -> dict:
     if not path.exists():
         raise DartsMlError(f"no {path}; a public set is trained on only with its licence and credit recorded")
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    missing = [key for key in _PUBLIC_PROVENANCE if key not in manifest]
+    missing = [key for key in (*_PUBLIC_PROVENANCE, "refused") if key not in manifest]
+    if "mirror" in manifest and "sha256" not in (manifest["mirror"] if isinstance(manifest["mirror"], dict) else {}):
+        missing.append("mirror.sha256")
     if missing:
         raise DartsMlError(f"{path} has no {', '.join(missing)}; a public set is trained on only with its licence "
                            "and credit recorded")

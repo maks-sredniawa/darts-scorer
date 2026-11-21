@@ -25,7 +25,7 @@ SET = "pose"
 MANIFEST = {"set": SET, "title": "Pose", "author": "someone", "url": "https://example.org/pose", "licence": "CC BY 4.0",
             "licence_url": "https://creativecommons.org/licenses/by/4.0/",
             "mirror": {"url": "https://example.org/mirror", "sha256": "ab" * 32}, "records": 0,
-            "credit": "Pose by someone, CC BY 4.0"}
+            "refused": [], "credit": "Pose by someone, CC BY 4.0"}
 
 
 def write_public_set(data, frames, name: str = SET, manifest: dict | None = MANIFEST) -> list[dict]:
@@ -117,7 +117,7 @@ class PublicSplitTest(unittest.TestCase):
         self.assertEqual(sorted(s.photo.stem for s in dropped),
                          sorted(f"snap_usb_cam{c}_{n}" for c in (1, 2) for n in range(86, 91)))
 
-    def test_the_split_ignores_the_seed_and_other_sets(self):
+    def test_another_set_leaves_this_sets_held_out_frames_alone(self):
         other = [_sample(f"snap_{n}", "other") for n in range(1, 50)]
         self.assertEqual(public_split(self.samples + other)[1][:len(public_split(self.samples)[1])],
                          public_split(self.samples)[1])
@@ -188,6 +188,15 @@ class PublicTrainingTest(unittest.TestCase):
         with self.assertRaisesRegex(DartsMlError, "licence"):
             train(self.data, config, dt.date(2026, 11, 21), io.StringIO())
         self.assertFalse(self.data.runs().exists() and any(self.data.runs().iterdir()))
+
+    def test_a_set_without_its_mirror_checksum_or_refusals_is_not_trained_on(self):
+        config = RunConfig("public", device="cpu", epochs=1, size=64, batch=2, warmup_steps=1, workers=0,
+                           public=(SET,))
+        for broken, named in (({**MANIFEST, "mirror": {"url": "https://example.org/mirror"}}, "mirror.sha256"),
+                              ({k: v for k, v in MANIFEST.items() if k != "refused"}, "refused")):
+            (self.data.public_set(SET) / PUBLIC_MANIFEST).write_text(json.dumps(broken), encoding="utf-8")
+            with self.subTest(named), self.assertRaisesRegex(DartsMlError, f"has no {named}"):
+                train(self.data, config, dt.date(2026, 11, 21), io.StringIO())
 
     def test_public_weight_without_public_and_a_bad_name_are_refused(self):
         with contextlib.redirect_stderr(io.StringIO()), mock.patch.dict(os.environ, {"DARTS_DATA": str(self.data.root)}):

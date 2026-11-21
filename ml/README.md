@@ -142,8 +142,9 @@ Real photos from a public dataset, in `$DARTS_DATA/public/<set>/`: `records.json
 field names with `source = "public"`, the Photos under `photos/`, and `manifest.json` naming the
 dataset, its author, URL, licence, the mirror it was taken from with that file's SHA-256, the counts,
 every frame refused with its reason, and the credit line. `train --public` refuses a set whose manifest
-lacks any of `title`, `author`, `url`, `licence`, `licence_url`, `mirror`, `records` or `credit`, and
-copies those keys into the run's `config.json`; it checks that they are there, not what they hold. Only a set whose licence allows a public app with a tip is imported (ADR-0008's
+lacks any of `title`, `author`, `url`, `licence`, `licence_url`, `mirror` (with its `sha256`),
+`records`, `refused` or `credit`, and copies all but `refused` into the run's `config.json`; it checks that
+they are there, not what they hold. Only a set whose licence allows a public app with a tip is imported (ADR-0008's
 licence table).
 
 **`dart-pose-v6`** (imported 2026-11-21) is *Dart Pose v6* by `jonas-workspace-lm7ia` on Roboflow
