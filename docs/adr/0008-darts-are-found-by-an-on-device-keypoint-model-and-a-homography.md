@@ -27,7 +27,7 @@ and the app is on Play with a tip purchase:
 | MMPose/RTMPose, MMDetection/RTMDet, YOLOX, RF-DETR N/S/M/L | Apache-2.0 | yes |
 | `MultimediaTechLab/YOLO` (YOLOv9) | MIT | yes |
 | LiteRT / ONNX Runtime / ncnn | Apache-2.0 / MIT / BSD-3 | yes |
-| `maks-sredniawa/darts-render`, the owner's fork of `ahie/darts-model` (added 2026-11-21) | Apache-2.0; its numerals and printed marks from SIL OFL 1.1 fonts, from the commit that merges its PR #1 (`feat: owner-like renders with licence-clean assets`) | yes, its rendered frames from that commit or later; not darts-model's weights, nor Places365 backgrounds |
+| `maks-sredniawa/darts-render`, the owner's fork of `ahie/darts-model` (added 2026-11-21) | Apache-2.0; its numerals and printed marks from SIL OFL 1.1 fonts, from the commit that lands its PR #1 (`feat: owner-like renders with licence-clean assets`), `6ece137` | yes, its rendered frames from `6ece137` or later; not darts-model's weights, nor Places365 backgrounds |
 | *Dart Pose v6* (`dart-pose-v6`) by `jonas-workspace-lm7ia`, [Roboflow Universe](https://universe.roboflow.com/jonas-workspace-lm7ia/dart-pose-v6-ovihb) (page opened 2026-11-20, added 2026-11-21) | CC BY 4.0 | yes, with attribution: on the Credits screen if a model trained on it ships |
 
 ## Decision
@@ -246,7 +246,8 @@ taken up now, before the bar's readings.
   non-commercial research. Nothing from the renderer ships in the app.
 - **Only from darts-render PR #1 on.** The OFL assets and the wire-centre rings arrive with
   darts-render PR #1, `feat: owner-like renders with licence-clean assets`; the pipeline uses the
-  renderer at the commit that merges it or later. Frames from an earlier commit carry darts-model's
+  renderer at `6ece137`, where it landed, or later; both render sets imported on 2026-11-21 come from
+  `6ece137`. Frames from an earlier commit carry darts-model's
   original assets and must not be used; their rings are off the wires, so `renders import`'s
   residual check refuses them.
 - **Renders train, they do not choose.** A run is still chosen on DeepDarts val (and the Validation
