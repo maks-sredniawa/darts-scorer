@@ -210,7 +210,7 @@ which hands back sRGB; Pillow's `convert("RGB")` ignores the profile and hands b
 numbers. The two differ by 1.2 levels on average and up to 55, enough to move an Entry peak that
 was a near-tie. DeepDarts' JPEGs carry no profile, so R1 never met one. Two checks proved it:
 Python on LittleCMS-converted sRGB copies gives the app's Scores in 13 of 17 Visits, every Dart
-within 0.2 px; and with only the profile's APP2 segment stripped from the files, the emulator and
+within 0.1 px; and with only the profile's APP2 segment stripped from the files, the emulator and
 Python agree on all 18 Photos.
 
 The fix has three parts:
@@ -225,11 +225,17 @@ The fix has three parts:
   profile Android writes into every JPEG counts as none: LittleCMS would move a colour by one level
   at most, so `open_srgb` leaves those pixels as they are). `ingest`
   now keeps the profile (`jpegtran -copy icc`) rather than strip it and leave P3 numbers untagged.
-- **The gate reads a profiled Photo.** `phone-parity` also pushes `--display-p3` of its val Photos
-  (default 20) rewritten in Display P3's numbers and tagged with its profile, so a side that
-  ignores the profile fails the gate. On `pixel-api36`, 200 val Photos and 20 P3 copies: Board
-  found by both in 220 of 220, worst crossing 0.00513 mm, kept Darts' Scores the same in 220 of
-  220.
+- **The gate carries a profiled Photo through `MediaFiles`.** `phone-parity` also pushes
+  `--display-p3` of its val Photos (default 20) rewritten in Display P3's numbers and tagged with
+  its profile. They check the app's half: `MediaFiles` stores them as sRGB, and the app reads the
+  stored files as Python reads them. They never reach Python as P3, since `locate()` there reads
+  only the files `MediaFiles` wrote. Python's half is held by `test_locate.py`
+  (`ColourProfiledPhotoTest`: `locate()`'s loader gives a P3 Photo the same input as its
+  `open_srgb` conversion) and `test_images.py`. `MediaFilesTest` holds the storing on every API
+  level from a committed P3 JPEG that `darts-ml phone-fixtures` writes, because API 26's
+  `Bitmap.compress` embeds no P3 profile in a source the test encodes itself. On `pixel-api36`,
+  200 val Photos and 20 P3 copies: Board found by both in 220 of 220, worst crossing 0.00513 mm,
+  kept Darts' Scores the same in 220 of 220.
 
 ## 2. The model in the app (D1)
 

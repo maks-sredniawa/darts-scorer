@@ -15,9 +15,10 @@ from darts_ml.homography import project
 from darts_ml.decode import EntryRule
 from darts_ml.evaluate import PredictedEntry
 from darts_ml.model import BOARD_STRIDE, ENTRY_STRIDE, Heads
-from darts_ml.locate import Inference, Located, _logits, figures, located_from_targets, refiltered
+from darts_ml.images import open_srgb, to_display_p3
+from darts_ml.locate import Inference, Located, _Framed, _logits, figures, located_from_targets, refiltered
 from darts_ml.training_data import Sample
-from synthetic import camera, dart_mm
+from synthetic import board_image, camera, dart_mm
 
 SIZE = 512
 APART_DARTS = (dart_mm("T20"), dart_mm("S5"), dart_mm("D3"))
@@ -134,6 +135,25 @@ class LocateTest(unittest.TestCase):
         self.assertEqual(one.grouped, Share(0, 1))
         self.assertEqual(one.exact, Share(0, 1))
         self.assertEqual(one.darts_right, Share(2, 3))
+
+
+def untag(image: Image.Image) -> Image.Image:
+    return Image.frombytes("RGB", image.size, image.tobytes())
+
+
+class ColourProfiledPhotoTest(unittest.TestCase):
+    def test_a_display_p3_photo_reaches_the_model_as_its_srgb_conversion(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p3, converted, untagged = Path(folder, "p3.jpg"), Path(folder, "srgb.png"), Path(folder, "untagged.png")
+            photo = to_display_p3(board_image(camera(yaw_deg=20.0)))
+            photo.save(p3, quality=95, icc_profile=photo.info["icc_profile"])
+            untag(open_srgb(p3)).save(converted)
+            with Image.open(p3) as image:
+                untag(image.convert("RGB")).save(untagged)
+            matrix = letterbox(photo.size, SIZE)
+            read = _Framed([(p3, matrix), (converted, matrix), (untagged, matrix)], SIZE)
+            self.assertTrue(torch.equal(read[0], read[1]))
+            self.assertFalse(torch.equal(read[0], read[2]), "the profile was ignored")
 
 
 if __name__ == "__main__":

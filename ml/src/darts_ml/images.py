@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 import io
 import struct
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -26,10 +27,14 @@ def open_srgb(path: Path) -> Image.Image:
 
 def as_srgb(image: Image.Image) -> Image.Image:
     """The image as RGB, converted to sRGB when it carries an RGB profile, as Android's decoder does before the
-    pixels reach `getPixels`; a profile-free image is only converted to RGB."""
+    pixels reach `getPixels`; a profile-free image, or one whose profile cannot be read, is only converted to RGB."""
     rgb = image.convert("RGB")
     icc = image.info.get("icc_profile")
-    transform = _to_srgb(icc) if icc else None
+    try:
+        transform = _to_srgb(icc) if icc else None
+    except (OSError, ImageCms.PyCMSError) as error:
+        warnings.warn(f"unreadable colour profile, read as sRGB as Android's decoder does: {error}", stacklevel=2)
+        transform = None
     return rgb if transform is None else ImageCms.applyTransform(rgb, transform)
 
 

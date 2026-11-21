@@ -15,9 +15,10 @@ from darts_ml.homography import project
 from darts_ml.images import as_srgb, display_p3, to_display_p3
 from darts_ml.locate import Located
 from darts_ml.model import ENTRY_POINT, Heads
-from darts_ml.phone import (DEVICE_DIR, EXPECTED, FIXTURES, PHOTOS_LONG_EDGE, REPORT, as_stored, as_stored_samples,
-                            device_name, display_p3_copies, expected_record, heads_case, heads_from_record, picked, rng_choices,
-                            run_parity, same_model, scoring_table, warp_cases, write_fixtures)
+from darts_ml.phone import (DEVICE_DIR, DISPLAY_P3_SOURCE, EXPECTED, FIXTURES, PHOTOS_LONG_EDGE, REPORT, as_stored,
+                            as_stored_samples, device_name, display_p3_copies, expected_record, heads_case,
+                            heads_from_record, picked, rng_choices, run_parity, same_model, scoring_table, warp_cases,
+                            write_display_p3_source, write_fixtures)
 from darts_ml.training_data import Sample, targets
 from synthetic import board_image, camera
 
@@ -93,6 +94,14 @@ class CommittedFixturesTest(unittest.TestCase):
             for written in write_fixtures(Path(folder)):
                 with self.subTest(written.name):
                     self.assertEqual(written.read_bytes(), (FIXTURES / written.name).read_bytes())
+
+    def test_the_display_p3_source_is_what_phone_fixtures_writes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            written = write_display_p3_source(Path(folder, DISPLAY_P3_SOURCE.name))
+            self.assertEqual(written.read_bytes(), DISPLAY_P3_SOURCE.read_bytes())
+        with Image.open(DISPLAY_P3_SOURCE) as image:
+            self.assertEqual(image.info["icc_profile"], display_p3())
+            self.assertEqual(as_srgb(image).getpixel((80, 60)), (255, 0, 0))
 
     def test_each_heads_fixture_still_decodes_and_locates_as_recorded(self):
         committed = sorted(FIXTURES.glob("heads-*.json"))
