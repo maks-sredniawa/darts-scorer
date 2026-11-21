@@ -377,19 +377,37 @@ class RunTest(unittest.TestCase):
                 self.assertFalse(all(torch.equal(ended[k], start[k]) for k in start if k not in statistics))
                 self.assertEqual(json.loads((folder / "config.json").read_text())["freeze_norm"], freeze)
 
-    def test_training_mode_leaves_only_batch_norm_in_eval(self):
+    def test_frozen_norm_lets_a_batch_norm_that_starts_fresh_learn_its_statistics(self):
+        earlier = self.data.runs() / "2026-11-18-darts-512"
+        earlier.mkdir(parents=True)
+        torch.save({"model": KeypointNet(BOARD_STRIDE).state_dict(), "epoch": 1}, earlier / "best.pt")
+        start = KeypointNet(ENTRY_STRIDE).state_dict()
+        config = RunConfig("s2-frozen", device="cpu", epochs=1, size=64, batch=2, warmup_steps=1, workers=0,
+                           init=earlier.name, freeze_norm=True)
+        folder = train(self.data, config, dt.date(2026, 11, 21), io.StringIO())
+        ended = torch.load(folder / "last.pt", weights_only=True)["model"]
+        loaded = torch.load(earlier / "best.pt", weights_only=True)["model"]
+        self.assertFalse(torch.equal(ended["entry_smooth.1.running_mean"], start["entry_smooth.1.running_mean"]))
+        kept = [k for k in loaded if k.endswith(("running_mean", "running_var"))]
+        self.assertTrue(kept)
+        self.assertTrue(all(torch.equal(ended[k], loaded[k]) for k in kept), kept)
+
+    def test_training_mode_leaves_only_the_named_modules_in_eval(self):
         model = KeypointNet(ENTRY_STRIDE).eval()
-        training_mode(model, freeze_norm=True)
-        norms = [m for m in model.modules() if isinstance(m, torch.nn.BatchNorm2d)]
-        self.assertTrue(norms)
+        training_mode(model, {"entry_smooth.1"})
         self.assertTrue(model.training)
-        self.assertFalse(any(m.training for m in norms))
+        self.assertEqual([n for n, m in model.named_modules() if not m.training], ["entry_smooth.1"])
         training_mode(model)
         self.assertTrue(all(m.training for m in model.modules()))
 
-    def test_freeze_norm_without_init_is_refused(self):
-        with contextlib.redirect_stderr(io.StringIO()), mock.patch.dict("os.environ", {"DARTS_DATA": str(self.data.root)}):
+    def test_freeze_norm_without_init_is_refused_before_any_run_folder(self):
+        with self.assertRaisesRegex(DartsMlError, "--freeze-norm"):
+            train(self.data, RunConfig("x", device="cpu", freeze_norm=True), dt.date(2026, 11, 21))
+        self.assertFalse((self.data.runs() / "2026-11-21-x").exists())
+        error = io.StringIO()
+        with contextlib.redirect_stderr(error), mock.patch.dict("os.environ", {"DARTS_DATA": str(self.data.root)}):
             self.assertEqual(main(["train", "--name", "x", "--freeze-norm"]), 2)
+        self.assertIn("--freeze-norm", error.getvalue())
 
     def test_a_run_name_is_a_plain_slug(self):
         with self.assertRaisesRegex(DartsMlError, "--name"):
