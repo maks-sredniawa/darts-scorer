@@ -233,8 +233,9 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   `config.json` records each set's title, author, URL, licence, mirror, record count and credit,
   and both counts.
 - **`--freeze-norm`** (with `--init`) keeps the BatchNorm running statistics of the run it starts
-  from; the weights still train. Without it, a set unlike DeepDarts drags them whatever the learning
-  rate: on 2026-11-21, one epoch of the shipped run with `--public dart-pose-v6` at lr 1e-12 took
+  from, while a BatchNorm that starts fresh (such as a stride-2 Entry head's from a stride-4 run)
+  still learns its own; the weights still train. Without it, a set unlike DeepDarts drags them
+  whatever the learning rate: on 2026-11-21, one epoch of the shipped run with `--public dart-pose-v6` at lr 1e-12 took
   DeepDarts val from 737 to 694 exactly right, while the same epoch on DeepDarts alone held at 736.
   The public frames are far brighter after normalising (a channel mean near −0.5 against −1.4).
 - **The samples** are augmented by default (`--no-augment` turns it off): the Board plane re-viewed

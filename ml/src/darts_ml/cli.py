@@ -464,8 +464,6 @@ def _train(args) -> int:
         raise DartsMlError("name the run with --name, or pass --probe")
     if args.render_weight is not None and not args.renders:
         raise DartsMlError("--render-weight weighs the renders --renders names; name a set")
-    if args.freeze_norm and not args.init:
-        raise DartsMlError("--freeze-norm keeps the statistics of the run --init names; name one")
     if args.public_weight is not None and not args.public:
         raise DartsMlError("--public-weight weighs the frames --public names; name a set")
     config = RunConfig(args.name, args.device, args.epochs, args.size, args.batch, args.lr, workers=args.workers,

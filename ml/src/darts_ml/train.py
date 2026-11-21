@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import time
+from collections.abc import Collection
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -231,16 +232,23 @@ def _state(path: Path) -> dict[str, torch.Tensor]:
     return torch.load(path, map_location="cpu", weights_only=True)["model"]
 
 
-def initial_model(path: Path, entry_stride: int, log) -> KeypointNet:
+def initial_model(path: Path, entry_stride: int, log) -> tuple[KeypointNet, list[str]]:
     model = KeypointNet(entry_stride)
     fresh = load_matching(model, _state(path))
     print(f"--init {path.parent.name}: every parameter loaded but {len(fresh)}, which start fresh"
           + "".join(f"\n  {name}" for name in fresh), file=log, flush=True)
-    return model
+    return model, fresh
+
+
+def loaded_norms(model: torch.nn.Module, fresh: list[str]) -> set[str]:
+    return {name for name, module in model.named_modules()
+            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm) and f"{name}.running_mean" not in fresh}
 
 
 def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=None) -> Path:
     log = log or sys.stderr
+    if config.freeze_norm and not config.init:
+        raise DartsMlError("--freeze-norm keeps the statistics of the run --init names; name one")
     folder = run_folder(data, config.name, today or dt.date.today())
     if folder.exists():
         raise DartsMlError(f"{folder} exists; a run is never overwritten, so give this one another --name")
@@ -261,9 +269,12 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
     if not len(loader):
         raise DartsMlError(f"{len(training) + len(render_training) + len(public_training)} training Photos make no "
                            f"batch of {config.batch}")
+    frozen: set[str] = set()
     if config.init:
-        model = initial_model(data.runs() / config.init / "best.pt", config.entry_stride, log)
+        model, fresh = initial_model(data.runs() / config.init / "best.pt", config.entry_stride, log)
         model = model.to(device, memory_format=config.speed.memory)
+        if config.freeze_norm:
+            frozen = loaded_norms(model, fresh)
     else:
         model = _model(device, config.speed, config.entry_stride)
     optimiser = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
@@ -287,7 +298,7 @@ def train(data: DataDir, config: RunConfig, today: dt.date | None = None, log=No
          (folder / "epochs.jsonl").open("w", encoding="utf-8") as epochs:
         for epoch in range(1, config.epochs + 1):
             started = time.perf_counter()
-            training_mode(model, config.freeze_norm)
+            training_mode(model, frozen)
             running = []
             for batch in loader:
                 loss, heatmap, offset = _step(model, optimiser, batch, device, config.speed, not config.board_only,
@@ -382,12 +393,11 @@ def _public_provenance(data: DataDir, name: str) -> dict:
     return {key: manifest[key] for key in _PUBLIC_PROVENANCE}
 
 
-def training_mode(model: torch.nn.Module, freeze_norm: bool = False) -> None:
+def training_mode(model: torch.nn.Module, frozen: Collection[str] = ()) -> None:
     model.train()
-    if freeze_norm:
-        for module in model.modules():
-            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
-                module.eval()
+    for name, module in model.named_modules():
+        if name in frozen:
+            module.eval()
 
 
 def _rate(step: int, warmup: int, total: int) -> float:
