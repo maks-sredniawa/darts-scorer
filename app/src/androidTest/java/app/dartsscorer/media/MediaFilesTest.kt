@@ -8,6 +8,7 @@ import android.net.Uri
 import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -78,7 +79,7 @@ class MediaFilesTest {
     @Test
     fun aDisplayP3SourceIsStoredAsSrgbWithoutItsProfile() =
         runTest {
-            val source = writeJpeg(width = 640, height = 480, colorSpace = ColorSpace.Named.DISPLAY_P3)
+            val source = copyAsset("display-p3-red.jpg")
             assertTrue("the source carries Display P3", containsDisplayP3(File(source.path!!).readBytes()))
 
             for (kind in listOf(MediaKind.Photo, MediaKind.Thumbnail)) {
@@ -107,14 +108,20 @@ class MediaFilesTest {
             BitmapFactory.decodeFile(file.path, it)
         }
 
+    private fun copyAsset(name: String): Uri {
+        val file = File(root, name)
+        InstrumentationRegistry.getInstrumentation().context.assets.open(name).use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        return file.toUri()
+    }
+
     private fun writeJpeg(
         width: Int,
         height: Int,
-        colorSpace: ColorSpace.Named = ColorSpace.Named.SRGB,
     ): Uri {
-        val file = File(root, "source-$width-$height-$colorSpace.jpg")
-        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888, true, ColorSpace.get(colorSpace)).let { bitmap ->
-            bitmap.eraseColor(Color.RED)
+        val file = File(root, "source-$width-$height.jpg")
+        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).let { bitmap ->
             file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }
             bitmap.recycle()
         }

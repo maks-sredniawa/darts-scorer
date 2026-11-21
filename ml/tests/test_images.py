@@ -53,6 +53,12 @@ class OpenSrgbTest(unittest.TestCase):
         pixels.info["icc_profile"] = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
         self.assertEqual(as_srgb(pixels).tobytes(), pixels.tobytes())
 
+    def test_an_unreadable_profile_is_read_as_srgb_with_a_warning(self):
+        pixels = Image.new("RGB", (2, 2), (1, 2, 3))
+        pixels.info["icc_profile"] = b"not a profile"
+        with self.assertWarnsRegex(UserWarning, "unreadable colour profile"):
+            self.assertEqual(as_srgb(pixels).tobytes(), Image.new("RGB", (2, 2), (1, 2, 3)).tobytes())
+
     def test_a_grey_photo_comes_back_rgb(self):
         self.assertEqual(as_srgb(Image.new("L", (3, 3), 77)).getpixel((1, 1)), (77, 77, 77))
 

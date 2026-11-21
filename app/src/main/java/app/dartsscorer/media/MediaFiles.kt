@@ -235,8 +235,6 @@ class MediaFiles(
         val options =
             BitmapFactory.Options().apply {
                 inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight, spec)
-                // A phone camera may tag its JPEG Display P3, and compress() would carry that profile
-                // into the stored file, where ml/ must then convert it too (docs/phase-1.md §1).
                 inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
             }
         val decoded =

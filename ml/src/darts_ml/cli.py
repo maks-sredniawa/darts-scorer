@@ -152,7 +152,8 @@ def _parser() -> argparse.ArgumentParser:
     bench.add_argument("--warmup", type=_non_negative, default=5)
     bench.add_argument("--runs", type=_positive, default=60)
     fixtures = step("phone-fixtures", _phone_fixtures, "the files phase 1's Kotlin unit tests hold the port to, "
-                    "written into app/src/test/resources/scoring/ (phase-1.md Tests)", capture_session=False)
+                    "written into app/src/test/resources/scoring/ (phase-1.md Tests), and MediaFilesTest's Display P3 "
+                    "source, into app/src/androidTest/assets/", capture_session=False)
     fixtures.add_argument("--run", help="also the decoding fixtures, from that run's exported LiteRT model on "
                           "DeepDarts' val Photos; without it, the scoring table, RANSAC's draws and the warp only")
     fixtures.add_argument("--weights", choices=WEIGHTS, default="best")
@@ -163,7 +164,8 @@ def _parser() -> argparse.ArgumentParser:
     phone.add_argument("--weights", choices=WEIGHTS, default="best")
     phone.add_argument("--photos", type=_positive, default=150, help="how many val Photos; default 150")
     phone.add_argument("--display-p3", type=_non_negative, default=20,
-                       help="how many of those also go as a Display P3 copy, as a Xiaomi tags its Photos; default 20")
+                       help="how many of those also go as a Display P3 copy, as a Xiaomi tags its Photos, to check "
+                       "the app stores them as sRGB and reads them as Python reads the stored files; default 20")
     phone.add_argument("--workers", type=_non_negative, default=4)
     puller = step("pull-marked", _pull_marked, "copy the debug build's marked Visits off a phone into "
                   "$DARTS_DATA/phone-captures/<date>/, and again each one kept again since", capture_session=False)
@@ -556,7 +558,7 @@ def _runtime_bench(args) -> int:
 
 
 def _phone_fixtures(args) -> int:
-    from .phone import FIXTURES, chosen_heads, write_fixtures
+    from .phone import DISPLAY_P3_SOURCE, FIXTURES, chosen_heads, write_display_p3_source, write_fixtures
 
     heads = None
     if args.run:
@@ -570,7 +572,7 @@ def _phone_fixtures(args) -> int:
         check_record(path, folder / f"{args.weights}.pt")
         run = Inference(runtime(Format.LITERT, path), "cpu", config["size"], 1, 0)
         heads = chosen_heads(deepdarts_samples(data, "val"), run, data.root / "phone-parity" / "fixtures")
-    for path in write_fixtures(FIXTURES, heads):
+    for path in [*write_fixtures(FIXTURES, heads), write_display_p3_source(DISPLAY_P3_SOURCE)]:
         print(f"{path}: {path.stat().st_size} bytes")
     return 0
 

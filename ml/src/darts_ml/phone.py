@@ -27,6 +27,7 @@ REPO = Path(__file__).resolve().parents[3]
 SCORING_CASES = REPO / "ml" / "tests" / "scoring-cases.toml"
 APP_MODEL = REPO / "app" / "src" / "main" / "assets" / "model" / "darts.tflite"
 FIXTURES = REPO / "app" / "src" / "test" / "resources" / "scoring"
+DISPLAY_P3_SOURCE = REPO / "app" / "src" / "androidTest" / "assets" / "display-p3-red.jpg"
 APP_PACKAGE = "com.maksforge.dartsscorer.debug"
 TEST_RUNNER = f"{APP_PACKAGE}.test/androidx.test.runner.AndroidJUnitRunner"
 TEST_CLASS = "app.dartsscorer.scoring.PhoneParityTest"
@@ -154,6 +155,15 @@ def write_fixtures(target: Path, heads: list[dict] | None = None) -> list[Path]:
         path.write_text(json.dumps(case, separators=(",", ":")), encoding="utf-8")
         written.append(path)
     return written
+
+
+def write_display_p3_source(target: Path) -> Path:
+    """`MediaFilesTest`'s Display P3 source: sRGB red in Display P3's numbers, tagged with `display_p3()`, so the test
+    does not depend on whether the device's own encoder embeds a P3 profile (API 26's does not)."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    p3 = to_display_p3(Image.new("RGB", (160, 120), (255, 0, 0)))
+    p3.save(target, "JPEG", quality=95, icc_profile=p3.info["icc_profile"])
+    return target
 
 
 def as_stored(photo: Path, target: Path) -> tuple[float, float]:

@@ -21,9 +21,10 @@ the kernel's `amdgpu` driver. The lock covers Linux on x86-64 only, and holds Py
 before 2026-11-03 (`[tool.uv.exclude-newer-package]`); move that date forward deliberately.
 
 **Every step reads a Photo through `images.open_srgb`**, which converts one tagged with a colour
-profile to sRGB with LittleCMS (Pillow's `ImageCms`) and leaves a profile-free one as it is. The app
-reads pixels as sRGB, and a Xiaomi tags its Photos Display P3: read as raw numbers, they are up to 55
-levels off what the app sees, enough to move a Dart (`docs/phase-1.md` §1, 2026-11-21).
+profile to sRGB with LittleCMS (Pillow's `ImageCms`) and leaves a profile-free one as it is, and one
+whose profile cannot be read, with a warning, as Android's decoder does. The app reads pixels as
+sRGB, and a Xiaomi tags its Photos Display P3: read as raw numbers, they are up to 55 levels off what
+the app sees, enough to move a Dart (`docs/phase-1.md` §1, 2026-11-21).
 
 `DARTS_DATA` defaults to `~/darts-scorer-data`. `paths.py` refuses any value that resolves inside the
 repository or one of its worktrees, symlinks followed, and the same for every folder under it that the
@@ -69,9 +70,10 @@ uv run --directory ml darts-ml overlay s01         # QA renders into overlays/s0
 ```
 
 `ingest` keeps the phone's files in `inbox/<capture-session>/`: delete them, GPS and all, once the
-Photos look right. It keeps one marker: a colour profile, since a phone may tag its Photos Display P3. It never guesses: a count that is not three Photos per Visit stops it, and so do
-capture times that do not fall three to a Visit (a gap inside a Visit as long as one between two);
-either way it lists the files in capture order.
+Photos look right. It keeps one marker: a colour profile, since a phone may tag its Photos Display
+P3. It never guesses: a count that is not three Photos per Visit stops it, and so do capture times
+that do not fall three to a Visit (a gap inside a Visit as long as one between two); either way it
+lists the files in capture order.
 
 **The gate** (phase-M1.md §1) repeats the labelling in its own directories and compares the rounds:
 
@@ -225,8 +227,11 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   app and its test APK installed, and the run's `best.tflite` byte for byte the app's
   `assets/model/darts.tflite`. It takes `--photos` of DeepDarts' val Photos spread evenly through the
   split, the same ones every time, and `--display-p3` of those again (default 20) rewritten as the
-  same scene in Display P3's numbers and tagged with its profile, as a Xiaomi stores a Photo. It
-  pushes them to the app's external files (`parity/source/`, made writable for the app), has
+  same scene in Display P3's numbers and tagged with its profile, as a Xiaomi stores a Photo. Those
+  copies check the app's half: `MediaFiles` stores them as sRGB, and the app reads the stored files
+  as Python reads them. Python only reads what `MediaFiles` wrote, so they never reach it as P3;
+  `test_locate.py` holds Python's reading of a P3 Photo. It pushes them to the app's external files
+  (`parity/source/`, made writable for the app), has
   `PhoneParityTest#writesEachPhotoThroughMediaFiles` write each through `MediaFiles` as a Photo,
   pulls the written files back, runs `locate()` on them here with the same model, pushes that as
   `expected.json`, has `PhoneParityTest#matchesPythonOnEachPhoto` run the app's `PhotoReader` on each
@@ -268,10 +273,13 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   `default_rng(0)` draws for RANSAC), `warp.json` (a small Photo through `warp`, Pillow's bytes) and,
   with `--run`, `heads-*.json`: three Photos' heads from that run's LiteRT model, every logit under
   −3 lowered so the files stay small, with what `decode` and `_board` give for them (a strip with
-  Calibration points and no Board, two Darts in one bed, three in three beds). Run it again after
-  changing `board.py`, `decode.py`, `homography.py` or `augment.py`, and commit what changed:
-  `test_phone.py`'s `CommittedFixturesTest` regenerates the files and re-decodes the stored heads,
-  and fails while the committed ones are stale.
+  Calibration points and no Board, two Darts in one bed, three in three beds). It also writes
+  `MediaFilesTest`'s Display P3 source, `app/src/androidTest/assets/display-p3-red.jpg`: sRGB red in
+  Display P3's numbers, tagged with `images.display_p3()`, since API 26's encoder embeds no P3
+  profile in a Bitmap it compresses. Run it again after changing `board.py`, `decode.py`,
+  `homography.py`, `augment.py` or `images.py`, and commit what changed: `test_phone.py`'s
+  `CommittedFixturesTest` regenerates the files and re-decodes the stored heads, and fails while the
+  committed ones are stale.
 - **`runtime-bench`** downloads each runtime's Android AAR, pinned by version and SHA-256 in
   `runtime_bench.py` (LiteRT 2.3.2 from Google Maven, `litert` and `litert-api`; ONNX Runtime 1.32.0
   from Maven Central), into `$DARTS_DATA/runtimes/`, and prints the native libraries each would add
