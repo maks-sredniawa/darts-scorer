@@ -158,7 +158,6 @@ def render_split(samples: list[Sample], seed: int,
 
 
 def public_samples(data: DataDir, sets) -> list[Sample]:
-    """A Calibration point the model only projected weighs PROJECTED_WEIGHT, so it does not learn its own guesses."""
     samples = []
     for name in sets:
         path = data.public_set(name) / PUBLIC_RECORDS
@@ -179,7 +178,7 @@ def public_samples(data: DataDir, sets) -> list[Sample]:
 
 def public_split(samples: list[Sample], share: float = PUBLIC_VALIDATION_SHARE,
                  guard: int = PUBLIC_GUARD_FRAMES) -> tuple[list[Sample], list[Sample]]:
-    """ml/README.md, *Public sets*: the last share of each series' frame numbers, every camera's frame at them."""
+    """ml/README.md, *Public sets*."""
     numbers = defaultdict(set)
     for sample in samples:
         series, number = _public_series(sample)
