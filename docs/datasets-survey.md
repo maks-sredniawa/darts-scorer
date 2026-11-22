@@ -172,12 +172,17 @@ skip review. The one that does most of the work, the homography from four Hand p
    boards, darts and light, and training on them needs `train` to tell "Calibration point not
    labelled" from "not on the Photo", or the model learns that boards have no crossings. That is code
    to write first, so the gain should be weighed against one more Capture session.
+   **Outcome, 2026-11-22:** both were tried and neither is kept: dart-pose-v6 is dropped and DartsAI
+   stayed one exploratory run ([Since this survey](#since-this-survey-2026-11-22)).
 3. **The stronger lever, if the bar is missed, is synthetic renders**, which `phase-M2.md` already
    names as an escalation: `ahie/darts-model`'s renderer is Apache-2.0 and labels 81 board points and
    each dart's landing point exactly. Use it with procedural backgrounds or the owner's own empty-wall
    photos, never its optional Places365 backgrounds, whose terms are non-commercial research and
    education.
-4. **Leave out** dartscribe (share-alike, unless the owner decides otherwise), the Hugging Face
+   **Outcome, 2026-11-22:** tried through the owner's fork, `maks-sredniawa/darts-render`; no mix so
+   far beats the shipped run, so renders are not the stronger lever after all ([Since this survey](#since-this-survey-2026-11-22)).
+4. **Leave out** dartscribe (share-alike, unless the owner decides otherwise; the owner has since
+   accepted share-alike, so it waits only on ADR-0008's amendment, [Since this survey](#since-this-survey-2026-11-22)), the Hugging Face
    DeepDarts re-upload and the two on Roboflow (`dartboard-detection`, `dart-app`), the Roboflow sets
    whose uploader shows no sign of owning the photos (`darts-eob9x`, `onecamsteeldarts`, `dartpose`),
    dart-sense, the Kaggle in-flight set, and, as not worth the effort, Wikimedia Commons, Open Images
