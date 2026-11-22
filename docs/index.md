@@ -5,22 +5,29 @@ title: Darts Scorer
 
 # Darts Scorer
 
-**Scores a darts visit from a photo or two of the board, so you don't have to tally the darts by
-hand.** The photos never leave your phone unless you choose to share one, from version 1.0
+**Scores a darts visit from a photo of the board, so you don't have to tally the darts by hand.** The photos never leave your phone unless you choose to share one, from version 1.0
 (below): finding the board and the darts runs on the device, offline. Free, no ads, no account.
 
 Darts Scorer is still being built, and is not on Google Play yet.
 
 ## What it does
 
-- **Scores a visit from photos.** Take a photo of the board after your throws, and the app finds the
-  darts and adds up the score.
-- **Asks for another angle only when it needs one.** If a dart is hidden behind another or its spot
-  is unclear, the app asks for one more photo from a different side; otherwise one is enough.
+- **Scores a visit from one photo.** Take a photo of the board after your throws, or choose one
+  already on your phone, and the app finds the darts, marks each one on the photo and adds up the
+  score.
+- **Lets you fix what it gets wrong.** A dart it is not sure of is marked *Check*: drag it to where
+  it really is, or set it on the keypad. Add a dart it missed, or remove one it should not have
+  found. If it finds no board at all, enter the score yourself.
 
 ## What it does not do
 
 Darts Scorer reads a regulation steel-tip board. It is not built for soft-tip or electronic boards.
+
+It reads one photo per visit, so a dart hidden behind another can be misread. Combining photos
+taken from several sides, with the app asking for another angle only when it needs one, comes later.
+
+It is new and still gets darts wrong, so check each dart before you trust the total. It scores one
+visit at a time and does not keep a game score, such as 501.
 
 ## Your photos stay on your phone by default
 

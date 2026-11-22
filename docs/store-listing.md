@@ -52,7 +52,7 @@ The line that appears under the name in search results, and the most-read text i
 Take a photo of the board after a visit, and it finds your darts and scores them
 ```
 
-### Full description — 1683/4000
+### Full description — 1773/4000
 
 **No health or safety claims**, here or on any page the listing links to — Play's enforcement reads a
 linked page as part of the listing. Say what the app cannot do instead.
@@ -75,8 +75,8 @@ HOW IT WORKS
 • After a visit, take a photo of the board with the darts still in it, or choose one already on your phone.
 • The app finds the board and the darts, marks each dart on the photo and shows what it scored: single, double, treble, bull or a miss.
 • A dart it is not sure of is marked Check. Drag it to where it really is, or set it on the keypad.
-• Add a dart it missed, remove one it should not have found, or enter the score yourself.
-• Next Visit clears the board for your next three darts.
+• Add a dart it missed, or remove one it should not have found. If it finds no board at all, enter the score yourself.
+• Next Visit opens the camera for your next three darts. Close the camera without a photo, and the last result stays.
 
 FREE, AND NOTHING LEAVES YOUR PHONE
 No ads, no account, no server. The app does not request the internet permission, so your photos are read on the phone and never uploaded. It keeps no history of your visits, only its settings, such as the theme and the language.
@@ -108,7 +108,7 @@ Darts Scorer
 Zrób zdjęcie tarczy po podejściu, a aplikacja znajdzie rzutki i policzy wynik
 ```
 
-### Full description — 1847/4000
+### Full description — 1960/4000
 
 ```
 Darts Scorer odczytuje wynik podejścia ze zdjęcia tarczy. Po rzutach zrób zdjęcie, a aplikacja znajdzie każdą rzutkę, zaznaczy ją na tarczy i zsumuje podejście, offline, na Twoim telefonie.
@@ -117,15 +117,15 @@ JAK TO DZIAŁA
 • Po podejściu zrób zdjęcie tarczy z rzutkami, które w niej zostały, albo wybierz zdjęcie, które już masz w telefonie.
 • Aplikacja znajduje tarczę i rzutki, zaznacza każdą rzutkę na zdjęciu i pokazuje, ile zdobyła: pojedyncze, podwójne, potrójne, bull albo pudło.
 • Rzutka, której aplikacja nie jest pewna, ma oznaczenie Sprawdź. Przeciągnij ją tam, gdzie naprawdę jest, albo ustaw ją na klawiaturze.
-• Dodaj rzutkę, której aplikacja nie znalazła, usuń taką, której nie powinna była znaleźć, albo wpisz wynik samodzielnie.
-• Następne podejście czyści tarczę przed kolejnymi trzema rzutkami.
+• Dodaj rzutkę, której aplikacja nie znalazła, albo usuń taką, której nie powinna była znaleźć. Jeśli nie znajdzie tarczy, wpisz wynik samodzielnie.
+• Przycisk Następne podejście otwiera aparat dla kolejnych trzech rzutek. Gdy zamkniesz aparat bez zdjęcia, poprzedni wynik zostaje.
 
 ZA DARMO I NIC NIE OPUSZCZA TELEFONU
 Bez reklam, bez konta, bez serwera. Aplikacja nie prosi o uprawnienie do internetu, więc zdjęcia są odczytywane na telefonie i nigdy nie są nigdzie wysyłane. Nie zapisuje historii podejść, tylko swoje ustawienia, takie jak motyw i język.
 
 CZEGO NIE POTRAFI
 • Jest nowa i wciąż myli się przy niektórych rzutkach, najczęściej na tarczach z nadrukami wokół liczb i przy rzutce zasłoniętej przez inną. Sprawdź każdą rzutkę, zanim zaufasz sumie.
-• Odczytuje regulaminową tarczę do rzutek ze stalową końcówką, nie tarczę elektroniczną ani do miękkich końcówek.
+• Odczytuje regulaminową tarczę sizalową do rzutek ze stalowymi grotami, nie tarczę elektroniczną ani do rzutek z miękkimi końcówkami.
 • Liczy jedno podejście naraz. Nie prowadzi wyniku gry, na przykład 501.
 • Odczytuje jedno zdjęcie naraz. Łączenie zdjęć zrobionych z kilku stron pojawi się później.
 
