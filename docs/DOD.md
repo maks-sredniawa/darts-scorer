@@ -152,7 +152,8 @@ only on a model that met this phase's bar.
       set the same day: *The upload key* in `RELEASING.md`. It replaced a 2026-11-12 key that was not on
       this laptop and never signed an upload.
 - [x] **Set up the GitHub repository.** Ruleset and rebase-only merges in place; the release-please
-      PAT was set 2026-11-12, its expiry not written down that day (GitHub's settings page shows it).
+      PAT was set 2026-11-12 and **expires 2026-12-12**: replace it before then, or release PRs stop
+      appearing.
 - [x] **Create the service account and set `PLAY_SERVICE_ACCOUNT_JSON`**, 2026-11-22:
       `darts-scorer-play-ci` in its own Cloud project `darts-scorer-play`, invited with no account
       permissions, the two app permissions on this app only, and no expiry date.
