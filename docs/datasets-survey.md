@@ -14,23 +14,27 @@ page has been opened and both its licence and where its images came from are con
 research-only data is out (`phase-M2.md` D2). The owner set the rest on 2026-11-20: CC BY 4.0, MIT
 or Apache-2.0 data is usable with a Credits-screen entry (name, author, licence and link, "changed:
 used to train the model"), provided the uploader appears to own the images and the set has passed the
-DeepDarts duplicate check below; CC BY-SA and any NC licence are not usable.
+DeepDarts duplicate check below; CC BY-SA and any NC licence are not usable. That rule is not in
+ADR-0008 either: like the share-alike change below, it waits for a dated amendment.
 
 ## Since this survey (2026-11-22)
 
 The rest of this page is the 2026-11-20 record and is left as it was. Four things have moved since:
 
 - **Share-alike.** Later on 2026-11-20 the owner accepted CC BY-SA training data, such as dartscribe,
-  even though it would make `darts.tflite` CC BY-SA; the app's code stays all-rights-reserved and NC
+  even though it may make `darts.tflite` CC BY-SA (whether a trained model is Adapted Material is
+  unsettled, see [Why share-alike is a problem here](#why-share-alike-is-a-problem-here)); the app's code stays all-rights-reserved and NC
   data stays out. ADR-0008 does not record this yet: it needs a dated amendment before any
   share-alike set is used.
-- **`dart-pose-v6-ovihb` was tried and dropped.** A fine-tune with it at weight 0.3 fell to 64.2% of
-  DeepDarts validation Photos exactly right, against the shipped run's 69.2%, and read the owner's
-  marked Visits worse.
-- **`autodartapp/dartsai` was imported and tried.** Its own held-out Darts improved, from 16 to 22 of 46,
-  but DeepDarts validation fell. It is not in the shipped model.
+- **`dart-pose-v6-ovihb` was tried and dropped.** Its fine-tunes read at best 692 of the 1,070
+  DeepDarts validation Photos exactly right, against the shipped run's 737.
+- **`autodartapp/dartsai` was tried in one exploratory local run.** It was imported into the data
+  folder only to try; it is in no shipped model, so ADR-0008 does not record it, and would need to
+  only if a model trained on it were to ship. That run read 715 of 1,070.
 - **Renders were tried**, from `maks-sredniawa/darts-render`, the owner's fork of `ahie/darts-model`
-  (ADR-0008). Every mix so far loses to the shipped run on DeepDarts validation and on the owner's Visits.
+  (ADR-0008). No mix so far beats the shipped run on DeepDarts validation; the best read 722.
+
+The runs and their figures are recorded in [`phase-M2.md`](phase-M2.md) §7, the 2026-11-22 note.
 
 What has held: labelled Photos of the owner's own board, which recommendation 1 calls the data the
 bar is measured on, remain the lever.
@@ -64,7 +68,7 @@ ADR-0008's rule is still open; *not usable* names the reason.
 | Source | Licence (as seen, and where) | Images | Labels | DeepDarts-derived? | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | [DeepDarts, IEEE DataPort](https://ieee-dataport.org/open-access/deepdarts-dataset) | "Creative Commons Attribution", CC BY 4.0 (page read) | 16,050 (d1 ≈ 15k face-on phone, d2 830 at angles), 800×800 crops | 4 Calibration points + Entry points | is DeepDarts | **in use**, credited (ADR-0008) |
-| [salmasolly967-gmail-com/darts-eob9x](https://universe.roboflow.com/salmasolly967-gmail-com/darts-eob9x) | "CC BY 4.0" (read on the page 2026-11-20) | 492, 7 versions | boxes, 6 classes: `cal1`–`cal4`, `center`, `tip`; in the samples the `cal` boxes sit on the numbers 20, 6, 3 and 11 | **no**, by the sample: 7 thumbnails are 14–16 bits from the nearest DeepDarts crop. Several boards, cracked cheap ones among them, and five naming schemes: `images10.jpg`, `(51).jpg`, `a_19.jpg`, `test65.jpg`, `output40.jpg` | **not usable**: no sign the uploader took the photos. `images*.jpg` is what image-search downloaders write, and there is no description or source |
+| [darts-eob9x](https://universe.roboflow.com/salmasolly967-gmail-com/darts-eob9x) | "CC BY 4.0" (read on the page 2026-11-20) | 492, 7 versions | boxes, 6 classes: `cal1`–`cal4`, `center`, `tip`; in the samples the `cal` boxes sit on the numbers 20, 6, 3 and 11 | **no**, by the sample: 7 thumbnails are 14–16 bits from the nearest DeepDarts crop. Several boards, cracked cheap ones among them, and five naming schemes: `images10.jpg`, `(51).jpg`, `a_19.jpg`, `test65.jpg`, `output40.jpg` | **not usable**: no sign the uploader took the photos. `images*.jpg` is what image-search downloaders write, and there is no description or source |
 | [darts-dmwtf/dartboard-detection](https://universe.roboflow.com/darts-dmwtf/dartboard-detection) | "CC BY 4.0" (read on the page 2026-11-20) | 500; v1 and v2 both 500, no augmentation | keypoint, one class `dartboard`: points on the bull and the double ring; point names not shown logged out | **yes**: every name seen is a DeepDarts name (`IMG_6775.JPG`, `DSC_0012.JPG` …), and 8 of 8 thumbnails match the DeepDarts crop of the same name (pHash 0–2 bits, mean pixel difference about 4/255 against 15–26 for the other file of that name) | **not usable**: DeepDarts re-uploaded without credit; adds nothing |
 | [autodartapp/dartsai](https://universe.roboflow.com/autodartapp/dartsai) | "CC BY 4.0" (read on the page 2026-11-20) | 186, 3 versions | keypoint, one class `Dart`: two unnamed points per dart (ids 0 and 1), drawn as a line along it | **no**: 1536×2048 portrait phone photos, `IMG_4785`–`IMG_4992.JPEG` in one run, of one Winmau Blade 6 on a grey surround, face-on and a little off-axis; 8 thumbnails are 6–18 bits from DeepDarts and show another board and room | **usable with a Credits entry**; small, Entry points only, no Calibration points |
 | [maxtest/dartpose](https://universe.roboflow.com/maxtest/dartpose) | "CC BY 4.0" (read on the page 2026-11-20) | 224, 7 versions (574 in the HF mirror's v8) | keypoint, one class `dart`: two points per dart along the barrel | **no**: darts off the board, on tables and in packaging; most named `grenadeBack_0036.jpg` (with `_00001` copies), a few `PXL_20241120_…` phone photos and `d25.JPG` | **not usable**: no dart is in a board, so no Entry points; the product-style `grenadeBack_*` shots give no sign the uploader took them |
@@ -75,7 +79,7 @@ ADR-0008's rule is still open; *not usable* names the reason.
 | [dart-sqziy/darts-3jiso](https://universe.roboflow.com/dart-sqziy/darts-3jiso) | "CC BY 4.0" (read on the page 2026-11-20) | 329, 1 version | boxes, one class `dart` | **no**: `dart-2023-04-14T05-16-38-842218-.jpg` …, one morning's timed captures from one fixed camera level with the board's face, darts seen side-on | **usable with a Credits entry**; low value: side-on boxes give no Entry points |
 | [aidartboard-dataset/ai-dartboard-scoring-system-fina-0xgab](https://universe.roboflow.com/aidartboard-dataset/ai-dartboard-scoring-system-fina-0xgab) | "CC BY 4.0" (read on the page 2026-11-20) | 311; its one version (2025-09-24) is 933 after 3× augmentation, which is where the two figures came from | boxes, 71 classes: regions (`single_1` …, `double_20`, `triple_9`, `bullseye`, `inner_bullseye`, `outer_bullseye`, `miss`) and strays (`0`, `1`, `class_11`, `objects`, `tdouble_19`) | **no**: phone photos `20250913_104630.jpg` … from one day, one cheap board against a cardboard box, roughly face-on | **usable with a Credits entry**; low value: region boxes do not give Entry points |
 | [mydarts/mydartboard](https://universe.roboflow.com/mydarts/mydartboard) | "CC BY 4.0" (read on the page 2026-11-20) | 116, 3 versions (283 in the HF mirror's v3) | boxes, 2 classes: `bull`, `hit` | **no**: Windows Camera captures `WIN_20240302_18_32_26_Pro.jpg`, `WIN_20240303_…` from two evenings, one fixed webcam low and to the left of a Unicorn board | **usable with a Credits entry**; low value |
-| [Bayernator/scorelens-rf10-quellen](https://huggingface.co/datasets/Bayernator/scorelens-rf10-quellen) (HF mirror of 11 Roboflow sets, 9,531 images) | `cc-by-4.0`; "Jeder Datensatz steht unter CC BY 4.0; diese Sammlung gibt sie unverändert und mit Namensnennung weiter." | 9,531 | YOLOv8 exports, dart tips; only `darts_detection-yp7lt` has board labels (20 segment boundaries on the double) | unknown | **unclear**: a mirror cannot stand in for the source pages; useful as a list of what exists, see below |
+| [Bayernator/scorelens-rf10-quellen](https://huggingface.co/datasets/Bayernator/scorelens-rf10-quellen) (HF mirror of 11 Roboflow sets, 9,531 images) | `cc-by-4.0`; "<span lang="de">Jeder Datensatz steht unter CC BY 4.0; diese Sammlung gibt sie unverändert und mit Namensnennung weiter.</span>" | 9,531 | YOLOv8 exports, dart tips; only `darts_detection-yp7lt` has board labels (20 segment boundaries on the double) | unknown | **unclear**: a mirror cannot stand in for the source pages; useful as a list of what exists, see below |
 | [geforcefan/dartscribe](https://huggingface.co/datasets/geforcefan/dartscribe) | `cc-by-sa-4.0` (HF metadata); "Recorded and labelled by Ercan Akyürek" | 14.4k rows, three cameras, 827–2k px | **bull + 80 wire crossings in pixels**, and each dart's segment, multiplier and board position | no | **not usable as things stand**: share-alike, see below |
 | [bhabha-kapil/Dartboard-Detection-Dataset](https://huggingface.co/datasets/bhabha-kapil/Dartboard-Detection-Dataset) | `mit` (HF metadata) | 16,050, 800 px | none: `label` is the folder name, 51 classes | **yes**: 16,050 images in DeepDarts' 51 session folders (`d1_02_04_2020` …), the count and folders of `cropped_images/800/` | **not usable**: a re-upload of DeepDarts with no credit; MIT was not the uploader's to grant, and it adds nothing |
 | [Kaggle kaflebeast/dartboard-dart-images-with-annotations](https://www.kaggle.com/datasets/kaflebeast/dartboard-dart-images-with-annotations) | "MIT" (Kaggle API metadata) | not stated; 639 MB | boxes, darts **in flight** ("a projectile (dart) tracking model") | unlikely | **not usable** for this model: darts in flight, not in the Board; origin not stated |
