@@ -244,9 +244,22 @@ The fix has three parts:
   maps it instead of copying 12.8 MB onto the heap.
 - **Swapping it** is a commit that replaces both files and changes nothing else; the app reads the
   input size and the heads' shapes from the model and the record, never from constants.
-- **Threads:** `Interpreter.Options().setNumThreads(n)`, with *n* chosen on the phone's reading
-  (R2), since LiteRT's default of one thread read about three times slower on the emulator. The
-  emulator's AVX-only CPU is not a phone's, so the choice is not taken there.
+- **Threads: 2** (`LiteRtModel.DEFAULT_THREADS`, set on `Interpreter.Options().setNumThreads`),
+  chosen on R2, 2026-11-22. On the owner's phone the count makes no difference: both passes took
+  about 1.25 s a Photo at 1, 2, 4 and 6 threads alike, and the first read after a cold start about
+  330 ms more, the interpreter's warm-up.
+
+  | Threads | Both passes (ms) |
+  | --- | --- |
+  | 1 | 1253, 1265, 1245 |
+  | 2 | 1261, 1240, 1236 |
+  | 4 | 1582 (first after a cold start), 1254, 1242 |
+  | 6 | 1588 (first after a cold start), 1257, 1258 |
+
+  Not 1, since LiteRT's default of one thread read about three times slower on the emulator, so
+  some phones need more; not 4 or 6, since R4 found 4 buys nothing over 2 on two cores and more
+  threads than cores oversubscribes a small phone. The emulator's AVX-only CPU is not a phone's, so
+  the choice was not taken there.
 - **Credits** (ADR-0008, ADR-0007's licences screen): LiteRT (Apache-2.0), Eigen (MPL-2.0, link to
   its source), XNNPACK, ruy, gemmlowp, FlatBuffers, fft2d, cpuinfo, pthreadpool, FP16 and FXdiv under
   their own licences, and the DeepDarts dataset (CC BY 4.0) the model was trained on. Those the
@@ -479,7 +492,7 @@ Phase 0 left it here (`phase-0.md`, `DOD.md`): decided before the door, on the r
 and an inference time on a low-end emulator image. The runtime's floor is no constraint: LiteRT
 1.4.2's AAR declares `minSdkVersion` 21, below today's 26. So the question is speed alone, read as
 R4: both passes on an API 26 emulator image with 2 GB of RAM and 2 cores, at the thread count R2
-chose.
+chose (2).
 
 1. **Under 2 s per Photo** → `minSdk` stays 26, and the reason is written beside it in
    `app/build.gradle.kts`.
@@ -492,14 +505,13 @@ direction is still asymmetric, and lowering later is free.
 ### The verdict, taken 2026-11-20: 1, under 2 s → `minSdk` stays 26
 
 R4 read both passes at about 0.36 s a Photo on `urgent-api26` held to 2 GB and 2 cores, a fifth of
-the bound, at 4 threads and at 2 alike (Readings). R2 has not been read yet, so the verdict holds
-for an R2 choice of 2 or 4 threads: on two cores, 4 buys nothing over 2, and neither is near 2 s.
-If R2 picks 1 or 6, R4 is read again at that count, since 6 oversubscribes two cores.
+the bound, at 4 threads and at 2 alike (Readings). R2, read on 2026-11-22, chose 2, the count R4
+was already read at, so the verdict stands without a second reading.
 
 - **The worst Photo is the first.** The reader is created lazily inside the timed region, so the
   first Photo after a start carries the interpreter's creation, 65 to 90 ms more on this image.
 - **2 threads was a local build,** `DEFAULT_THREADS` set to 2 and not committed: the count is a
-  constant, and nothing in the debug seam sets it.
+  constant, and nothing in the debug seam sets it. R2 later shipped that same count (§2).
 - **API 26's DocumentsUI crashed once** in 20 picks (`removeContentProvider: … not a
   ContentProviderConnection`, in the system's process) and took the app's activity with it, its
   Visit unsaved; the app's process lived and the next picks read normally. A platform bug of that
@@ -541,7 +553,7 @@ If R2 picks 1 or 6, R4 is read again at that count, since 6 oversubscribes two c
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | A's gate: Board and Darts against Python's `locate()` on DeepDarts' val Photos, after `MediaFiles` | `darts-ml phone-parity`, which runs the instrumented test | **2026-11-20**, 200 val Photos, run `2026-11-19-darts-640-s2-ring-ext`, on `pixel-api36` and `urgent-api26`: Board found by both in 200 of 200 on each; worst crossing 0.00513 mm against the 0.1 mm bound; kept Darts' Scores the same in 200 of 200. Verdict 1 (§1) |
-| R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat`, each count picked in Settings' Debug section | |
+| R2 | Time per Photo, both passes, at 1, 2, 4 and 6 threads, on the owner's phone | the debug build's timing line in `logcat`, each count picked in Settings' Debug section | **2026-11-22**, Xiaomi 24115RA8EG, debug build of `47b2abf`, one 20 November Board Photo picked through the Picker three times a count: 1253, 1265, 1245 ms at 1; 1261, 1240, 1236 at 2; 1582, 1254, 1242 at 4; 1588, 1257, 1258 at 6, the 1.58 s reads each the first after a cold start (about 330 ms of warm-up). The count makes no difference here: ships at 2 (§2) |
 | R3 | Real Visits on a real Board in room light: exactly right, corrected, and taps per correction | by hand, at the Board | |
-| R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count | the debug build's timing line in `logcat`, on `emulator -avd urgent-api26 -memory 2048 -cores 2 -no-window -no-audio -no-snapshot-save`, 10 val Photos (every 107th in the split's order) through the Picker | **2026-11-20**, R2 not yet read, so at 4 threads (today's `DEFAULT_THREADS`) and 2: median 360 ms and worst 450 ms at 4, median 364 ms and worst 429 ms at 2; the worst both times the first Photo, with the interpreter's creation (warm worst 377 and 372 ms). Under 2 s: `minSdk` stays 26 (§5) |
+| R4 | Both passes on a low-end API 26 emulator image (2 GB, 2 cores), at R2's thread count (2) | the debug build's timing line in `logcat`, on `emulator -avd urgent-api26 -memory 2048 -cores 2 -no-window -no-audio -no-snapshot-save`, 10 val Photos (every 107th in the split's order) through the Picker | **2026-11-20**, R2 not yet read, so at 4 threads (today's `DEFAULT_THREADS`) and 2: median 360 ms and worst 450 ms at 4, median 364 ms and worst 429 ms at 2; the worst both times the first Photo, with the interpreter's creation (warm worst 377 and 372 ms). Under 2 s: `minSdk` stays 26 (§5) |
 | R5 | A's second question: the exactly-right share on DeepDarts' val Photos as they are and as `MediaFiles` stores them (D2) | `darts-ml deepdarts score --split val`, then the same with `--as-stored` | **2026-11-20**, run `2026-11-19-darts-640-s2-ring-ext`, `ENTRY_THRESHOLD` 0.25, all 1,070 val Photos: 740 (69.2%) as they are, 735 (68.7%) re-encoded at q85, 0.5 points down against the 1-point bound. D2 holds (§1) |
