@@ -406,6 +406,8 @@ class VisitViewModelTest {
         visit.stateWhen { it.phase is VisitPhase.NoBoard }
         visit.addDart()
         visit.pickNumber(20)
+        // Without seeing the keypad open first, `keypad == null` could match the state from before it.
+        visit.stateWhen { it.keypad?.score != null }
         visit.dismissKeypad()
         val state = visit.stateWhen { it.keypad == null }
         assertTrue(state.phase is VisitPhase.NoBoard)
