@@ -26,7 +26,8 @@ was extracted from and the first app built from it settled on exactly this split
   the board first and the darts second, its accuracy measured on the held-out handheld photos.
   **Phase 1 is built alongside it, and closes only on a model that met the bar** (amended
   2026-11-20; it used to wait for M2)
-- [ ] **Phase P** — The pipeline: repository setup, upload key, Play entry, secrets, a green internal upload
+- [x] **Phase P** — The pipeline: repository setup, upload key, Play entry, secrets, a green internal upload.
+  0.2.0 reached internal testing on 2026-11-22 (testers: `only-me-Tester`)
 - [ ] **Phase 1** — The mechanism on the phone: one photo in, the darts drawn on the board with their
   score, offline, plus tapping the board to correct a dart, and the system camera with its path for a
   phone that has no camera app (no `CAMERA` permission is asked for).

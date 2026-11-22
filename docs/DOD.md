@@ -121,12 +121,9 @@ only on a model that met this phase's bar.
 - [x] **Rewrite `scripts/edge-to-edge.py`'s SCENES** against your screens. Phase 0 (C): the shell,
       Visit, Settings, Help and feedback and the licences; `HOME_TAB` is *Visit*. Phase 1 adds its
       screens. R6 in [`phase-0.md`](phase-0.md).
-- [ ] **Make the artifact allowlists yours.** `aab-permissions.py`'s EXPECTED, FORBIDDEN and
-      EXPECTED_ORIENTATION describe the template. Run all four `aab-*.py` scripts against a local
-      `bundleRelease` **before the first tag** — the first app built from it found its stale table in the publish
-      workflow, after the tag, with the version already spent.
-      Phase 0's R7 ran all four on a local `bundleRelease` and they pass, with EXPECTED as phase 0
-      left it; FORBIDDEN and EXPECTED_ORIENTATION are still the template's until reviewed for this app.
+- [x] **Make the artifact allowlists yours.** All four `aab-*.py` scripts passed on a local
+      `bundleRelease` of `47b2abf`, 2026-11-22: three permissions (two from Play Billing, one from
+      AndroidX), none of the six forbidden, no features, no orientation locks, Polish complete.
 - [x] **Choose the palette.** Brass `8A6500`, khaki grey `6E6552`, steel blue `3F6E8C`, near-grey
       `E4E2DE` in `scripts/gen_scheme.py`; every contrast check passes.
 - [ ] **Make the support address work both ways.** `bootstrap.py` compiled in
@@ -151,19 +148,14 @@ only on a model that met this phase's bar.
 - [ ] **`LICENSE` and `README.md`.** Bootstrap wrote a source-available notice and a *Contributing*
       that refuses pull requests, or with `--licence reserved` a notice that grants nothing and a
       placeholder. Keep both or replace both; they must agree.
-- [ ] **Create the upload keystore, outside the repo**, and put its four values in
-      `local.properties`. Back it up somewhere that is not this machine: losing it means never being
-      able to update the app on Play again. Fill in *The upload key* table in `RELEASING.md` the same
-      day — the fingerprint is what Play asks you to compare.
-- [ ] **Set up the GitHub repository** — `python3 scripts/repo-setup.py` does the ruleset and the
-      merge setting; the release-please PAT is the one step it cannot do, and without it no
-      release PR is ever opened. *Setting up a new repository* in [`RELEASING.md`](RELEASING.md).
-      **None of this is inherited from the template** — GitHub copies files, never settings — and
-      the build stays green while it is all still undone. **Write the PAT's expiry date into this
-      item** the day you create it: when it lapses the release PR simply stops appearing.
-- [ ] **Set the five Play secrets and create the service account** (`docs/RELEASING.md`) — the
-      service account is the one step CI cannot do for itself. No account permissions; two app
-      permissions, on this app only; no expiry date.
+- [x] **The upload keystore**, created and backed up 2026-11-22, and its four `UPLOAD_*` secrets
+      set the same day: *The upload key* in `RELEASING.md`. It replaced a 2026-11-12 key that was not on
+      this laptop and never signed an upload.
+- [x] **Set up the GitHub repository.** Ruleset and rebase-only merges in place; the release-please
+      PAT was set 2026-11-12, its expiry not written down that day (GitHub's settings page shows it).
+- [x] **Create the service account and set `PLAY_SERVICE_ACCOUNT_JSON`**, 2026-11-22:
+      `darts-scorer-play-ci` in its own Cloud project `darts-scorer-play`, invited with no account
+      permissions, the two app permissions on this app only, and no expiry date.
 - [ ] **Plan the closed test.** A new personal developer account reaches production only after a
       closed test — at the time of writing 12 testers opted in for 14 continuous days, then an access
       application. Recruit the testers before the build is ready, not after; `publish-play-closed.yml`
@@ -172,17 +164,15 @@ only on a model that met this phase's bar.
       list `only-me-Tester`, every closed test the group `testers-community@googlegroups.com` —
       never a per-app group or list. **The first closed release of a never-published app is made in
       the Console**; the workflow takes over after its approval ([`RELEASING.md`](RELEASING.md)).
-- [ ] **Decide the `applicationId` deliberately.** It is fixed the moment the Play entry is created —
-      not renameable, not transferable without losing every install and review. A new MaksForge app
-      is `com.maksforge.<app>`.
+- [x] **Decide the `applicationId` deliberately.** `com.maksforge.dartsscorer`, fixed by the Play
+      entry created 2026-11-22 (default listing language en-US, free).
 
 ## The tip — open until a real purchase is consumed
 
 ADR-0007. The code is in; these are the parts only Play and a phone can prove. The steps are
 *Selling the tip* in [`RELEASING.md`](RELEASING.md).
 
-- [ ] **Keep it or delete it, before the first upload.** Deleting is in
-      [`optional-modules.md`](optional-modules.md); keeping it costs Brazil's rating (14+).
+- [x] **Keep it or delete it, before the first upload.** Kept (owner, 2026-11-22).
 - [ ] **A build with billing on internal testing**, then the four products created and active.
 - [ ] **One purchase from a licence tester** on the internal install, ending in the thank-you line,
       and the *same* tip bought again — the second purchase is the proof that the first was consumed.
