@@ -135,11 +135,10 @@ only on a model that met this phase's bar.
 - [x] **Write the listing.** `docs/store-listing.md`, English and Polish, category *Sports*,
       2026-11-22; both pasted into the Console as drafts. The AI-generated assets declaration, when
       the Console's *Review* step asks for it, is the owner's to make.
-- [ ] **Capture the screenshots** with `scripts/screenshots.py` from a release-shaped build, in every
-      listing language, into `art/play-screenshots/`. Play wants at least two before the first review.
-      **Waits for a better model** (owner, 2026-11-22): on the emulator the shipped run misread the
-      owner's board photos, missing visible Darts and finding one that was not there, so a shot of its
-      own reading would show it failing. `edge-to-edge.py` has no scored-Visit scene yet either.
+- [x] **Capture the screenshots.** An interim set, 2026-11-22, on the emulator from the release
+      build, light theme, English and Polish: the Visit tab, Settings, and Help and feedback, padded to
+      9:16 in `art/play-screenshots/`. No scored Visit yet: the shipped run misread the owner's board
+      photos, so that shot waits for a better model, and `edge-to-edge.py` needs its scene first.
 - [x] **Put the app on maksforge.com.** Its icon goes at `assets/icons/<repo>.webp` in
       maks-sredniawa/maks-sredniawa.github.io, which the app's own site loads, and the app goes on that home
       page. Replace `description` in `docs/_config.yml` too: it is the tagline under the app's name.
