@@ -94,7 +94,7 @@ fun VisitScreen(
     val resources = LocalResources.current
     val removedMessage =
         state.removed?.let {
-            stringResource(R.string.visit_removed, it.number, resources.shortName(it.score))
+            stringResource(R.string.visit_removed, it.number, resources.spokenName(it.score))
         }
     val undo = stringResource(R.string.visit_undo)
     // No timer to adjust (WCAG 2.2.1): the snackbar stays until Undo, its dismiss action or the
