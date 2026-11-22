@@ -182,7 +182,8 @@ skip review. The one that does most of the work, the homography from four Hand p
    education.
    **Outcome, 2026-11-22:** tried through the owner's fork, `maks-sredniawa/darts-render`; no mix
    tried so far beats the shipped run ([Since this survey](#since-this-survey-2026-11-22)), and
-   `phase-M2.md` §7 still lists further render steps, so the question stays open.
+   `phase-M2.md` §7 keeps no render mix; it names labelled Photos of the owner's own board as the
+   lever left.
 4. **Leave out** dartscribe (share-alike, unless the owner decides otherwise), the Hugging Face
    DeepDarts re-upload and the two on Roboflow (`dartboard-detection`, `dart-app`), the Roboflow sets
    whose uploader shows no sign of owning the photos (`darts-eob9x`, `onecamsteeldarts`, `dartpose`),
