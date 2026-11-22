@@ -84,3 +84,22 @@ The app has no Items, so the home-screen card lives on the Visit screen, the hom
 measure of use is Visits scored rather than items recorded: the preference `visits_scored`, against
 `TIP_ASK_AFTER_VISITS`, still 10. The 30 days are unchanged. Nothing writes the count until phase 1
 can score a Visit, so until then the ask never comes due.
+
+## Amendment — 2026-11-22: `INTERNET` returns for the Mounted camera, and the logging still has no way out
+
+ADR-0009 brings `INTERNET` back, for the local link between a Player's phone and its Mounted camera
+only ([`phase-G.md`](../phase-G.md), checkpoint C). The Decision's *`INTERNET` stays out* no longer
+holds, and what it protected moves:
+
+- **The billing library's `datatransport` would have a route off the phone.** Its only backend,
+  `com.google.android.datatransport:transport-backend-cct`, is excluded from the billing dependency in
+  Gradle, so `datatransport` has nowhere to send what it logs. The manifest declares `INTERNET`
+  itself and its `tools:node="remove"` goes.
+- **`scripts/aab-permissions.py` checks the artifact carries no `datatransport` backend**, in place of
+  the forbidden `INTERNET`: a dependency bump that brings a backend back fails the upload.
+- **The tip is read working on the first internal-track build with the exclusion** (`phase-G.md` R7).
+  If billing fails without the backend, the exclusion is reverted and the Data safety form declares
+  what the library collects, in the same commit.
+
+Takes effect with the build that first declares `INTERNET`; until then the Decision above stands as
+written.

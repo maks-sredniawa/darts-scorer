@@ -94,6 +94,18 @@ only on a model that met this phase's bar.
       Visits on the owner's Board.
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
 
+## Phase G — the Mounted camera
+
+[`phase-G.md`](phase-G.md), ADR-0009. Before phase 2 and before the door.
+
+- [ ] **Answer Q1 to Q5** at the top of `phase-G.md`: the handheld `CAMERA` ask (Q1) and when the
+      paperwork merges (Q2) first, since B cannot start without them.
+- [ ] **The gate (A):** the Board half of M1's bar on Photos from the mount position, verdict written
+      before B starts (R1). Needs no Darts thrown.
+- [ ] **B, C, D, E** as `phase-G.md` orders them, each with its acceptance checks read.
+- [ ] **R8**, the Darts half of the bar from the mount, once the owner can throw again: the phase
+      closes on it.
+
 ## Before the first upload
 
 - [x] **Delete what the app does not need.** Phase 0: reminders, the custom backup and sharing, the
