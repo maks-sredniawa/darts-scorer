@@ -89,8 +89,9 @@ only on a model that met this phase's bar.
       while building C*). Read on `pixel-api36` and `urgent-api26`.
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
       R4 taken 2026-11-20: about 0.36 s a Photo on a 2 GB, 2-core API 26 image at 4 threads and at
-      2, so `minSdk` stays 26. R2 and R3 wait on the owner's phone and Board. If R2 picks 1 or 6
-      threads, read R4 again at that count.
+      2, so `minSdk` stays 26. R2 taken 2026-11-22 on the owner's phone: about 1.25 s a Photo at 1,
+      2, 4 and 6 threads alike, so the app ships at 2, the count R4 was read at. R3 waits on real
+      Visits on the owner's Board.
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
 
 ## Before the first upload
@@ -106,10 +107,11 @@ only on a model that met this phase's bar.
       only phone in the loop sits at the top of the range, every `SDK_INT` branch below it ships
       unvalidated — the first app built from this template raised 26 to 33 for exactly that reason. Move CI's floor legs with it,
       and write the reason beside `minSdk` in `app/build.gradle.kts`, where the next person to touch it reads it.
-- [ ] **Ship the runtime the way ADR-0008's 2026-11-19 amendment says.** Phase 1: LiteRT, Eigen
+- [x] **Ship the runtime the way ADR-0008's 2026-11-19 amendment says.** Phase 1: LiteRT, Eigen
       and the other libraries compiled into LiteRT's native library on the Credits screen beside
-      DeepDarts, and a thread count set on the phone's reading rather than LiteRT's default of one,
-      which read about three times slower (`phase-M2.md` R4).
+      DeepDarts (`SupportConfig.BUNDLED_CREDITS`), and a thread count set on the phone's reading
+      rather than LiteRT's default of one, which read about three times slower (`phase-M2.md` R4):
+      2 threads, from R2 on 2026-11-22 ([`phase-1.md`](phase-1.md) §2).
 - [x] **Replace the placeholder mark.** The Fan, drawn in code in `art/mark.py` (no concept image),
       provenance in `art/README.md`; launcher, monochrome, notification and Play icons regenerated.
       Chosen 2026-11-12 from three Fable options.
