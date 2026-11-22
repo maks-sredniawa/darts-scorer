@@ -89,8 +89,9 @@ only on a model that met this phase's bar.
       while building C*). Read on `pixel-api36` and `urgent-api26`.
 - [ ] **Readings (D):** thread count (R2), `minSdk` (§5, R4), real Visits on a real Board (R3).
       R4 taken 2026-11-20: about 0.36 s a Photo on a 2 GB, 2-core API 26 image at 4 threads and at
-      2, so `minSdk` stays 26. R2 and R3 wait on the owner's phone and Board. If R2 picks 1 or 6
-      threads, read R4 again at that count.
+      2, so `minSdk` stays 26. R2 taken 2026-11-22 on the owner's phone: about 1.25 s a Photo at 1,
+      2, 4 and 6 threads alike, so the app ships at 2, the count R4 was read at. R3 waits on real
+      Visits on the owner's Board.
 - [ ] **The model that met the bar (E)**, after M2's G; R3 read again.
 
 ## Before the first upload
@@ -106,10 +107,11 @@ only on a model that met this phase's bar.
       only phone in the loop sits at the top of the range, every `SDK_INT` branch below it ships
       unvalidated — the first app built from this template raised 26 to 33 for exactly that reason. Move CI's floor legs with it,
       and write the reason beside `minSdk` in `app/build.gradle.kts`, where the next person to touch it reads it.
-- [ ] **Ship the runtime the way ADR-0008's 2026-11-19 amendment says.** Phase 1: LiteRT, Eigen
+- [x] **Ship the runtime the way ADR-0008's 2026-11-19 amendment says.** Phase 1: LiteRT, Eigen
       and the other libraries compiled into LiteRT's native library on the Credits screen beside
-      DeepDarts, and a thread count set on the phone's reading rather than LiteRT's default of one,
-      which read about three times slower (`phase-M2.md` R4).
+      DeepDarts (`SupportConfig.BUNDLED_CREDITS`), and a thread count set on the phone's reading
+      rather than LiteRT's default of one, which read about three times slower (`phase-M2.md` R4):
+      2 threads, from R2 on 2026-11-22 ([`phase-1.md`](phase-1.md) §2).
 - [x] **Replace the placeholder mark.** The Fan, drawn in code in `art/mark.py` (no concept image),
       provenance in `art/README.md`; launcher, monochrome, notification and Play icons regenerated.
       Chosen 2026-11-12 from three Fable options.
@@ -146,9 +148,9 @@ only on a model that met this phase's bar.
 - [x] **Answer the Console's App content pages and write [`play-app-content.md`](play-app-content.md).**
       All ten declarations answered 2026-11-22, each dated in that file; rating PEGI 3, ClassInd 14+.
       Under managed publishing they wait in *Publishing overview*, unsent, for the first review.
-- [ ] **`LICENSE` and `README.md`.** Bootstrap wrote a source-available notice and a *Contributing*
-      that refuses pull requests, or with `--licence reserved` a notice that grants nothing and a
-      placeholder. Keep both or replace both; they must agree.
+- [x] **`LICENSE` and `README.md`**, 2026-11-22: the source-available notice and a *Contributing* that
+      refuses pull requests, which agree; the README now says one photo per visit, the internal track,
+      and the model's DeepDarts CC BY 4.0 credit.
 - [x] **The upload keystore**, created and backed up 2026-11-22, and its four `UPLOAD_*` secrets
       set the same day: *The upload key* in `RELEASING.md`. It replaced a 2026-11-12 key that was not on
       this laptop and never signed an upload.
@@ -158,14 +160,9 @@ only on a model that met this phase's bar.
 - [x] **Create the service account and set `PLAY_SERVICE_ACCOUNT_JSON`**, 2026-11-22:
       `darts-scorer-play-ci` in its own Cloud project `darts-scorer-play`, invited with no account
       permissions, the two app permissions on this app only, and no expiry date.
-- [ ] **Plan the closed test.** A new personal developer account reaches production only after a
-      closed test — at the time of writing 12 testers opted in for 14 continuous days, then an access
-      application. Recruit the testers before the build is ready, not after; `publish-play-closed.yml`
-      moves each build to them. A tester-swap community, where developers test each other's closed
-      tests, filled the apps built from this template within days. Testers: internal is the email
-      list `only-me-Tester`, every closed test the group `testers-community@googlegroups.com` —
-      never a per-app group or list. **The first closed release of a never-published app is made in
-      the Console**; the workflow takes over after its approval ([`RELEASING.md`](RELEASING.md)).
+- [x] **Plan the closed test.** Not a concern (owner, 2026-11-22). The testers are in
+      [`RELEASING.md`](RELEASING.md). **The first closed release of a never-published app is made in
+      the Console**; `publish-play-closed.yml` takes over after its approval.
 - [x] **Decide the `applicationId` deliberately.** `com.maksforge.dartsscorer`, fixed by the Play
       entry created 2026-11-22 (default listing language en-US, free).
 

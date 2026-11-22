@@ -334,8 +334,9 @@ the production workflow, never runs `bundleRelease` and never materialises the u
 time of writing, at least 12 testers opted in for 14 continuous days, then an access application in
 the Console. The window is measured on testers being opted in, which is what shapes this workflow.
 
-**Every closed test's testers are the Google Group `testers-community@googlegroups.com`** (owner's
-rule, 2026-10-31) — never a per-app group or email list.
+**Every closed test's testers are the Google Groups `testers-community@googlegroups.com` and
+`maks-forge-testers@googlegroups.com`**, both on every closed track (owner's rule) — never a per-app
+group or email list.
 
 | Input | Default | What it does |
 | --- | --- | --- |

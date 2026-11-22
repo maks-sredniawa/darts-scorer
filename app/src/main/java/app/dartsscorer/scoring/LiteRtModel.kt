@@ -72,8 +72,8 @@ class LiteRtModel(
     companion object {
         const val MODEL_ASSET = "model/darts.tflite"
 
-        /** LiteRT's own default is one thread; R2 (phase-1.md Readings) chooses the count on a phone. */
-        const val DEFAULT_THREADS = 4
+        /** Chosen by R2, phase-1.md §2. */
+        const val DEFAULT_THREADS = 2
 
         private fun direct(floats: Int): ByteBuffer =
             ByteBuffer.allocateDirect(4 * floats).order(ByteOrder.nativeOrder())
