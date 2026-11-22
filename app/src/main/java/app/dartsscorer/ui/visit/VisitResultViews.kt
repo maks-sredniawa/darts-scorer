@@ -1,5 +1,7 @@
 package app.dartsscorer.ui.visit
 
+import android.animation.ValueAnimator
+import android.os.SystemClock
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
@@ -49,6 +51,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -171,6 +174,12 @@ private val RING_GAP = 3.dp
 internal val TOUCH_TARGET = 48.dp
 
 private const val GHOST_ALPHA = 0.45f
+
+private val LIFT = TOUCH_TARGET * 1.5f
+
+private const val LIFT_MS = 120L
+
+private const val FRAME_MS = 16L
 
 /**
  * Above the Score: at most two fifths of the window high, so the Score and the chips sit under the
@@ -427,6 +436,8 @@ internal fun BoardPhoto(
     val zoomable by remember(result.photo) { derivedStateOf { zoom.zoom < PhotoZoom.MAX_ZOOM } }
     val actions = photoActions(zoomable, zoomed) { zoom = it(zoom, box) }
     var dragging by remember(result.photo) { mutableStateOf<Int?>(null) }
+    var lifted by remember(result.photo) { mutableStateOf<Offset?>(null) }
+    val liftMillis = remember { if (ValueAnimator.areAnimatorsEnabled()) LIFT_MS else 0L }
     val scoreLabel: (Score) -> String = { resources.shortName(it) }
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
@@ -455,10 +466,15 @@ internal fun BoardPhoto(
                     dragging = dart
                 }
 
+                override fun lift(ringAt: Offset) {
+                    lifted = ringAt
+                }
+
                 override fun drag(
                     dart: Int,
                     ringAt: Offset,
                 ) {
+                    lifted = null
                     val shown = latest
                     val crop = shown.crop
                     val view = zoom.clampedTo(box)
@@ -483,6 +499,7 @@ internal fun BoardPhoto(
 
                 override fun release() {
                     dragging = null
+                    lifted = null
                 }
             }
         }
@@ -506,7 +523,7 @@ internal fun BoardPhoto(
                             onSpot(Point(shown.crop.left + base.x / scale, shown.crop.top + base.y / scale))
                         }
                     }
-                }.zoomGestures(result.photo, { zoom }, { zoom = it }, ring)
+                }.zoomGestures(result.photo, { zoom }, { zoom = it }, ring, liftMillis)
                 .semantics {
                     contentDescription = description
                     role = Role.Image
@@ -528,17 +545,29 @@ internal fun BoardPhoto(
             ?.read
             ?.let { read -> view.toScreen(read.at.screen(crop, scaled)) to read.unsure }
             ?.let { (at, unsure) -> drawRing(at, unsure, colors, GHOST_ALPHA) }
-        markers(result, size, view, measurer, numberStyle, dragging, scoreLabel).forEach { drawMarker(it, colors) }
+        markers(
+            result,
+            size,
+            view,
+            measurer,
+            numberStyle,
+            dragging,
+            scoreLabel,
+            lifted,
+        ).forEach { drawMarker(it, colors) }
     }
 }
 
-/** A marker's ring held and dragged; [drag]'s point is where the ring is drawn. */
+/** A marker's ring held and dragged; [lift] and [drag]'s point is where the ring is drawn. */
 private interface RingDrag {
     fun hit(at: Offset): Int?
 
     fun ringAt(dart: Int): Offset?
 
     fun hold(dart: Int)
+
+    /** Before the finger has moved past touch slop: the ring is drawn there, and the Dart is not moved. */
+    fun lift(ringAt: Offset)
 
     fun drag(
         dart: Int,
@@ -559,6 +588,7 @@ private fun Modifier.zoomGestures(
     current: () -> PhotoZoom,
     onZoom: (PhotoZoom) -> Unit,
     ring: RingDrag,
+    liftMillis: Long,
 ): Modifier =
     pointerInput(photo) {
         awaitEachGesture {
@@ -576,7 +606,7 @@ private fun Modifier.zoomGestures(
                         awaitPointerEvent()
                     }
                 if (event == null) {
-                    held?.let { dragRing(down, it, ring) }
+                    held?.let { dragRing(down, it, ring, Offset(0f, -LIFT.toPx()), liftMillis) }
                     return@awaitEachGesture
                 }
                 last = event.changes.first().uptimeMillis
@@ -605,23 +635,48 @@ private suspend fun AwaitPointerEventScope.dragRing(
     down: PointerInputChange,
     dart: Int,
     ring: RingDrag,
+    lift: Offset,
+    liftMillis: Long,
 ) {
     val grab = (ring.ringAt(dart) ?: down.position) - down.position
     ring.hold(dart)
+    val held = SystemClock.uptimeMillis()
+    var finger = down.position
     var travel = 0f
+
+    fun offsetNow() = liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
+
+    fun place(offset: Offset) {
+        val at = finger + offset
+        if (travel > viewConfiguration.touchSlop) ring.drag(dart, at) else ring.lift(at)
+    }
     try {
         while (true) {
-            val event = awaitPointerEvent()
+            val offset = offsetNow()
+            place(offset)
+            val rising = offset != lift
+            val event =
+                (if (rising) withTimeoutOrNull(FRAME_MS) { awaitPointerEvent() } else awaitPointerEvent()) ?: continue
             event.changes.forEach { it.consume() }
-            val finger = event.changes.firstOrNull { it.id == down.id } ?: break
-            travel = maxOf(travel, (finger.position - down.position).getDistance())
-            if (travel > viewConfiguration.touchSlop) ring.drag(dart, finger.position + grab)
-            if (!finger.pressed) break
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            finger = change.position
+            travel = maxOf(travel, (finger - down.position).getDistance())
+            if (!change.pressed) {
+                place(offsetNow())
+                break
+            }
         }
     } finally {
         ring.release()
     }
 }
+
+internal fun liftOffset(
+    grab: Offset,
+    lift: Offset,
+    elapsedMillis: Long,
+    liftMillis: Long,
+): Offset = if (elapsedMillis >= liftMillis) lift else lerp(grab, lift, elapsedMillis.toFloat() / liftMillis)
 
 @Composable
 private fun photoActions(
@@ -679,6 +734,7 @@ private fun Density.markers(
     style: TextStyle,
     dragging: Int?,
     scoreLabel: (Score) -> String,
+    lifted: Offset? = null,
 ): List<Marker> {
     val markerDensity = Density(density, fontScale.coerceAtMost(MARKER_MAX_FONT_SCALE))
     val scale = canvas.width / shown.crop.width
@@ -686,9 +742,12 @@ private fun Density.markers(
     val ringOuter = ringOuter()
     val box = Rect(Offset.Zero, canvas)
     return shown.darts.mapNotNull { dart ->
-        val at = dart.at?.let { zoom.toScreen(it.screen(shown.crop, scale)) } ?: return@mapNotNull null
-        if (!box.contains(at)) return@mapNotNull null
         val held = dart.number == dragging
+        val at =
+            (if (held) lifted else null)
+                ?: dart.at?.let { zoom.toScreen(it.screen(shown.crop, scale)) }
+                ?: return@mapNotNull null
+        if (!held && !box.contains(at)) return@mapNotNull null
         val label =
             when {
                 held -> scoreLabel(dart.score)
@@ -757,18 +816,22 @@ private fun DrawScope.drawRing(
     drawCircle(colors.inverseSurface, middle, at, alpha, style = Stroke(width = dark, pathEffect = dashes))
 }
 
-/** Four arms out from the held ring, so where it sits reads at a glance while the finger is down. */
+/** Keylines first, so no arm's keyline cuts another's ink. */
 private fun DrawScope.drawCrosshair(
     at: Offset,
     colors: ColorScheme,
 ) {
-    val light = HAIRLINE.toPx()
-    val from = ringOuter()
-    val to = from + Spacing.tight.toPx()
-    listOf(Offset(1f, 0f), Offset(-1f, 0f), Offset(0f, 1f), Offset(0f, -1f)).forEach { arm ->
-        drawLine(colors.surfaceContainerLowest, at + arm * from, at + arm * to, 3 * light)
-        drawLine(colors.inverseSurface, at + arm * from, at + arm * to, light)
-    }
+    val ink = RING_DARK.toPx()
+    val outer = ringOuter()
+    val strokes =
+        listOf(Offset(1f, 0f), Offset(-1f, 0f), Offset(0f, 1f), Offset(0f, -1f)).flatMap { arm ->
+            listOf(
+                at + arm * outer to at + arm * (outer + Spacing.section.toPx()),
+                at + arm * Spacing.hair.toPx() to at + arm * Spacing.tight.toPx(),
+            )
+        }
+    strokes.forEach { (from, to) -> drawLine(colors.surfaceContainerLowest, from, to, ink + 2 * HAIRLINE.toPx()) }
+    strokes.forEach { (from, to) -> drawLine(colors.inverseSurface, from, to, ink) }
 }
 
 /** Stretched to a whole number of dashes, so no short one is left where the circle closes. */
