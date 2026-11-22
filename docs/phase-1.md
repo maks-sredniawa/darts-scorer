@@ -285,10 +285,14 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   badge alone at the centre of the chosen bed, or for a Miss where it was, so nobody reads it as a
   measured Entry point (*The corrected marker*, §4).
 - **Moving a Dart's ring** (2026-11-20): a long press on a marker, on its badge or within 24 dp of its
-  point, lifts the ring with a haptic tick, and from then on the ring moves with the finger from where
-  it was grabbed, with no jump; zooming in first keeps the finger from hiding the Entry point. It is
-  drawn as a solid ring with four 8 dp hairline arms in `inverseSurface`
-  over a `surfaceContainerLowest` keyline, its badge showing the live Score. The chip and the total
+  point, lifts the ring with a haptic tick: it rises in about 120 ms (at once with animations off) to
+  sit 72 dp straight above the finger (2026-11-22; until then it stayed under the finger, which hid
+  it) and from then on moves with the finger at that offset, so the Entry point is never under the
+  hand. The rise alone moves nothing: a release within touch slop puts the ring back. It is not
+  flipped at an edge; the finger may leave the Photo to reach its bottom. While held it is drawn as a
+  solid ring with four 24 dp arms outside it and four 4 dp ticks inside it that leave an 8 dp clear
+  centre, in `inverseSurface` at the ring's weight over a `surfaceContainerLowest` keyline, its badge
+  showing the live Score. The chip and the total
   follow it, and a faint ring stays at the model's point while the finger is down. The drop moves
   the Dart there, scored through the homography, no longer unsure, drawn as a solid ring with its
   badge beside it (*The corrected marker*, §4). A release within touch slop moves nothing, and a
