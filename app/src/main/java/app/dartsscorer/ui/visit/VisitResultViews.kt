@@ -646,21 +646,25 @@ private suspend fun AwaitPointerEventScope.dragRing(
     val held = SystemClock.uptimeMillis()
     var finger = down.position
     var travel = 0f
+
+    fun place() {
+        val at = finger + liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
+        if (travel > viewConfiguration.touchSlop) ring.drag(dart, at) else ring.lift(at)
+    }
     try {
         while (true) {
-            val offset = liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
+            place()
+            val rising = liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis) != lift
             val event =
-                if (offset != lift) withTimeoutOrNull(FRAME_MS) { awaitPointerEvent() } else awaitPointerEvent()
-            var change: PointerInputChange? = null
-            if (event != null) {
-                event.changes.forEach { it.consume() }
-                change = event.changes.firstOrNull { it.id == down.id } ?: break
-                finger = change.position
-                travel = maxOf(travel, (finger - down.position).getDistance())
+                (if (rising) withTimeoutOrNull(FRAME_MS) { awaitPointerEvent() } else awaitPointerEvent()) ?: continue
+            event.changes.forEach { it.consume() }
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            finger = change.position
+            travel = maxOf(travel, (finger - down.position).getDistance())
+            if (!change.pressed) {
+                place()
+                break
             }
-            val at = finger + liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
-            if (travel > viewConfiguration.touchSlop) ring.drag(dart, at) else ring.lift(at)
-            if (change?.pressed == false) break
         }
     } finally {
         ring.release()
