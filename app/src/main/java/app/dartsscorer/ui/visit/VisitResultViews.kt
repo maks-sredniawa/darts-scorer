@@ -574,7 +574,6 @@ private interface RingDrag {
 
     fun ringAt(dart: Int): Offset?
 
-    /** Where a held ring's centre may go: the Photo, inset by up to a ring's radius but never past the Board's rim. */
     fun bounds(): Rect
 
     fun hold(dart: Int)
