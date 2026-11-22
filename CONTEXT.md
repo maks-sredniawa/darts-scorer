@@ -19,7 +19,10 @@ user-facing word genuinely differ, both are written here with the difference sta
 | **Angle** | the direction a Photo is taken from. *Another angle* is what the app asks for when it is unsure | view, side |
 | **Entry point** | where a Dart's shaft enters the Board; the only point that is scored | tip, hit point |
 | **Calibration point** | a point on the Board's wires whose position is known, used to map a Photo onto the Board | keypoint, anchor, marker |
-| **Capture session** | one phone, one kind of light, one day: the Photos taken together at the Board, and the unit the Held-out set is drawn in (`s01`, `s02`, …) | session alone, which a game may want later |
+| **Capture session** | one phone, one kind of light, one day: the Photos taken together at the Board, and the unit the Held-out set is drawn in (`s01`, `s02`, …). For a Mounted camera, one camera at one position: moving the mount starts a new session (widened 2026-11-22, ADR-0009) | session alone, which a game may want later; rig |
+| **Mounted camera** | a spare phone running this app in its camera role, fixed beside the Board, that takes a Photo when its Player's phone asks (ADR-0009) | webcam, IP camera, remote camera, server, slave |
+| **Player's phone** | the phone the player holds, which asks a Mounted camera for a Photo and scores it; without a Mounted camera, simply the phone. The UI says *your phone* | main phone, host, master, client |
+| **Pairing** | the one-time step that makes a Mounted camera answer one Player's phone only: a QR shown on the Player's phone, scanned by the Mounted camera. *Unpair* undoes it | linking, bonding (Bluetooth's word), connecting, which is what a paired camera does each time |
 | **Held-out set** | the Capture sessions never trained or tuned on, against which the bar for phase 1 is read | test set |
 | **Validation sessions** | the training Capture sessions set aside to choose between models (`s09` and `s14`, phase-M2.md D5): never trained on, and never the Held-out set, which no choice is made on | validation set, dev set |
 | **Hand point** | one of the four Calibration points clicked by hand on a Photo, from which pre-fill projects the rest | anchor, which *Calibration point* already rules out |

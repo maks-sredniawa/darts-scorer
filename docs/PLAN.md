@@ -33,28 +33,21 @@ was extracted from and the first app built from it settled on exactly this split
   phone that has no camera app (no `CAMERA` permission is asked for).
   Each dart's marker carries a white and black keyline: no brand colour reaches 3:1 on all four board
   colours (black, cream, red, green). Readings: real Visits on a real Board, in ordinary room light
+- [ ] **Phase G** — A Mounted camera, an addition the player turns on: by default the photos are
+  still taken with the phone. A spare Android phone running this app in its camera role, mounted
+  beside the Board, takes the Photo when the player taps after a Visit and sends it over the local
+  Wi-Fi to the Player's phone, which scores it, offline, as it scores a handheld Photo
+  ([`phase-G.md`](phase-G.md), ADR-0009). One camera, so no merge of Angles: **it comes before
+  phase 2**, and a second camera waits for phase 2's merge. `INTERNET` returns for that local link
+  only, with the amendments phase S listed for it (ADR-0007, `scripts/aab-permissions.py`, the
+  privacy policy live before any build carries it, the Data safety answers); the Mounted camera holds
+  `CAMERA`, which also makes the handheld *Take a Photo* ask for it unless the owner chooses a second
+  app (`phase-G.md` Q1). Its gate reads the Board half of M1's bar on Photos from the mount position;
+  the Darts half closes it. It ships in 1.0.0. **Before the door**. (Amended 2026-11-22: the owner
+  chose the spare phone over a network camera or a GoPro, one camera first and before phase 2; no
+  Bluetooth. Phase S, if built after, adds only the sharing's own part)
 - [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
   asking for another angle only when a dart is missing, unsure, or on a wire (ADR-0008)
-- [ ] **Phase G** — Cameras on a mount, an addition the player turns on: by default the photos are
-  still taken with the phone, and nothing about that path changes. A player who adds one to three
-  cameras fixed around the board has the phone drive them over the local network or Bluetooth, take
-  the photos after a Visit and score them on the phone, offline, through phase 2's merge. It ships
-  in 1.0.0. The camera is not chosen yet: a cheap network camera that serves a still image over a
-  standard protocol (RTSP or ONVIF), a spare phone, and a GoPro through Open GoPro are the
-  candidates, chosen on a test of one of each kind on a real board (sharpness at a Dart's tip, lens
-  bending, how the photo is fetched, price). Its ADR comes first and settles that choice, the
-  permissions (Bluetooth, Wi-Fi, and `INTERNET` for the local link), how several cameras are reached
-  at once, and the lens (straightened in the camera or on the phone, since the homography assumes
-  straight lines). It amends ADR-0008 (its "no fixed camera" context and its rejected fixed-camera
-  alternative). Whichever of phases G and S is built first brings `INTERNET` back for the whole app
-  and carries the amendments phase S lists for that: what the billing library's usage logging could
-  then send, ADR-0007, `scripts/aab-permissions.py`'s `INTERNET` rule, the privacy policy (live
-  before any build carries it) and the Data safety answers; the other phase adds only its own part.
-  A **Capture session** is one phone, one kind of light, one day, so the phase owes CONTEXT.md a change
-  for sessions taken with mounted cameras: the term widened to a camera rig, or such a session given
-  its own name. Before the phase closes the model is read on photos from the cameras' own positions,
-  from Capture sessions taken with them, against the same bar M1 wrote for phone photos; one camera
-  first, more once those sessions show how often a Dart is hidden from one. **Before the door**
 - [ ] **Phase T** — The Scoreboard on a Second screen, an addition the player turns on: with a
   Second screen (a TV or monitor connected by HDMI cable or Miracast), the app shows a large
   Scoreboard there through Android's `Presentation` API, while the phone keeps the controls. The
@@ -207,7 +200,9 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
 | --- | --- | --- |
 | Camera (through the system camera, so no `CAMERA` permission) | the first tap on *Take a photo* | phase 1 |
 | Sending a photo to train the model (off by default) | when the player first chooses to send one, then for each photo | phase S |
-| Bluetooth, if the chosen camera needs it: Nearby devices on Android 12 and later; on Android 8 to 11 the location permission, with location switched on, for the Bluetooth scan | the first tap on adding a camera | phase G |
+| Camera, for the Mounted camera's own captures (`CAMERA`) | the first tap on *Use this phone as the mounted camera* | phase G |
+| Camera, for the handheld *Take a Photo*, once `CAMERA` is declared (unless `phase-G.md` Q1 chooses a second app) | the first tap on *Take a Photo* | phase G |
+| Local network (`ACCESS_LOCAL_NETWORK`), only once the target SDK reaches 37 | pairing, on both phones | the target-SDK bump (ADR-0009) |
 
 ## Not in this plan
 

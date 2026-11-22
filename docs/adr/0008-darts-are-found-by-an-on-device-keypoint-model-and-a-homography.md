@@ -282,3 +282,26 @@ taken up now, before the bar's readings.
 - **2026-11-22: dropped after its runs.** None of them beat the shipped run on DeepDarts val; the
   runs and figures are in [`phase-M2.md`](../phase-M2.md) §7. The rules above stand if it is tried
   again.
+
+## Amendment — 2026-11-22: a Mounted camera, and the fixed-camera alternative reopened in part
+
+ADR-0009 adds a Mounted camera: a spare phone running this app, fixed beside the Board, that takes a
+Photo when the Player's phone asks ([`phase-G.md`](../phase-G.md)). Three things above change.
+
+- **The Context's "no fixed camera" now holds for the handheld path only.** A Mounted camera is a
+  fixed camera. It still has no frame from before the Visit: it takes one still after the Visit, when
+  the player taps, so the model, the homography and the scoring above apply to its Photo unchanged.
+- **The Context's "a player's photos never leave the phone" becomes "never leave the player's own
+  phones".** A Mounted camera's Photo goes to the Player's phone over the local network, through a
+  pinned, encrypted link, and nowhere else (ADR-0009, decisions 3 and 4). Nothing reaches a server.
+- **The fixed-camera alternative is reopened in part.** Autodarts and Scolia compare frames from
+  before and after each Dart; a Mounted camera could take a before frame. That is not taken up: one
+  model serves both paths, and a before frame means the camera watching the Board through a Visit,
+  which `PLAN.md` keeps out. Comparing frames stays open as a later cross-check on a Mounted camera's
+  Photos, like the classical ring fit above. A homography fitted once and reused across Visits is out
+  too, for the reason in `phase-G.md`, *The tempting one*.
+
+The bar is unchanged and is read again from the Mounted camera's own positions: its Board half is
+phase G's gate, its Darts half closes the phase (`phase-G.md` §1, R8). A Capture session from a
+Mounted camera is one camera at one position (`CONTEXT.md`), and is drawn into the Held-out set or
+training like any other.
