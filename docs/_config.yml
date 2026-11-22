@@ -15,7 +15,7 @@ remote_theme: maks-sredniawa/pages-theme
 plugins:
   - jekyll-remote-theme
 title: Darts Scorer
-description: Scores your darts from a photo or two of the board, offline.
+description: Scores your darts from a photo of the board, offline.
 maksforge:
   icon: /assets/icons/darts-scorer.webp
   status: building
