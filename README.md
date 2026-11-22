@@ -1,7 +1,10 @@
 # Darts Scorer
 
-Darts Scorer counts your darts score from a few photos of the board, taken from different angles,
-as few as it needs, so you don't have to tally the darts by hand.
+Darts Scorer scores a darts visit from one photo of the board, so you don't have to tally the darts
+by hand. It finds the board and each dart, marks them on the photo and adds up the visit; a dart it
+is unsure of is marked *Check* for you to correct. Combining photos taken from several angles, asking
+for another only when a dart is hidden or unclear, is phase 2 of [`docs/PLAN.md`](docs/PLAN.md) and
+not built yet.
 
 The photos never leave the phone unless the player chooses to share one, from version 1.0
 (`docs/PLAN.md`, phase S): finding the board and the darts runs on the device, offline. Free, no
@@ -9,14 +12,19 @@ ads, no account.
 
 ## Status
 
-Just bootstrapped from [android-starter](https://github.com/maks-sredniawa/android-starter). The release
-pipeline and quality gates are real; the screens are still the template's placeholder app. Nothing
-is on Play yet.
+On Google Play's internal testing track since 0.2.0 (2026-11-22); closed testing, production and
+1.0 follow. It still gets darts wrong, most often on boards with printed decorations around the
+numbers.
 
 ## Contributing
 
 Darts Scorer is source-available, not open source: read it, verify it, file issues. Pull requests are not
 accepted — see [LICENSE](LICENSE).
+
+The model in `app/src/main/assets/model/` is trained on the
+[DeepDarts dataset](https://ieee-dataport.org/open-access/deepdarts-dataset) (McNally et al.),
+under CC BY 4.0, which the app credits on its Credits screen with the licence text in
+`app/src/main/assets/licences/` ([ADR-0008](docs/adr/0008-darts-are-found-by-an-on-device-keypoint-model-and-a-homography.md)).
 
 ## Build
 
