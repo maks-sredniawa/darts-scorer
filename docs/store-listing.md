@@ -52,7 +52,7 @@ The line that appears under the name in search results, and the most-read text i
 Take a photo of the board after a visit, and it finds your darts and scores them
 ```
 
-### Full description — 1773/4000
+### Full description — 2610/4000
 
 **No health or safety claims**, here or on any page the listing links to — Play's enforcement reads a
 linked page as part of the listing. Say what the app cannot do instead.
@@ -62,11 +62,15 @@ renders no markup. The block below is what `play-metadata.py` uploads, so the ou
 
 1. One or two sentences: the problem, and what the app does about it.
 2. `HOW IT WORKS` — what happens, in the order the user meets it.
-3. `FREE, AND NOTHING LEAVES YOUR PHONE` — no ads, no account, no server; "it does not request the
-   internet permission" only while `aab-permissions.py` forbids `INTERNET`; what it stores.
+3. `FREE, AND YOUR PHOTOS STAY ON YOUR OWN PHONES` — no ads, no account, no server; what it stores.
+   No claim about the internet permission: from phase G it is declared for the Mounted camera's local
+   link (ADR-0009), so the true claim is about servers, not permissions.
 4. `WHAT IT CANNOT DO` — the honest limits, and what a phone or the platform can stop.
-5. `PERMISSIONS` — one line each, in the user's words.
-6. A last line pointing at the source: `github.com/maks-sredniawa/darts-scorer`.
+5. `COMING: A MOUNTED CAMERA` — while phase G is announced but not shipped (`phase-G.md` §1): what it
+   will do and need, said as coming. The release that ships it turns this into a `HOW IT WORKS`
+   bullet and drops *today* from `PERMISSIONS`, with the privacy policy's *coming*.
+6. `PERMISSIONS` — one line each, in the user's words.
+7. A last line pointing at the source: `github.com/maks-sredniawa/darts-scorer`.
 
 ```
 Darts Scorer reads the score of a visit from a photo of the board. Take a photo after your throws, and the app finds each dart, marks it on the board and adds up the visit, offline, on your phone.
@@ -78,8 +82,8 @@ HOW IT WORKS
 • Add a dart it missed, or remove one it should not have found. If it finds no board at all, enter the score yourself.
 • Next Visit opens the camera for your next three darts. Close the camera without a photo, and the last result stays.
 
-FREE, AND NOTHING LEAVES YOUR PHONE
-No ads, no account, no server. The app does not request the internet permission, so your photos are read on the phone and never uploaded. It keeps no history of your visits, only its settings, such as the theme and the language.
+FREE, AND YOUR PHOTOS STAY ON YOUR OWN PHONES
+No ads, no account, no server. Your photos are read on your phone and never uploaded to a server or sent to anyone. The app keeps no history of your visits, only its settings, such as the theme and the language.
 
 WHAT IT CANNOT DO
 • It is new, and it still gets darts wrong, most often on boards with printed decorations around the numbers, and on a dart hidden behind another. Check each dart before you trust the total.
@@ -87,8 +91,12 @@ WHAT IT CANNOT DO
 • It scores one visit at a time. It does not keep a game score, such as 501.
 • It reads one photo at a time. Combining photos taken from several sides comes later.
 
+COMING: A MOUNTED CAMERA
+A later version will let a spare Android phone, mounted beside the board and running this app, take the photo for you. Tap on your phone after a visit; the mounted camera takes the photo and sends it to your phone, which scores it. The photo goes only between your two phones, encrypted, over your Wi-Fi or your phone's hotspot, never to a server. You pair the phones once by scanning a QR code. It will need both phones on the same network, the camera permission on the spare phone, and access to your local network. The version you install today does not do this yet.
+
 PERMISSIONS
-• None to ask for. Photos come from your camera app or the system photo picker, and neither needs a permission.
+• Today, none to ask for. Photos come from your camera app or the system photo picker, and neither needs a permission.
+• With the mounted camera: the camera, asked the first time you tap Take a Photo, since Android then requires it to open your camera app; say no and you can still choose a photo. And the local network, used only between your own two phones.
 • In-app purchases: an optional tip for the developer. It unlocks nothing.
 
 The source code is public: github.com/maks-sredniawa/darts-scorer
@@ -108,7 +116,7 @@ Darts Scorer
 Zrób zdjęcie tarczy po podejściu, a aplikacja znajdzie rzutki i policzy wynik
 ```
 
-### Full description — 1960/4000
+### Full description — 2904/4000
 
 ```
 Darts Scorer odczytuje wynik podejścia ze zdjęcia tarczy. Po rzutach zrób zdjęcie, a aplikacja znajdzie każdą rzutkę, zaznaczy ją na tarczy i zsumuje podejście, offline, na Twoim telefonie.
@@ -120,8 +128,8 @@ JAK TO DZIAŁA
 • Dodaj rzutkę, której aplikacja nie znalazła, albo usuń taką, której nie powinna była znaleźć. Jeśli nie znajdzie tarczy, wpisz wynik samodzielnie.
 • Przycisk Następne podejście otwiera aparat dla kolejnych trzech rzutek. Gdy zamkniesz aparat bez zdjęcia, poprzedni wynik zostaje.
 
-ZA DARMO I NIC NIE OPUSZCZA TELEFONU
-Bez reklam, bez konta, bez serwera. Aplikacja nie prosi o uprawnienie do internetu, więc zdjęcia są odczytywane na telefonie i nigdy nie są nigdzie wysyłane. Nie zapisuje historii podejść, tylko swoje ustawienia, takie jak motyw i język.
+ZA DARMO, A ZDJĘCIA ZOSTAJĄ NA TWOICH TELEFONACH
+Bez reklam, bez konta, bez serwera. Zdjęcia są odczytywane na Twoim telefonie i nigdy nie trafiają na serwer ani do nikogo innego. Aplikacja nie zapisuje historii podejść, tylko swoje ustawienia, takie jak motyw i język.
 
 CZEGO NIE POTRAFI
 • Jest nowa i wciąż myli się przy niektórych rzutkach, najczęściej na tarczach z nadrukami wokół liczb i przy rzutce zasłoniętej przez inną. Sprawdź każdą rzutkę, zanim zaufasz sumie.
@@ -129,8 +137,12 @@ CZEGO NIE POTRAFI
 • Liczy jedno podejście naraz. Nie prowadzi wyniku gry, na przykład 501.
 • Odczytuje jedno zdjęcie naraz. Łączenie zdjęć zrobionych z kilku stron pojawi się później.
 
+W PRZYGOTOWANIU: APARAT PRZY TARCZY
+W jednej z kolejnych wersji zapasowy telefon z Androidem, zamocowany przy tarczy i z tą aplikacją, zrobi zdjęcie za Ciebie. Po podejściu dotknij przycisku na swoim telefonie; aparat przy tarczy zrobi zdjęcie i wyśle je na Twój telefon, który policzy wynik. Zdjęcie jest przesyłane tylko między Twoimi dwoma telefonami, zaszyfrowane, przez Twoje Wi-Fi albo hotspot Twojego telefonu, nigdy na serwer. Telefony parujesz raz, skanując kod QR. Oba telefony będą musiały być w tej samej sieci, zapasowy telefon będzie potrzebował uprawnienia do aparatu, a aplikacja dostępu do sieci lokalnej. Wersja, którą instalujesz dziś, jeszcze tego nie robi.
+
 UPRAWNIENIA
-• Żadnych do udzielenia. Zdjęcia pochodzą z aplikacji aparatu albo z systemowego wyboru zdjęć i żadne z nich nie wymaga uprawnienia.
+• Dziś żadnych do udzielenia. Zdjęcia pochodzą z aplikacji aparatu albo z systemowego wyboru zdjęć i żadne z nich nie wymaga uprawnienia.
+• Z aparatem przy tarczy: aparat, o który aplikacja zapyta przy pierwszym dotknięciu Zrób zdjęcie, bo Android wymaga go wtedy do otwarcia aplikacji aparatu; po odmowie nadal możesz wybrać zdjęcie. Do tego sieć lokalna, używana tylko między Twoimi dwoma telefonami.
 • Zakupy w aplikacji: opcjonalny napiwek dla twórcy. Niczego nie odblokowuje.
 
 Kod źródłowy jest publiczny: github.com/maks-sredniawa/darts-scorer

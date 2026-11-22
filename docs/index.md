@@ -5,8 +5,9 @@ title: Darts Scorer
 
 # Darts Scorer
 
-**Scores a darts visit from a photo of the board, so you don't have to tally the darts by hand.** The photos never leave your phone unless you choose to share one, from version 1.0
-(below): finding the board and the darts runs on the device, offline. Free, no ads, no account.
+**Scores a darts visit from a photo of the board, so you don't have to tally the darts by hand.**
+The photos never leave your own phones unless you choose to share one, from version 1.0 (below):
+finding the board and the darts runs on the device, offline. Free, no ads, no account.
 
 Darts Scorer is still being built, and is not on Google Play yet.
 
@@ -29,11 +30,29 @@ taken from several sides, with the app asking for another angle only when it nee
 It is new and still gets darts wrong, so check each dart before you trust the total. It scores one
 visit at a time and does not keep a game score, such as 501.
 
-## Your photos stay on your phone by default
+## Coming: a mounted camera
 
-Today there is no backend to send anything to. The photos are processed on your phone and are not
-uploaded anywhere, and from version 1.0 one leaves only if you choose to share it (below). The
-details are in the **[Privacy Policy](privacy-policy.md)**.
+So you no longer walk to the board with your phone after every visit, a later version will let a
+spare Android phone take the photo for you:
+
+- **Mount it beside the board**, facing it, with this app open on it as the *mounted camera*.
+- **Pair it once**: it scans a QR code shown on your phone.
+- **After a visit, tap on your phone.** The mounted camera takes the photo and sends it to your
+  phone, which scores it exactly as it scores a photo you took yourself.
+
+The photo goes only between your two phones, over your Wi-Fi or your phone's own hotspot, encrypted
+so that only those two phones can read it, and never to a server. The mounted camera keeps no copy.
+It will need both phones on the same network, the camera permission on the spare phone, and access
+to your local network. Because Android then requires it, your phone will also ask for the camera
+permission the first time you tap *Take a Photo*; say no and you can still choose a photo already on
+your phone. Nothing changes if you never set one up. The app does not do this yet.
+
+## Your photos stay on your own phones
+
+There is no backend to send anything to. The photos are processed on your phone and are not
+uploaded anywhere; with a mounted camera, a photo goes from the spare phone to yours and nowhere
+else; and from version 1.0 one leaves only if you choose to share it (below). The details are in the
+**[Privacy Policy](privacy-policy.md)**.
 
 ## Coming in version 1.0: help the model learn, if you want to
 
