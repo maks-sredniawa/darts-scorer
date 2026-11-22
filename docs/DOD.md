@@ -146,9 +146,9 @@ only on a model that met this phase's bar.
 - [x] **Answer the Console's App content pages and write [`play-app-content.md`](play-app-content.md).**
       All ten declarations answered 2026-11-22, each dated in that file; rating PEGI 3, ClassInd 14+.
       Under managed publishing they wait in *Publishing overview*, unsent, for the first review.
-- [ ] **`LICENSE` and `README.md`.** Bootstrap wrote a source-available notice and a *Contributing*
-      that refuses pull requests, or with `--licence reserved` a notice that grants nothing and a
-      placeholder. Keep both or replace both; they must agree.
+- [x] **`LICENSE` and `README.md`**, 2026-11-22: the source-available notice and a *Contributing* that
+      refuses pull requests, which agree; the README now says one photo per visit, the internal track,
+      and the model's DeepDarts CC BY 4.0 credit.
 - [x] **The upload keystore**, created and backed up 2026-11-22, and its four `UPLOAD_*` secrets
       set the same day: *The upload key* in `RELEASING.md`. It replaced a 2026-11-12 key that was not on
       this laptop and never signed an upload.
@@ -158,14 +158,9 @@ only on a model that met this phase's bar.
 - [x] **Create the service account and set `PLAY_SERVICE_ACCOUNT_JSON`**, 2026-11-22:
       `darts-scorer-play-ci` in its own Cloud project `darts-scorer-play`, invited with no account
       permissions, the two app permissions on this app only, and no expiry date.
-- [ ] **Plan the closed test.** A new personal developer account reaches production only after a
-      closed test — at the time of writing 12 testers opted in for 14 continuous days, then an access
-      application. Recruit the testers before the build is ready, not after; `publish-play-closed.yml`
-      moves each build to them. A tester-swap community, where developers test each other's closed
-      tests, filled the apps built from this template within days. Testers: internal is the email
-      list `only-me-Tester`, every closed test the group `testers-community@googlegroups.com` —
-      never a per-app group or list. **The first closed release of a never-published app is made in
-      the Console**; the workflow takes over after its approval ([`RELEASING.md`](RELEASING.md)).
+- [x] **Plan the closed test.** Not a concern (owner, 2026-11-22). The testers are in
+      [`RELEASING.md`](RELEASING.md). **The first closed release of a never-published app is made in
+      the Console**; `publish-play-closed.yml` takes over after its approval.
 - [x] **Decide the `applicationId` deliberately.** `com.maksforge.dartsscorer`, fixed by the Play
       entry created 2026-11-22 (default listing language en-US, free).
 
