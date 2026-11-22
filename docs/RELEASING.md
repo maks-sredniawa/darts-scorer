@@ -294,9 +294,9 @@ it is asked for.
 | --- | --- |
 | File | `~/.keystores/<app>-upload.jks` — **outside the repo**; `*.jks` is gitignored as a second line of defence |
 | Type / alias | PKCS12, alias `upload`. PKCS12 keeps **one** password, so `upload.storePassword` and `upload.keyPassword` are the same string |
-| Key | *(algorithm, size, valid until)* |
-| SHA-256 | *(fingerprint)* |
-| Backed up to | *(somewhere that is not this machine)* |
+| Key | RSA 4096, SHA384withRSA, `CN=Maksymilian Sredniawa`, created 2026-11-22, valid until 2054-04-09 |
+| SHA-256 | `02:17:DD:CF:01:B2:F9:D4:4E:12:CE:9E:9D:AC:8D:BB:4F:81:AC:C0:66:5F:16:17:DA:48:EE:17:4A:1C:D6:D3` |
+| Backed up to | `KEYS-2026-11-22.zip` in NordPass |
 
 ```bash
 keytool -genkeypair -v -storetype PKCS12 -keystore ~/.keystores/<app>-upload.jks \
