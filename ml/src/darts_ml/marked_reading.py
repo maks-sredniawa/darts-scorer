@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
-from .board import Score, score
+from .board import Ring, Score, score
 from .evaluate import Share
 from .homography import project
 from .locate import Located, matched_pairs
@@ -115,13 +115,23 @@ class MarkedReading:
         ]
 
 
+VISIT_DARTS = 3
+
+
+def three_darts(scores) -> Counter:
+    """A Visit's Scores made up to three with Misses, as the app makes up a reading (phase-1.md §3)."""
+    darts = Counter(scores)
+    darts[Score(Ring.MISS)] += max(0, VISIT_DARTS - sum(darts.values()))
+    return +darts
+
+
 def read_marked(visits: list[MarkedVisit], located: list[Located]) -> MarkedReading:
     tally = Counter()
     placed, accepted = [], []
     for visit, guess in zip(visits, located, strict=True):
-        truth = Counter(visit.truth)
-        app = Counter(visit.app_read)
-        tally["darts"] += len(visit.truth)
+        truth = three_darts(visit.truth)
+        app = three_darts(visit.app_read)
+        tally["darts"] += sum(truth.values())
         tally["app found"] += visit.app_found
         tally["app exact"] += app == truth
         tally["app right"] += sum((app & truth).values())
@@ -130,7 +140,7 @@ def read_marked(visits: list[MarkedVisit], located: list[Located]) -> MarkedRead
             tally["accepted unmatched"] += len(visit.accepted)
             continue
         guess_mm = project(guess.to_board, [(e.x, e.y) for e in guess.entries]) if guess.entries else np.empty((0, 2))
-        given = Counter(score(*mm) for mm in guess_mm)
+        given = three_darts(score(*mm) for mm in guess_mm)
         tally["found"] += 1
         tally["exact"] += given == truth
         tally["right"] += sum((given & truth).values())

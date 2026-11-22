@@ -321,7 +321,7 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
 - **`evaluate-marked`** reads the pulled marked Visits as the owner's real test set: each Photo
   through a run's model and both passes, against the owner's corrected Darts. It prints Board found,
   Visits scored exactly right (the Scores as multisets, a Dart the owner added with no point
-  included), Darts right, and how far each Entry point lies from the owner's in Board mm through the
+  included, each side made up to three with Misses as the app makes up a reading), Darts right, and how far each Entry point lies from the owner's in Board mm through the
   run's own homography, split into the Darts the owner moved and those whose point the owner kept; a
   Dart whose Score was corrected without moving it gives no point. Beside it, the app's reading as
   kept on the phone, from the same records. A Visit whose Photo is not the record's width×height, or

@@ -245,7 +245,7 @@ class VisitViewModelTest {
         visit.pickNumber(5)
         visit.commitKeypad()
         val state = visit.stateWhen { it.keypad == null }
-        val dart = (state.phase as VisitPhase.Scored).darts.single()
+        val dart = (state.phase as VisitPhase.Scored).darts.single { it.number == 1 }
         assertEquals(Score(Ring.DOUBLE, 5), dart.score)
         assertTrue(dart.corrected)
         assertEquals(10, state.phase.darts.total)
@@ -260,7 +260,7 @@ class VisitViewModelTest {
         visit.scored()
         visit.openDart(1)
         visit.commitKeypad()
-        val dart = visit.scored().darts.single()
+        val dart = visit.scored().darts.single { it.number == 1 }
         val read = DartRead(Point(400.0, 194.0), Score(Ring.TREBLE, 20), unsure = true)
         assertEquals(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20), read = read), dart)
     }
@@ -296,7 +296,7 @@ class VisitViewModelTest {
         visit.openDart(1)
         visit.removeDart(1)
         val removed = visit.stateWhen { it.removed != null }
-        assertEquals(listOf(2), (removed.phase as VisitPhase.Scored).darts.map { it.number })
+        assertEquals(listOf(2, 3), (removed.phase as VisitPhase.Scored).darts.map { it.number })
         assertEquals(VisitFocus.Chip(2), removed.focus)
         assertNull(removed.keypad)
         visit.undoRemove()
@@ -306,12 +306,17 @@ class VisitViewModelTest {
     }
 
     @Test
-    fun `the last Dart removed sends focus to Add a Dart, and a dismissed snackbar forgets it`() {
+    fun `the last Dart removed, Misses too, sends focus to Add a Dart, and a dismissed snackbar forgets it`() {
         photos.next = board(FoundDart(400.0, 100.0, 0.9, Score(Ring.SINGLE, 20)))
         val visit = viewModel()
         visit.photoChosen("content://picked/1")
         visit.scored()
         visit.removeDart(1)
+        assertEquals(VisitFocus.Chip(2), visit.stateWhen { it.removed != null }.focus)
+        visit.removalSettled()
+        visit.removeDart(2)
+        visit.removalSettled()
+        visit.removeDart(3)
         assertEquals(VisitFocus.AddDart, visit.stateWhen { it.removed != null }.focus)
         visit.removalSettled()
         visit.undoRemove()
@@ -327,7 +332,9 @@ class VisitViewModelTest {
         visit.addDartAt(Point(400.0, 400.0 + 2 * 164.0))
         assertEquals(Score(Ring.DOUBLE, 3), visit.stateWhen { it.keypad != null }.keypad?.score)
         visit.commitKeypad()
-        val dart = visit.scored().darts.single()
+        val darts = visit.scored().darts
+        assertEquals(listOf(1, 2, 3), darts.map { it.number })
+        val dart = darts.single { !it.filled }
         assertEquals(Score(Ring.DOUBLE, 3), dart.score)
         assertEquals(Score(Ring.DOUBLE, 3), Board.score(BOARD.project(dart.at!!)))
         assertTrue(dart.corrected)
@@ -400,7 +407,7 @@ class VisitViewModelTest {
         visit.photoChosen("content://picked/2")
         val state = visit.stateWhen { it.phase is VisitPhase.Scored && it.removed == null }
         assertNull(state.keypad)
-        assertEquals(1, (state.phase as VisitPhase.Scored).darts.size)
+        assertEquals(listOf(false, true, true), (state.phase as VisitPhase.Scored).darts.map { it.filled })
     }
 
     @Test

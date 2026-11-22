@@ -143,6 +143,7 @@ private data class MarkedDart(
     val unsure: Boolean,
     val corrected: Boolean,
     val moved: Boolean,
+    val filled: Boolean,
 ) {
     companion object {
         fun of(dart: ShownDart) =
@@ -154,6 +155,7 @@ private data class MarkedDart(
                 unsure = dart.unsure,
                 corrected = dart.corrected,
                 moved = dart.moved,
+                filled = dart.filled,
             )
     }
 }

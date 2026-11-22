@@ -45,6 +45,8 @@ data class ShownDart(
     val corrected: Boolean = false,
     val moved: Boolean = false,
     val read: DartRead? = null,
+    /** A Miss standing in for a Dart the model did not find, so a Visit always has three. */
+    val filled: Boolean = false,
 ) {
     /** The Dart as the model read it, or itself when it was added by hand. */
     val asRead: ShownDart
@@ -130,5 +132,5 @@ fun phaseOf(
                 val at = Point(dart.x, dart.y)
                 ShownDart(i + 1, at, dart.score, dart.unsure, read = DartRead(at, dart.score, dart.unsure))
             }
-    return VisitPhase.Scored(photo, reading.width, reading.height, crop, toBoard, darts)
+    return VisitPhase.Scored(photo, reading.width, reading.height, crop, toBoard, Correction.withMisses(darts))
 }

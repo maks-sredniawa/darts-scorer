@@ -3,6 +3,7 @@ import io
 import json
 import os
 import unittest
+from collections import Counter
 from unittest import mock
 
 import numpy as np
@@ -16,7 +17,7 @@ from darts_ml.homography import invert, project
 from darts_ml.images import open_srgb, to_display_p3
 from darts_ml import locate as locate_module
 from darts_ml.locate import Located
-from darts_ml.marked_reading import NOTE, marked_visits, read_marked
+from darts_ml.marked_reading import NOTE, marked_visits, read_marked, three_darts
 from darts_ml.model import KeypointNet
 from synthetic import TemporaryData, board_image, camera, dart_mm
 
@@ -119,7 +120,7 @@ class ReadMarkedTest(unittest.TestCase):
         reading = read_marked(self.visits, located)
         self.assertEqual(reading.found, Share(2, 3))
         self.assertEqual(reading.exact, Share(1, 3))
-        self.assertEqual(reading.darts_right, Share(3, 5))
+        self.assertEqual(reading.darts_right, Share(5, 9))
         self.assertAlmostEqual(reading.placed.median_mm, 2.0, places=3)
         self.assertEqual(reading.placed_unmatched, 0)
         self.assertEqual(reading.accepted.count, 2)
@@ -127,6 +128,15 @@ class ReadMarkedTest(unittest.TestCase):
         self.assertEqual(reading.app_exact, Share(2, 3))
         self.assertEqual(reading.app_found, Share(2, 3))
         self.assertTrue(any("exactly right 1/3" in line for line in reading.lines()))
+
+
+class ThreeDartsTest(unittest.TestCase):
+    def test_a_visit_is_made_up_to_three_with_misses_so_an_explicit_miss_and_an_unfound_dart_agree(self):
+        t20, miss = Score.parse("T20"), Score.parse("miss")
+        self.assertEqual(three_darts([t20]), Counter({t20: 1, miss: 2}))
+        self.assertEqual(three_darts([t20, miss]), three_darts([t20]))
+        self.assertEqual(three_darts([t20] * 3), Counter({t20: 3}))
+        self.assertEqual(three_darts([]), Counter({miss: 3}))
 
 
 class StepTest(unittest.TestCase):

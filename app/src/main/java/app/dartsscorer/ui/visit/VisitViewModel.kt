@@ -177,10 +177,7 @@ class VisitViewModel(
     fun addDartAt(photo: Point) {
         visit.update { state ->
             val scored = state.phase as? VisitPhase.Scored ?: return@update state
-            if (Correction.canAdd(
-                    scored.darts,
-                )
-            ) {
+            if (Correction.canPlace(scored.darts)) {
                 state.copy(keypad = Correction.openAt(photo, scored.toBoard))
             } else {
                 state
