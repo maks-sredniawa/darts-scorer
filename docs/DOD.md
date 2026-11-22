@@ -143,7 +143,8 @@ only on a model that met this phase's bar.
       maks-sredniawa/maks-sredniawa.github.io, which the app's own site loads, and the app goes on that home
       page. Replace `description` in `docs/_config.yml` too: it is the tagline under the app's name.
 - [x] **Write the privacy policy.** Live at `maksforge.com/darts-scorer/privacy-policy` since
-      2026-11-12; read against the App content answers on 2026-11-22 and still true.
+      2026-11-12; read against the App content answers on 2026-11-22, and its opening line corrected the
+      same day to the app as it is: one photo of the board per Visit.
 - [x] **Answer the Console's App content pages and write [`play-app-content.md`](play-app-content.md).**
       All ten declarations answered 2026-11-22, each dated in that file; rating PEGI 3, ClassInd 14+.
       Under managed publishing they wait in *Publishing overview*, unsent, for the first review.

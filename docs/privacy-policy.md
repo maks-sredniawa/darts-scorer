@@ -5,11 +5,11 @@ title: Privacy Policy
 
 # Privacy Policy
 
-_Last updated: 12 November 2026_
+_Last updated: 22 November 2026_
 
-Darts Scorer is an Android app that scores a darts visit from one or more photos of the board. This
-policy describes what the app does with the information you give it. It is short because the app
-does very little.
+Darts Scorer is an Android app that scores a darts visit from a photo of the board. This policy
+describes what the app does with the information you give it. It is short because the app does
+very little.
 
 ## The app collects nothing
 
@@ -25,8 +25,8 @@ The Google Play Billing library, which handles tips, carries usage logging of it
 
 ## What the app can access, and why
 
-- **The photos you take of the board.** Finding the board and the darts in them runs on your phone,
-  offline. The photos are never uploaded or sent anywhere.
+- **The photos of the board you take or choose.** Finding the board and the darts in them runs on
+  your phone, offline. The photos are never uploaded or sent anywhere.
 - **Google Play billing.** Lets the app ask the Google Play app for the price of a tip and open its
   payment sheet. It gives the app nothing about you.
 
