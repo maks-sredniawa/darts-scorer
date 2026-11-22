@@ -302,6 +302,6 @@ Photo when the Player's phone asks ([`phase-G.md`](../phase-G.md)). Three things
   too, for the reason in `phase-G.md`, *The tempting one*.
 
 The bar is unchanged and is read again from the Mounted camera's own positions: its Board half is
-phase G's gate, its Darts half closes the phase (`phase-G.md` §1, R8). A Capture session from a
+phase G's gate, its Darts half closes the phase (`phase-G.md` §2, R8). A Capture session from a
 Mounted camera is one camera at one position (`CONTEXT.md`), and is drawn into the Held-out set or
 training like any other.

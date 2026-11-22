@@ -41,9 +41,8 @@ was extracted from and the first app built from it settled on exactly this split
   phase 2**, and a second camera waits for phase 2's merge. `INTERNET` returns for that local link
   only, with the amendments phase S listed for it (ADR-0007, `scripts/aab-permissions.py`, the
   privacy policy live before any build carries it, the Data safety answers); the Mounted camera holds
-  `CAMERA`, which also makes the handheld *Take a Photo* ask for it unless the owner chooses a second
-  app (`phase-G.md` Q1). Its gate reads the Board half of M1's bar on Photos from the mount position;
-  the Darts half closes it. It ships in 1.0.0. **Before the door**. (Amended 2026-11-22: the owner
+  `CAMERA`, which also makes the handheld *Take a Photo* ask for it (`phase-G.md` D5). Its gate
+  reads the Board half of M1's bar on Photos from three mount positions; the Darts half closes it. It ships in 1.0.0. **Before the door**. (Amended 2026-11-22: the owner
   chose the spare phone over a network camera or a GoPro, one camera first and before phase 2; no
   Bluetooth. Phase S, if built after, adds only the sharing's own part)
 - [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
@@ -201,7 +200,7 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
 | Camera (through the system camera, so no `CAMERA` permission) | the first tap on *Take a photo* | phase 1 |
 | Sending a photo to train the model (off by default) | when the player first chooses to send one, then for each photo | phase S |
 | Camera, for the Mounted camera's own captures (`CAMERA`) | the first tap on *Use this phone as the mounted camera* | phase G |
-| Camera, for the handheld *Take a Photo*, once `CAMERA` is declared (unless `phase-G.md` Q1 chooses a second app) | the first tap on *Take a Photo* | phase G |
+| Camera, for the handheld *Take a Photo*, once `CAMERA` is declared (`phase-G.md` D5); denied, the Photo Picker stays | the first tap on *Take a Photo* | phase G |
 | Local network (`ACCESS_LOCAL_NETWORK`), only once the target SDK reaches 37 | pairing, on both phones | the target-SDK bump (ADR-0009) |
 
 ## Not in this plan

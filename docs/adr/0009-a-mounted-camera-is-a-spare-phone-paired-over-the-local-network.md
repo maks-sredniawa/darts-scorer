@@ -1,10 +1,10 @@
 # A Mounted camera is a spare phone running this app, paired by QR and reached over the local network
 
 Written 2026-11-22, before any code of phase G ([`phase-G.md`](../phase-G.md)). The owner decided
-the camera, the permissions and the order on 2026-11-22; those are recorded as decided. Every other
-point below is a recommendation, and is decided as written when the pull request that carries this
-ADR merges, unless the owner chose otherwise on it ([`phase-G.md`](../phase-G.md), *Decisions for the
-owner*).
+the camera, the permissions and the order on 2026-11-22, and the same day the handheld `CAMERA` ask,
+when the paperwork merges and the Data safety answer (`phase-G.md` D1 to D9); those are recorded as
+decided. Every other point below was recommended here and is decided as written when the pull request
+that carries this ADR merges.
 
 ## Context
 
@@ -48,7 +48,7 @@ Two platform facts that this ADR has to answer, found while writing it:
   SecurityException."* One manifest serves both roles, so once the camera role exists, the handheld
   *Take a Photo* needs `CAMERA` granted on every phone. The owner decided that the handheld path
   stays as it is; on Android it cannot stay exactly as it is in the same app. Decision 11 takes the
-  smallest change and puts the choice to the owner.
+  smallest change, which the owner chose on 2026-11-22.
 - **Local network access becomes a runtime permission at target SDK 37.** Android 17 enforces
   *local network protection* for apps targeting API 37: `ACCESS_LOCAL_NETWORK`, a runtime permission
   in the *Nearby devices* group, covering outgoing and incoming TCP, UDP and `NsdManager`. At target
@@ -224,10 +224,10 @@ rectilinear, and most phones already correct what is left in their still pipelin
   `android.hardware.camera` and `android.hardware.camera.autofocus`. `CAMERA` implies both as
   required, and Play would then hide the app from every phone without a camera, for a role few use.
   `aab-permissions.py`'s `EXPECTED_FEATURES` lists both at `False`.
-- **The handheld path asks for `CAMERA` once declared** (Context). The recommendation is to ask at
-  the first *Take a Photo*, with a line saying why; a denial leaves the Picker, with phase 1's
-  *No camera app* banner reworded for it. The alternative that keeps the handheld path untouched is a
-  second app for the camera role (Alternatives). This is the owner's choice (`phase-G.md` Q1).
+- **The handheld path asks for `CAMERA` once declared** (Context): at the first *Take a Photo*, with
+  a line saying why; a denial leaves the Picker, with phase 1's
+  *No camera app* banner reworded for it. **The owner decided this on 2026-11-22** (`phase-G.md` D5),
+  over a second app for the camera role (Alternatives).
 
 ### 12. `INTERNET` returns, and the billing library's logging stays unable to leave
 
@@ -253,9 +253,9 @@ ADR-0007 gains a dated amendment saying so.
   data that is sent off device, but that is unreadable by you or anyone other than the sender and
   recipient"* (support.google.com, answer 10787469, read 2026-11-22). A Photo leaves the Mounted
   camera only over decision 4's TLS, whose keys exist only on the two phones, and goes to nobody
-  else. This makes the encryption load-bearing for the answer, not a nicety. The alternative answer,
-  *Photos: collected, for app functionality, not shared*, is the owner's to choose instead
-  (`phase-G.md` Q3).
+  else. This makes the encryption load-bearing for the answer, not a nicety. The owner chose this
+  answer on 2026-11-22 (`phase-G.md` D7) over declaring *Photos: collected, for app functionality,
+  not shared*.
 - **The privacy policy** loses *the app has no permission to use the internet* and gains what is
   true: the app uses the local network for one thing, the Mounted camera, between the player's own
   phones; it never connects to a server; the camera permission is for the Mounted camera and the
@@ -337,8 +337,8 @@ waits for a reading that asks for it.
 - **A second app for the camera role** (its own `applicationId`, a second module in this repo).
   It is the only way to keep the handheld path's *no `CAMERA` permission* exactly as it is, because
   the main app would then gain `INTERNET` alone. It costs a second Play listing, its own closed test,
-  release pipeline and store paperwork, and the owner decided on one app. It stands as the answer to
-  `phase-G.md` Q1 if the owner prefers it to one more permission ask on the handheld path.
+  release pipeline and store paperwork, and the owner decided on one app, and on 2026-11-22 on the
+  handheld ask over this (`phase-G.md` D5).
 
 **The billing library's logging:** declare it in Data safety and let it send (the honest fallback,
 decision 12), or remove the tip (ADR-0007's own *no tip at all*). Excluding the backend keeps today's
@@ -350,8 +350,8 @@ promise at the cost of one Gradle line and one check.
   phones moves from a permission's absence, which the artifact proved, to code: the local-peer check,
   the pinned TLS, and the backend exclusion with its check. `aab-permissions.py` moves `INTERNET`
   and `CAMERA` from *forbidden* to *expected* and forbids the permissions this ADR rules out.
-- **One more permission ask on the handheld path** (decision 11), unless the owner takes the second
-  app. Phase 1's ask table and its *No camera app* banner change.
+- **One more permission ask on the handheld path** (decision 11). Phase 1's ask table and its *No
+  camera app* banner change.
 - **Two phones on two app versions** have to talk: the protocol is versioned from its first frame,
   and an old camera tells the player to update rather than failing quietly.
 - **Target SDK 37 costs a runtime ask on both phones.** The Mounted camera accepts incoming
@@ -365,7 +365,9 @@ promise at the cost of one Gradle line and one check.
   silently invalidate a cached one (`phase-G.md`, *The tempting one*).
 - **Client-isolated Wi-Fi does not work** without the hotspot, and a phone without Wi-Fi cannot be a
   Mounted camera.
-- The privacy policy, `play-app-content.md`, the store listing, `CLAUDE.md`'s stack table and the
-  manifest's comment on `INTERNET` all change with the build that first carries the permissions.
+- The privacy policy, `play-app-content.md`'s Data safety reasoning and the store listing change one
+  release ahead of the build that first carries the permissions (`phase-G.md` D6, checkpoint E);
+  `aab-permissions.py`, `play-app-content.md`'s artifact table, `CLAUDE.md`'s stack table and the
+  manifest's comment on `INTERNET` change with it.
   The comment in the synced `ui/support/SupportHandoff.kt` that says the app declares no `INTERNET`
   is android-starter's to change, through `sync-support.py`.
