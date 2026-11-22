@@ -40,20 +40,19 @@ import java.io.IOException
 import java.time.Instant
 
 /**
- * The ViewModel runs on an unconfined dispatcher unless a test says otherwise, so each call has done
- * its work, up to handing a preference write to DataStore, by the time it returns.
+ * The ViewModel, DataStore and the tip jar all run on one unconfined dispatcher unless a test says
+ * otherwise, so each call has done its work, preference writes and `state` included, by the time it
+ * returns. On a DataStore thread of its own, `state` could still show the value from before the call.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class VisitViewModelTest {
     @get:Rule val folder = TemporaryFolder()
 
     private val dispatcher = UnconfinedTestDispatcher()
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val preferencesOnce =
-        lazy {
-            AppPreferences(PreferenceDataStoreFactory.create(scope = scope) { folder.newFile("app.preferences_pb") })
-        }
-    private val preferences by preferencesOnce
+    private val scope = CoroutineScope(dispatcher + SupervisorJob())
+    private val preferences by lazy {
+        AppPreferences(PreferenceDataStoreFactory.create(scope = scope) { folder.newFile("app.preferences_pb") })
+    }
     private val tipJar by lazy { TipJar(scope) { NoBilling } }
     private val photos = FakePhotos()
 
@@ -61,9 +60,6 @@ class VisitViewModelTest {
 
     @After
     fun tearDown() {
-        // A write still in flight resumes its ViewModel coroutine on DataStore's thread, which reads
-        // Dispatchers.Main; DataStore applies edits in order, so one more returns only after that has run.
-        if (preferencesOnce.isInitialized()) runBlocking { preferences.restoreDefaults() }
         scope.cancel()
         Dispatchers.resetMain()
     }
