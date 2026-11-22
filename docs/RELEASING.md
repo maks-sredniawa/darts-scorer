@@ -511,7 +511,10 @@ something:
    An id that differs from `TIP_PRODUCT_IDS` is silently left out of the app.
 3. **Prices: set Poland by hand.** Bulk pricing treats the amount you type as excluding VAT, so 5 PLN
    comes out as 6.19 in Poland. Set the base price, let Play convert the rest, then override Poland to
-   exactly 5.00 / 10.00 / 20.00 / 50.00.
+   exactly 5.00 / 10.00 / 20.00 / 50.00. Bulk edit charms whatever you type (4.07 becomes 4.99), so
+   override in the purchase option's own table: hover the Poland row, *Edit this Price*, which saves
+   the amount as typed. Set here 2026-11-22 as *Small tip*, *Medium tip*, *Large tip* and
+   *Extra-large tip*, from 5 / 10 / 20 / 50 PLN bulk.
 4. **One real purchase on the phone, as a licence tester**, from the internal-testing install: the
    Support section shows Play's prices, Play's sheet opens, and *Thank you. It means a lot.* appears.
    That line is only shown after a successful consume, so it is the proof the consume works. Play

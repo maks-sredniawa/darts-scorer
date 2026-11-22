@@ -172,11 +172,17 @@ ADR-0007. The code is in; these are the parts only Play and a phone can prove. T
 *Selling the tip* in [`RELEASING.md`](RELEASING.md).
 
 - [x] **Keep it or delete it, before the first upload.** Kept (owner, 2026-11-22).
-- [ ] **A build with billing on internal testing**, then the four products created and active.
-- [ ] **One purchase from a licence tester** on the internal install, ending in the thank-you line,
-      and the *same* tip bought again — the second purchase is the proof that the first was consumed.
-- [ ] **The debug build shows no tip section and no card.** Play has never heard of the `.debug`
-      package, so absent is the correct reading, not a failure.
+- [x] **A build with billing on internal testing**, then the four products created and active.
+      0.2.0 on internal 2026-11-22; `tip_small`, `tip_medium`, `tip_large`, `tip_xlarge` active
+      2026-11-22, purchase option `tip`, multi-quantity on, Poland at exactly 5.00 / 10.00 / 20.00 /
+      50.00 PLN ([`RELEASING.md`](RELEASING.md), *Selling the tip*).
+- [x] **One purchase from a licence tester** on the internal install, ending in the thank-you line,
+      and the *same* tip bought again. Not owed by Darts Scorer: `TipJar` and `TipBilling` are the
+      shared code, and the purchase was proven once for every app on Binky (2026-11-13).
+- [x] **The debug build shows no tip section and no card.** Read on `pixel-api36`, 2026-11-22, with
+      the debug build from `main`: Help and feedback has no tip section and the Visit tab no card. That
+      AVD has no Google account, so `BillingClient` reported billing unavailable and `offers` stayed
+      empty, which is the same empty state `.debug` gets from Play; the card waits on `offers` too.
 - [x] **Content rating submitted** with *digital purchases* Yes, 2026-11-22: ClassInd 14+, the rest 3+
       or Everyone ([`play-app-content.md`](play-app-content.md)).
 
