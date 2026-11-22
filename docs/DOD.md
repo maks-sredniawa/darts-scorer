@@ -100,7 +100,8 @@ only on a model that met this phase's bar.
 
 - [x] **The owner's questions answered** 2026-11-22, recorded as `phase-G.md` D5 to D9: the handheld
       `CAMERA` ask, the paperwork first, Data safety unchanged, all three mount positions, the Redmi
-      Note 8 Pro on Android 11 as the spare.
+      Note 8 Pro on Android 11 as the spare. On 2026-11-23, D10: pairing by the QR or by its text,
+      pasted, both accepted with TalkBack on in B and C.
 - [ ] **The paperwork (E)** merged and the policy live, before B merges.
 - [ ] **The gate (A):** the Board half of M1's bar on Photos from each of the three mount positions,
       verdict written before B starts (R1). Needs no Darts thrown.

@@ -11,7 +11,8 @@ position, all in that same pull request.
 
 **What closing this phase means.** Today a player walks to the Board after every Visit and takes the
 Photo by hand. After this phase a player who has a spare Android phone mounts it beside the Board,
-pairs it once by pointing it at a QR on their own phone, and from then on taps *Take with the mounted
+pairs it once by pointing it at a QR on their own phone, or by pasting that QR's text into it, and
+from then on taps *Take with the mounted
 camera* after a Visit: the spare phone takes the Photo, sends it over the home Wi-Fi to the player's
 phone, and the Visit is scored there exactly as a handheld Photo is. The Photo travels between the
 player's two phones over a pinned, encrypted link and nowhere else. A player who never pairs a camera
@@ -53,10 +54,16 @@ same pull request as this file:**
 | **D8** | **Mount positions for gate A** | **All three are possible, and gate A reads all three**: (a) the wall to one side at Board height, 0.5–1 m out from the Board's face; (b) above the Board, looking down at it; (c) a stand by the oche |
 | **D9** | **The spare phone** | **A Redmi Note 8 Pro on Android 11 (API 30)**, already on the owner's Wi-Fi with the debug app installed |
 
+### Decided 2026-11-23, by the owner
+
+| # | Decision | Decided |
+| --- | --- | --- |
+| **D10** | **A way to pair without seeing the QR** (WCAG 2.2, 1.1.1) | **The QR stays, with a content description, and its payload can also be copied or shared as text** from the Player's phone and pasted into a field on the Mounted camera: the same fingerprint and one-time token, the same TLS pinning and HMAC binding. Both routes are accepted with TalkBack on, in B and C (ADR-0009, decision 4). Not pairing recorded as visual-only |
+
 ### Recommended in ADR-0009, decided as written when its pull request merges
 
 Discovery by NSD; a TLS socket on the Mounted camera that the Player's phone pulls from; pairing by a
-QR on the Player's phone with mutual TLS pinned to both phones; a button as the trigger; a 2048 px
+QR on the Player's phone (or its text, D10) with mutual TLS pinned to both phones; a button as the trigger; a 2048 px
 JPEG never stored on the camera; the phone's own lens correction and nothing else; the link's
 behaviour when it drops; a Settings row for the role; the screen kept on by a window flag with no
 service; `ACCESS_LOCAL_NETWORK` left undeclared until target SDK 37; the billing backend excluded.
@@ -128,8 +135,8 @@ a cached fit with a drift check against the new Photo is a decision of its own, 
 | **0** | **The ADR and this plan**: ADR-0009, the amendments to ADR-0007 and ADR-0008, `CONTEXT.md`'s terms, `PLAN.md`'s paragraph | `docs:` | — |
 | **E** | **The paperwork**: the privacy policy, `play-app-content.md`'s Data safety reasoning, the store listing in every language, written for the app as it will be once B to D ship | `docs:` | 0 |
 | **A** | **The gate**: is the Board found from each of the three mount positions (D8), within the Board half of M1's bar? | a `docs:` with the verdict; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | 0 |
-| **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning; the handheld path's `CAMERA` ask (D5) | `feat:` | E, A (verdict 1 or 2) |
-| **C** | **The link and pairing**: Keystore keys, NSD, the TLS socket and its frames, the QR and the pairing proof, unpairing, the store outside the backup; `INTERNET` declared, the billing backend excluded | `feat:` | B |
+| **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning and the paste field (D10); the handheld path's `CAMERA` ask (D5) | `feat:` | E, A (verdict 1 or 2) |
+| **C** | **The link and pairing**: Keystore keys, NSD, the TLS socket and its frames, the QR with its content description and its text to copy or share (D10), the pairing proof, unpairing, the store outside the backup; `INTERNET` declared, the billing backend excluded | `feat:` | B |
 | **D** | **The capture-and-score flow**: *Take with the mounted camera* on the Visit screen, the camera's state, the timeouts and failure paths, the Photo into phase 1's path | `feat:` | C |
 
 **The order is 0, E, A, B, C, D.** B to D stay in the order the owner listed them: the link needs a
@@ -184,8 +191,10 @@ a player who sets none up meets none of it.
 - **`CLAUDE.md`**: the camera row (*`TakePicture` for the handheld path; CameraX for the Mounted
   camera, ADR-0009*) in B; the billing row (*`INTERNET` kept, its logging backend excluded*) and a row
   for the link in C.
-- **`CLAUDE.md`'s and `README.md`'s *the photos never leave the phone***, rewritten in C to *the
-  player's own phones*, with the Mounted camera named beside phase S (ADR-0008's amendment).
+- **`CLAUDE.md`'s and `README.md`'s *the photos never leave the phone***, and the public home page
+  `docs/index.md`'s *The photos never leave your phone* (its line 8), rewritten in C to *the
+  player's own phones*, with the Mounted camera named beside phase S (ADR-0008's amendment). The
+  home page is live at `maksforge.com/darts-scorer/`, so its text stays as it is until C.
 - **The manifest's comment** on `INTERNET`, rewritten for the local link, in C.
 
 **Acceptance (E):** the policy and the listing read against ADR-0009's decisions 11 to 13 and
@@ -239,7 +248,9 @@ at the treble wires and at the double wires each within a median of 0.5 mm and a
 *Use this phone as the mounted camera* (ADR-0009, decision 9). The second asks for `CAMERA`; denied,
 it explains and offers the system settings, since a camera role without a camera is nothing. Granted,
 it opens the **camera screen**: full screen, preview on, a frame showing where the Board should sit,
-and *Scan the QR on your phone*. The role is stored by enum name in the pairing store (ADR-0009,
+*Scan the QR on your phone*, and below it a *Paste a pairing code* field with *Pair* (D10), for a
+player who cannot scan. Both feed the payload parser of the *Tests* section; a code it refuses says
+*That is not a pairing code* in an assertive live region. The role is stored by enum name in the pairing store (ADR-0009,
 decision 4); a phone in the camera role opens straight into this screen.
 
 **Capture.** CameraX `ImageCapture` bound with the preview, `takePicture` into memory, encoded with
@@ -277,21 +288,31 @@ as replaced by it once B ships.
   not its ultra-wide or macro.
 - TalkBack on the camera screen announces *Waiting for your phone* and, in C, *Connected* as each
   appears, with focus left where it was.
+- **Both pairing routes with TalkBack on** (D10), on the camera screen: the scan area and the
+  *Paste a pairing code* field are each reachable by swiping and read by their labels; a scanned QR
+  and a pasted code are each accepted (in B, the payload parsed and the pin stored, read in
+  `adb logcat`), and a pasted wrong code is announced as *That is not a pairing code*.
 
 ## 4. The link and pairing (C)
 
 **Shape.** ADR-0009, decisions 2 to 4: an EC P-256 Keystore key per phone; the Mounted camera
 registers `_dartsscorer._tcp` and listens on TLS; the Player's phone shows the QR, the camera scans
-it, the Player's phone connects in pairing mode, checks the MAC and pins; from then on, mutual TLS
-pinned both ways, the five frame types, `PING` every 5 s. On Android 12 and below each side holds a
-`MulticastLock` while NSD runs (ADR-0009, decision 2). `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE`
+it or the player pastes its text (D10), the Player's phone connects in pairing mode, checks the MAC
+and pins; from then on, mutual TLS
+pinned both ways, the five frame types, `PING` every 5 s. When `SDK_INT < 30` or
+`SdkExtensions.getExtensionVersion(TIRAMISU) < 7`, each side holds a `MulticastLock` while NSD runs
+(ADR-0009, decision 2). `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE`
 are declared in the manifest and `INTERNET`'s `tools:node="remove"` deleted;
 `transport-backend-cct` is excluded from billing in the same commit, with the R8 `-dontwarn` for
 `com.google.android.datatransport.cct.**` (ADR-0009, decision 12).
 
-**For emulators,** `app/src/debug/` adds a field on each side that takes the QR's text instead of a
-scan, and a field for an address and port instead of NSD, so a reading can be taken where a camera or
-a multicast cannot reach. Neither exists in the release build.
+**The Player's phone's QR** carries a content description naming its purpose, and *Copy the code*
+and *Share the code* beside it put the same payload, as one line of text, on the clipboard or in
+Android's share sheet (D10). Emulators pair through that text route too, so the debug build no
+longer needs a QR text field of its own.
+
+**For emulators,** `app/src/debug/` adds a field for an address and port instead of NSD, so a reading
+can be taken where a multicast cannot reach. It does not exist in the release build.
 
 ### Two questions this checkpoint answers first, with their verdicts written now
 
@@ -309,12 +330,19 @@ a multicast cannot reach. Neither exists in the release build.
 
 **Acceptance (C):**
 
-- Two emulators pair through the debug QR field; each shows the other as paired; a capture through a
+- Two emulators pair through the text route, the code copied on the Player's phone and pasted on
+  the camera (with `adb shell input text` where the two emulators share no clipboard); each shows
+  the other as paired; a capture through a
   debug button returns a Photo; a packet capture of the camera emulator (`emulator -tcpdump`) shows
   TLS records and no plaintext JPEG marker (`FF D8 FF`).
 - A third emulator running the app, unpaired, on the same virtual Wi-Fi: its connection to the camera
   fails the handshake, and a camera it advertises is not accepted by the Player's phone. Both visible
   in `adb logcat` under the link's tag.
+- **Both pairing routes with TalkBack on** (D10), on both phones: TalkBack reads the QR's content
+  description; *Copy the code* and *Share the code* are reachable and labelled, and the share sheet
+  opens with the one-line payload; pairing completes by the QR (on the real phones, R2) and by the
+  pasted text (on the emulators and on the real phones), each with TalkBack on throughout, and the
+  pins on both routes are the same kind of pin, read in `adb logcat` under the link's tag.
 - Unpairing on one side: the other's next handshake fails and it says *Pair again*.
 - Restarting either app, and turning the camera emulator's Wi-Fi off and on: the link comes back
   without pairing again.
@@ -386,8 +414,9 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
 - **The frame reader's bound**: a declared length over 16 MiB is refused before allocating, a
   truncated frame ends the connection, an unknown frame type ends it. Fails toward a peer crashing the
   app or exhausting its memory.
-- **The QR payload**: a wrong version, a malformed fingerprint or a short token is refused. Fails
-  toward pairing with garbage.
+- **The QR payload**, one parser for the scanned QR and the pasted text (D10): a wrong version, a
+  malformed fingerprint or a short token is refused; the pasted text's surrounding whitespace and line
+  breaks are trimmed, and a QR and its text give the same payload. Fails toward pairing with garbage.
 - **`PairingStoreTest`**: the pairing store's file is under `noBackupFilesDir`, never under `filesDir`,
   whose `datastore/` both backup rule files include whole. Fails toward a restored phone coming back
   in the camera role with stale pins. `BackupRulesTest` stays unchanged.
@@ -401,8 +430,8 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
   comment: B and C, with the permissions they describe.
 - `PLAN.md`'s *Asks* table: already carries the handheld `CAMERA` ask (D5), and marks phase 1's
   row as replaced by it from B, both from checkpoint 0.
-- `CLAUDE.md`'s and `README.md`'s *the photos never leave the phone*: C, which first declares
-  `INTERNET`.
+- `CLAUDE.md`'s, `README.md`'s and the public `docs/index.md`'s *the photos never leave the phone*:
+  C, which first declares `INTERNET`.
 - android-starter's `ui/support/SupportHandoff.kt`, whose comment says the app declares no `INTERNET`:
   a comment-only change there, synced in with `sync-support.py`, since synced files are never edited
   in the app.
@@ -435,7 +464,7 @@ only for readings that are not about the battery.
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | Gate A: the Board half of the bar per mount position | `uv run --directory ml darts-ml predict --run <shipped run> --manifest <position manifest>` then `evaluate --predictions <file> --manifest <position manifest>` | |
-| R2 | Pairing on the real phones: QR scanned at arm's length in room light, in how many tries | by hand, counted | |
+| R2 | Pairing on the real phones: QR scanned at arm's length in room light, in how many tries; and once by the shared text with TalkBack on both phones (D10) | by hand, counted | |
 | R3 | Tap to scored result, on the home Wi-Fi: median and worst of 20 | the debug timing line on the Player's phone | |
 | R4 | The Photo: the Board's long axis in px, and a Dart's Entry point sharp at 100% | the stored Photo, `adb exec-out run-as <id> cat files/photos/<uuid>.jpg > r4.jpg`, opened at 100% | |
 | R5 | Battery and heat on the spare, one hour unplugged, screen dimmed, camera bound, the `MulticastLock` held (Android 11). **Verdict now:** under 15% an hour → as designed; over → the camera is bound only while the Player's phone is connected, and opened per capture if still over | `adb shell dumpsys battery` at the start and the end | |
