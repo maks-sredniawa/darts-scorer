@@ -43,7 +43,8 @@ ART = Path(__file__).parent
 # Edit them; everything else is layout. Translate from the English, per docs/translator-brief.md.
 APP_NAME = "Darts Scorer"
 COPY = {
-    None: ("One line about your app", "Private  ·  Offline  ·  No ads  ·  Free"),
+    None: ("Photograph the board, check every dart", "Private  ·  Offline  ·  No ads  ·  Free"),
+    "pl": ("Sfotografuj tarczę, sprawdź każdą rzutkę", "Prywatnie  ·  Offline  ·  Bez reklam  ·  Za darmo"),
 }
 BACKGROUND = ART / "feature-background.png"
 W, H = 1024, 500
@@ -161,7 +162,7 @@ def render(out_file, tagline_text, features_text):
     draw_mark(base, cx=W - MARGIN - MARK_SIZE / 2, cy=MARK_CY, size=MARK_SIZE)
 
     d = ImageDraw.Draw(base)
-    wordmark = ImageFont.truetype(str(FONT_BOLD), 104 * S)
+    wordmark = ImageFont.truetype(str(FONT_BOLD), 80 * S)
     tagline = ImageFont.truetype(str(FONT_REG), 31 * S)
     features = ImageFont.truetype(str(FONT_REG), 25 * S)
 

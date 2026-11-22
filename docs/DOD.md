@@ -113,9 +113,9 @@ only on a model that met this phase's bar.
 - [x] **Replace the placeholder mark.** The Fan, drawn in code in `art/mark.py` (no concept image),
       provenance in `art/README.md`; launcher, monochrome, notification and Play icons regenerated.
       Chosen 2026-11-12 from three Fable options.
-- [ ] **Regenerate the feature graphic** with `make-feature-graphic.py` in Phase N: the template copy
-      runs into the new mark, so `play-feature-graphic.png` is still the template's, and
-      `play-metadata.py` uploads it.
+- [x] **Regenerate the feature graphic.** 2026-11-22, English and Polish, taglines
+      "Photograph the board, check every dart" and their Polish; the wordmark down to 80 px, as
+      Archery Scorer's, so the name clears the mark inside Play's crop.
 - [x] **Replace the placeholder domain.** Phase 0 (C) deleted the Items; the Visit screen is the
       home tab, empty until phase 1.
 - [x] **Rewrite `scripts/edge-to-edge.py`'s SCENES** against your screens. Phase 0 (C): the shell,
@@ -132,19 +132,22 @@ only on a model that met this phase's bar.
       receiving Gmail's *Send mail as* entry, confirmed. Send *Report a problem* from a non-Gmail
       account and check it lands outside Spam. One address everywhere — the listing's contact field
       and IARC's rating contact too; `ui/support/SupportConfig.kt` says why it lives on our own domain.
-- [ ] **Write the listing.** `docs/store-listing.md` — every heading in it is parsed by a script.
-      The Console's *Review* step then asks for the AI-generated assets declaration: the owner's to make.
+- [x] **Write the listing.** `docs/store-listing.md`, English and Polish, category *Sports*,
+      2026-11-22; both pasted into the Console as drafts. The AI-generated assets declaration, when
+      the Console's *Review* step asks for it, is the owner's to make.
 - [ ] **Capture the screenshots** with `scripts/screenshots.py` from a release-shaped build, in every
       listing language, into `art/play-screenshots/`. Play wants at least two before the first review.
+      **Waits for a better model** (owner, 2026-11-22): on the emulator the shipped run misread the
+      owner's board photos, missing visible Darts and finding one that was not there, so a shot of its
+      own reading would show it failing. `edge-to-edge.py` has no scored-Visit scene yet either.
 - [x] **Put the app on maksforge.com.** Its icon goes at `assets/icons/<repo>.webp` in
       maks-sredniawa/maks-sredniawa.github.io, which the app's own site loads, and the app goes on that home
       page. Replace `description` in `docs/_config.yml` too: it is the tagline under the app's name.
-- [ ] **Write the privacy policy** and confirm `maksforge.com/<repo>/privacy-policy`
-      serves it. Play requires a *hosted* URL, and an offline app has no server of its own.
-- [ ] **Answer the Console's App content pages and write [`play-app-content.md`](play-app-content.md)
-      in the same sitting** — the reasons are in front of you then and gone a week later. It moves in
-      the same commit as the privacy policy, every time. Re-read *Target audience* after the content
-      rating is submitted.
+- [x] **Write the privacy policy.** Live at `maksforge.com/darts-scorer/privacy-policy` since
+      2026-11-12; read against the App content answers on 2026-11-22 and still true.
+- [x] **Answer the Console's App content pages and write [`play-app-content.md`](play-app-content.md).**
+      All ten declarations answered 2026-11-22, each dated in that file; rating PEGI 3, ClassInd 14+.
+      Under managed publishing they wait in *Publishing overview*, unsent, for the first review.
 - [ ] **`LICENSE` and `README.md`.** Bootstrap wrote a source-available notice and a *Contributing*
       that refuses pull requests, or with `--licence reserved` a notice that grants nothing and a
       placeholder. Keep both or replace both; they must agree.
@@ -179,7 +182,8 @@ ADR-0007. The code is in; these are the parts only Play and a phone can prove. T
       and the *same* tip bought again — the second purchase is the proof that the first was consumed.
 - [ ] **The debug build shows no tip section and no card.** Play has never heard of the `.debug`
       package, so absent is the correct reading, not a failure.
-- [ ] **Content rating re-submitted** with *digital purchases* Yes, before production.
+- [x] **Content rating submitted** with *digital purchases* Yes, 2026-11-22: ClassInd 14+, the rest 3+
+      or Everyone ([`play-app-content.md`](play-app-content.md)).
 
 ## Before the next upload
 
