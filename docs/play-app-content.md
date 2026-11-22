@@ -5,17 +5,6 @@ fact that would change it**. The Console shows what was answered but never why, 
 when the app changes, when the questionnaire changes, and once a year. A re-declaration made from
 memory a year from now is how a true answer turns false.
 
-<!--
-    A template with real structure. Every section below is a page the Console will make you answer
-    before a closed release, and the answers are pre-filled for the template *as shipped*: no
-    network, no account, no ads, photos on the device. Delete what your app does not have,
-    re-reason what it adds, and date every answer the day you give it in the Console.
-
-    The first app built from this template wrote this file in its fifth phase, after `DOD.md` had
-    carried it as owed since before the first upload. Writing it while you fill in the Console is
-    cheaper: the reasons are in front of you then, and gone a week later.
--->
-
 Two rules keep this file honest:
 
 - **The privacy policy and the Data safety form describe the same facts to two audiences**, and Play
@@ -28,9 +17,10 @@ Two rules keep this file honest:
 
 ## What the artifact carries
 
-Read at **versionCode _, versionName _** by `publish-play.yml`'s verify step on _<date>_:
+Read at **versionCode 206, versionName 0.2.0** by `publish-play.yml`'s verify step on 2026-11-22
+([run](https://github.com/maks-sredniawa/darts-scorer/actions/runs/45054439048)):
 
-> _paste the summary line `aab-permissions.py` prints_
+> 3 permissions, all accounted for; none of the 6 forbidden ones present; 0 <uses-feature> declared; 0 of the 4 activities lock their orientation, every one of them expected
 
 | Permission | Whose | What it is for | Console consequence |
 | --- | --- | --- | --- |
@@ -50,21 +40,22 @@ safety and advertising-ID answers rest on.
 
 ## Ads
 
-**No.** Answered _<date>_.
+**No.** Answered 2026-11-22.
 
 Would change: any ad SDK, ever. `AD_ID` absent from the artifact is the check that would catch one
 arriving through a dependency.
 
 ## App access
 
-**All functionality is available without special access.** Answered _<date>_. The Console now calls
-this page *Sign-in details*.
+**All functionality is available without special access.** Answered 2026-11-22. The Console now calls
+this page *Sign-in details*, and asks *Is any part of your app restricted?*: **No**. Its Yes option
+names payments such as one-time products; the tip unlocks nothing, so it restricts nothing.
 
 There is no account and no sign-in. Would change: a feature behind a login.
 
 ## Content rating
 
-**The IARC questionnaire.** Answered _<date>_, category _<category>_, rating contact
+**The IARC questionnaire.** Answered 2026-11-22, category *All other app types*, rating contact
 `darts-scorer.support@maksforge.com` — the listing's address, so there is one address to keep alive, not two. Every
 question answered No gives Everyone (ESRB) and PEGI 3.
 
@@ -79,6 +70,10 @@ at PEGI 3, ESRB Everyone, USK 0 and 3+ elsewhere, with an *In-app purchases* not
 ClassInd at 14+**, which it gives any app selling digital goods. Expect the same, and decide before
 submitting that a tip is worth it; deleting the tip is the only answer that keeps Brazil at L.
 
+**Result, 2026-11-22:** PEGI 3, ESRB Everyone, USK all ages, IARC 3+, Google Play 3+ and ClassInd 14+,
+each with *In-app purchases* as the interactive element and no content descriptors. Every question was
+No except *purchase digital goods* (Yes) and its loot-box follow-up (No).
+
 In the Console the questionnaire shows one section at a time, and *Next* stays disabled until
 *Save* has been pressed. With managed publishing off, saving the summary sends it for review at once.
 
@@ -89,7 +84,8 @@ Play's surface rather than the app's.
 
 ## Target audience and content
 
-**18 and over** _(or your answer)_. Answered _<date>_.
+**18 and over.** Answered 2026-11-22. *Restrict users that Google has determined to be minors* left
+unticked. Re-read after the rating was submitted: no band blocked, nothing flagged.
 
 Would change: lowering it. Any age band under 18 brings in the Families policy and its design and
 SDK requirements.
@@ -100,7 +96,8 @@ higher"* before any rating existed.
 
 ## Government, financial and health features
 
-**No to all three** _(or your answer)_. Answered _<date>_.
+**No to all three.** Answered 2026-11-22: not developed by or on behalf of a government, *My app
+doesn't provide any financial features*, *My app does not have any health features*.
 
 Health is the one to guard, for an app anywhere near wellbeing. **Keep health claims out of the
 listing, the site and the tags** — Play's enforcement has treated a linked page as part of the
@@ -108,7 +105,9 @@ listing. Would change: copy or a tag that sells the app as good for you.
 
 ## Data safety
 
-**No data collected. No data shared.** Answered _<date>_ against versionCode _.
+**No data collected. No data shared.** Answered 2026-11-22 against versionCode 206: *Does your app
+collect or share any of the required user data types?* **No**, which skips every later step. No
+badge claimed.
 
 Play's definitions, from its Data safety help page (support.google.com, answer 10787469) — re-read
 them at each re-declaration rather than trusting this quote:
@@ -158,7 +157,7 @@ Would change any of it:
 ## Advertising ID
 
 **No.** The artifact carries no `com.google.android.gms.permission.AD_ID`, and `aab-permissions.py`
-forbids it. Answered _<date>_.
+forbids it. Answered 2026-11-22.
 
 ## Foreground service permissions
 
@@ -173,12 +172,15 @@ captures no audio, so say so in the declaration if the service's job is a sound.
 
 ## Store settings (not App content, recorded here because it is asked for the same reason)
 
-- **Category:** _<category>_, and why not the obvious neighbour.
-- **Tags:** _<tags>_.
-- **Contact email:** `darts-scorer.support@maksforge.com`, public on the listing and the same address
+- **Category:** *Sports*, set 2026-11-22 — a tool for one sport's scoring, not a general utility, so
+  not *Tools*.
+- **Tags:** none.
+- **Contact email:** `darts-scorer.support@maksforge.com`, set 2026-11-22 with the website
+  `https://maksforge.com/darts-scorer/`. The Console's contact dialog offers only *Save and publish*,
+  so these went live at once rather than with a review. Public on the listing and the same address
   `ui/support/SupportConfig.kt` compiles in. The Console field changes without a release; the app's copy needs
   one.
-- **Privacy policy:** `https://maksforge.com/darts-scorer/privacy-policy`, served from `docs/` by
+- **Privacy policy:** `https://maksforge.com/darts-scorer/privacy-policy`, set 2026-11-22, served from `docs/` by
   maksforge.com. It updates within about 15 minutes of a merge to `main`, with no release, which is why it has to be right before the
   app it describes ships rather than after.
 
@@ -250,6 +252,11 @@ because the policy text and its enforcement disagree.
   then is a tip on the repository alone, with the listing's Website field and full description kept
   off it. A Play Billing consumable is the unambiguous alternative, at the cost of a billing
   dependency, Google's cut, and an *in-app purchases* badge on the listing.
+
+⚠ The listing's *Website*, `maksforge.com/darts-scorer/`, and the privacy policy are drawn by
+`maks-sredniawa/pages-theme`, whose layout carries a *Like what I make?* block with Buy me a coffee and
+PayPal links on every page. Accepted: the live siblings, Gloam and Binky, passed review with the same
+theme. If a reviewer cites it, the fix goes in the theme, as a per-site opt-out, not in this app.
 
 Region carve-outs (US external links since October 2025, the EEA's external-offers program) do not
 help: both are fee programs with reporting obligations, which is not a serious route for occasional
