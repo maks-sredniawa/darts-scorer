@@ -289,7 +289,8 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   sit 72 dp straight above the finger (2026-11-22; until then it stayed under the finger, which hid
   it) and from then on moves with the finger at that offset, so the Entry point is never under the
   hand. The rise alone moves nothing: a release within touch slop puts the ring back. The ring never
-  leaves the Photo (2026-11-22): its centre is held one ring radius inside every edge, so within 72 dp
+  leaves the Photo (2026-11-22): its centre is held one ring radius inside every edge, or less where the Board's rim lies
+  closer to that edge (a tightly framed or zoomed Photo), so every bed stays reachable; within 72 dp
   of the top the lift shortens and the ring waits at the edge while the finger closes in beneath it;
   it is neither flipped nor tilted. The drop is the point drawn. The finger may leave the Photo to
   reach its bottom. While held it is drawn as a
