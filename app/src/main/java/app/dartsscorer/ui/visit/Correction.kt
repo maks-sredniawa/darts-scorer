@@ -77,8 +77,17 @@ object Correction {
 
     fun canAdd(darts: List<ShownDart>): Boolean = darts.size < MOST_DARTS
 
+    /** A tap on the Photo can place a Dart while there is room, or a filled Miss to take over. */
+    fun canPlace(darts: List<ShownDart>): Boolean = canAdd(darts) || darts.any { it.filled }
+
+    /** Up to three, each Dart the model did not find a Miss to check (phase-1.md §3, *Fewer than three found*). */
+    fun withMisses(darts: List<ShownDart>): List<ShownDart> =
+        (darts + freeNumbers(darts).map { ShownDart(it, null, Score.MISS, unsure = true, filled = true) })
+            .sortedBy { it.number }
+
     /**
-     * [keypad]'s Score committed: a new Dart takes the lowest free number; a changed one moves to its
+     * [keypad]'s Score committed: a new Dart takes the lowest free number, or a filled Miss's place when
+     * none is free; a changed one moves to its
      * bed's centre, or stays where it was or was tapped when it is a Miss, and is drawn as a badge
      * alone; the same Score only confirms it. Either way it is no longer unsure. Unchanged when
      * nothing is picked.
@@ -95,11 +104,20 @@ object Correction {
         val committed =
             when {
                 existing == null -> {
-                    if (!canAdd(darts)) return darts
-                    ShownDart(freeNumber(darts), placed, score, corrected = true)
+                    if (!canPlace(darts)) return darts
+                    val number = freeNumbers(darts).firstOrNull() ?: darts.last { it.filled }.number
+                    ShownDart(number, placed, score, corrected = true)
                 }
-                existing.score == score -> existing.copy(unsure = false)
-                else -> existing.copy(at = placed, score = score, unsure = false, corrected = true, moved = false)
+                existing.score == score -> existing.copy(unsure = false, filled = false)
+                else ->
+                    existing.copy(
+                        at = placed,
+                        score = score,
+                        unsure = false,
+                        corrected = true,
+                        moved = false,
+                        filled = false,
+                    )
             }
         return (darts.filter { it.number != committed.number } + committed).sortedBy { it.number }
     }
@@ -157,7 +175,13 @@ object Correction {
         removed: Int,
     ): VisitFocus = darts.firstOrNull { it.number > removed }?.let { VisitFocus.Chip(it.number) } ?: VisitFocus.AddDart
 
-    private fun freeNumber(darts: List<ShownDart>): Int = (1..MOST_DARTS).first { n -> darts.none { it.number == n } }
+    private fun freeNumbers(darts: List<ShownDart>): List<Int> =
+        (1..MOST_DARTS).filter { n ->
+            darts.none {
+                it.number ==
+                    n
+            }
+        }
 }
 
 sealed interface VisitFocus {

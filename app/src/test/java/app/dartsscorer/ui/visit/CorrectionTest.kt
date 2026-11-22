@@ -111,6 +111,34 @@ class CorrectionTest {
     }
 
     @Test
+    fun `a Visit is made up to three Darts with Misses to check, and a full one is left alone`() {
+        val one = listOf(ShownDart(1, Point(400.0, 194.0), Score(Ring.TREBLE, 20)))
+        val filled = Correction.withMisses(one)
+        assertEquals(listOf(1, 2, 3), filled.map { it.number })
+        assertEquals(60, filled.total)
+        assertTrue(filled.drop(1).all { it.score == Score.MISS && it.unsure && it.filled && it.at == null })
+        assertEquals(3, Correction.withMisses(emptyList()).count { it.filled })
+        val three = one + listOf(ShownDart(2, null, Score(Ring.SINGLE, 1)), ShownDart(3, null, Score(Ring.SINGLE, 5)))
+        assertEquals(three, Correction.withMisses(three))
+    }
+
+    @Test
+    fun `a placed Dart takes a filled Miss's place, and a confirmed Miss is no longer one to take`() {
+        val darts = Correction.withMisses(listOf(ShownDart(1, null, Score(Ring.SINGLE, 1))))
+        assertFalse(Correction.canAdd(darts))
+        assertTrue(Correction.canPlace(darts))
+        val placed = Correction.commit(darts, Keypad(dart = null).withNumber(20), null)
+        assertEquals(listOf(1, 2, 3), placed.map { it.number })
+        assertEquals(Score(Ring.SINGLE, 20), placed.single { it.number == 3 }.score)
+        assertEquals(1, placed.count { it.filled })
+        val confirmed = Correction.commit(placed, Keypad.showing(2, Score.MISS, null), null)
+        assertFalse(confirmed.single { it.number == 2 }.filled)
+        assertFalse(confirmed.single { it.number == 2 }.unsure)
+        assertFalse(Correction.canPlace(confirmed))
+        assertEquals(confirmed, Correction.commit(confirmed, Keypad(dart = null).withNumber(5), null))
+    }
+
+    @Test
     fun `a tap is read through the homography into the bed under it`() {
         val keypad = Correction.openAt(Point(400.0 + 2 * 12.0, 400.0), BOARD)
         assertEquals(Score.OUTER_BULL, keypad.score)

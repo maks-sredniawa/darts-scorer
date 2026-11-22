@@ -311,10 +311,15 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   Photo, which preselects the bed under the finger through the homography.
 - **Removing a Dart:** *Remove Dart* in the sheet, with *Undo*. It is not *Miss*: a Miss is a thrown
   Dart that scored 0, a removed one was never there.
-- **Fewer than three found** is a legitimate Visit and says nothing. More than three cannot come
-  back: the ported pipeline keeps at most `MOST_ENTRIES` (3), and A holds it to that. A later model
-  that changes `MOST_ENTRIES` brings its own state for more.
-- **Board found, no Darts:** Score 0, *No Darts found*, and *Add a Dart*. Not an error.
+- **Fewer than three found** is made up to three with Misses (2026-11-22; until then it was shown
+  as found and said nothing). A Visit is three Darts, so a Dart the model did not find counts 0
+  rather than vanishing: each filled Miss has a chip, no marker, and is flagged *Check*, since an
+  unfound Dart is as often hidden behind another as off the Board. *Done* on it confirms the Miss;
+  a tap on the Photo, which proposes a new Dart, takes the last filled Miss's place instead of
+  needing room; *Remove Dart* still drops one for a Visit that really had fewer (a checkout). More
+  than three cannot come back: the ported pipeline keeps at most `MOST_ENTRIES` (3), and A holds it
+  to that. A later model that changes `MOST_ENTRIES` brings its own state for more.
+- **Board found, no Darts:** three filled Misses, Score 0, and *No Darts found*. Not an error.
 - **No Board found:** the whole Photo with no markers, a warning banner with one hint (the whole
   Board in the frame, more light), and *Take another Photo*, *Choose a Photo*, *Enter the Score
   yourself* (D6).

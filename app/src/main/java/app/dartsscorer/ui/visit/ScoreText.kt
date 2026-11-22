@@ -37,7 +37,7 @@ internal fun Resources.chipDescription(dart: ShownDart): String {
 /** What TalkBack reads for a result: the Score, the Darts, then which are unsure. */
 internal fun Resources.summary(result: VisitPhase.Shown): String {
     val darts =
-        if (result.darts.isEmpty()) {
+        if (result.darts.all { it.filled }) {
             getString(R.string.visit_summary_no_darts)
         } else {
             val spoken = result.darts.joinToString(", ") { spokenName(it.score) }

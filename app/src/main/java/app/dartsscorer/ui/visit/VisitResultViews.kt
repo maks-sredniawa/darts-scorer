@@ -314,7 +314,7 @@ internal fun ShownDetails(
             style = MaterialTheme.typography.bodyLarge,
         )
     }
-    if (shown is VisitPhase.Scored && shown.darts.isEmpty()) {
+    if (shown is VisitPhase.Scored && shown.darts.all { it.filled }) {
         Text(
             text = stringResource(R.string.visit_no_darts),
             style = MaterialTheme.typography.bodyLarge,
