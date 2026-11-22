@@ -197,7 +197,7 @@ under `com.maksforge.dartsscorer`, secrets, and a green internal upload of the s
 
 | Ask | When | Owner |
 | --- | --- | --- |
-| Camera (through the system camera, so no `CAMERA` permission) | the first tap on *Take a photo* | phase 1 |
+| Camera (through the system camera, so no `CAMERA` permission); replaced by phase G's handheld `CAMERA` row below once its checkpoint B ships | the first tap on *Take a photo* | phase 1 |
 | Sending a photo to train the model (off by default) | when the player first chooses to send one, then for each photo | phase S |
 | Camera, for the Mounted camera's own captures (`CAMERA`) | the first tap on *Use this phone as the mounted camera* | phase G |
 | Camera, for the handheld *Take a Photo*, once `CAMERA` is declared (`phase-G.md` D5); denied, the Photo Picker stays | the first tap on *Take a Photo* | phase G |

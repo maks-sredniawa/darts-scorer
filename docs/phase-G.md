@@ -175,7 +175,8 @@ a player who sets none up meets none of it.
 **What moves with the code instead**, because it describes the artifact rather than the app:
 
 - **`scripts/aab-permissions.py`**: `CAMERA` to `EXPECTED` and both camera features into
-  `EXPECTED_FEATURES` at `False` in B; `INTERNET` to `EXPECTED`, the `backend:` meta-data check, and
+  `EXPECTED_FEATURES` at `False` in B; `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE` to `EXPECTED`,
+  the `backend:` meta-data check, and
   `FORBIDDEN` gaining `NEARBY_WIFI_DEVICES`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`,
   `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_LOCAL_NETWORK` (until target
   SDK 37) and `FOREGROUND_SERVICE_CAMERA` in C. Its docstring and comments come in line with each.
@@ -183,6 +184,8 @@ a player who sets none up meets none of it.
 - **`CLAUDE.md`**: the camera row (*`TakePicture` for the handheld path; CameraX for the Mounted
   camera, ADR-0009*) in B; the billing row (*`INTERNET` kept, its logging backend excluded*) and a row
   for the link in C.
+- **`CLAUDE.md`'s and `README.md`'s *the photos never leave the phone***, rewritten in C to *the
+  player's own phones*, with the Mounted camera named beside phase S (ADR-0008's amendment).
 - **The manifest's comment** on `INTERNET`, rewritten for the local link, in C.
 
 **Acceptance (E):** the policy and the listing read against ADR-0009's decisions 11 to 13 and
@@ -247,13 +250,16 @@ link arrives in C.
 
 **The screen.** `FLAG_KEEP_SCREEN_ON` while the screen is in front; after 30 s without a touch the
 preview hides and the window's brightness drops to its lowest, leaving a status line that shifts
-position every minute; a touch restores both (ADR-0009, decision 10). No lock on orientation: the
+position every minute; a touch restores both (ADR-0009, decision 10). That status line (*Waiting for
+your phone*, *Connected*) is a polite live region (`LiveRegionMode.Polite`), so TalkBack announces
+each change without a touch, dimmed or not. No lock on orientation: the
 Photo's rotation is baked in from the display's, so a phone mounted sideways sends an upright Photo.
 
 **The handheld path (D5).** The first *Take a Photo* on any phone asks for `CAMERA` with a
 line of rationale; granted, `TakePicture` runs as today; denied, phase 1's *No camera app* banner
-becomes *Camera not allowed* with a way to the system settings, and the Picker stays. Phase 1's ask
-table in `PLAN.md` is amended in B.
+becomes *Camera not allowed* with a way to the system settings, and the Picker stays. `PLAN.md`'s
+*Asks* table carries this row from checkpoint 0, with phase 1's *no `CAMERA` permission* row marked
+as replaced by it once B ships.
 
 **Acceptance (B):**
 
@@ -269,15 +275,19 @@ table in `PLAN.md` is amended in B.
   `required="false"`, nothing else new. A merged permission from CameraX fails it, and is decided then.
 - On the Redmi Note 8 Pro (D9): the preview, a capture, and the default camera being the main lens,
   not its ultra-wide or macro.
+- TalkBack on the camera screen announces *Waiting for your phone* and, in C, *Connected* as each
+  appears, with focus left where it was.
 
 ## 4. The link and pairing (C)
 
 **Shape.** ADR-0009, decisions 2 to 4: an EC P-256 Keystore key per phone; the Mounted camera
 registers `_dartsscorer._tcp` and listens on TLS; the Player's phone shows the QR, the camera scans
 it, the Player's phone connects in pairing mode, checks the MAC and pins; from then on, mutual TLS
-pinned both ways, the five frame types, `PING` every 5 s. `INTERNET` is declared in the manifest and
-its `tools:node="remove"` deleted; `transport-backend-cct` is excluded from billing in the same
-commit (ADR-0009, decision 12).
+pinned both ways, the five frame types, `PING` every 5 s. On Android 12 and below each side holds a
+`MulticastLock` while NSD runs (ADR-0009, decision 2). `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE`
+are declared in the manifest and `INTERNET`'s `tools:node="remove"` deleted;
+`transport-backend-cct` is excluded from billing in the same commit, with the R8 `-dontwarn` for
+`com.google.android.datatransport.cct.**` (ADR-0009, decision 12).
 
 **For emulators,** `app/src/debug/` adds a field on each side that takes the QR's text instead of a
 scan, and a field for an address and port instead of NSD, so a reading can be taken where a camera or
@@ -310,8 +320,17 @@ a multicast cannot reach. Neither exists in the release build.
   without pairing again.
 - A backup and restore (`adb shell bmgr backupnow` and `bmgr restore`) brings back the preferences
   and no pairing: the restored app is unpaired and says so.
-- `aab-permissions.py`: `INTERNET` expected; no `backend:` meta-data entry; `NEARBY_WIFI_DEVICES`,
-  location and Bluetooth absent.
+- On `urgent-api26` as the Mounted camera, with `pixel-api36` as the Player's phone, and then the
+  other way round: the camera is found by NSD with the `MulticastLock` held (its acquire and release
+  in `adb logcat` under the link's tag). On the Redmi (Android 11) the same in R2, where a missing
+  lock would show as *Camera not found*. If
+  `urgent-api26` does not join the shared Wi-Fi (the NSD question's verdict 2), the lock is read on
+  the Redmi alone.
+- `aab-permissions.py`: `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE` expected; no `backend:`
+  meta-data entry; `NEARBY_WIFI_DEVICES`, location and Bluetooth absent.
+- `./gradlew assembleDebug -PreleaseShapedDebug` and `bundleRelease` build with the exclusion (R8
+  finds no missing class), and on that build the tip's first billing call logs `BillingLogger`'s
+  *Skipping logging since initialization failed.* in `adb logcat`.
 - The tip, on the first internal-track build carrying the exclusion: prices load and the purchase
   sheet opens (R7).
 
@@ -323,10 +342,16 @@ arrives; then the Photo goes through `MediaFiles` and phase 1's two passes, unch
 failures as ADR-0009, decision 8. *Next Visit* with a Mounted camera paired does not open the system
 camera: the player taps the button they want.
 
+**Announced, not only shown** (WCAG 2.2, 4.1.3 Status Messages). The state chip (*Looking for the
+camera*, *Connected*, *Camera not found*) and *Taking the Photo…* are polite live regions
+(`LiveRegionMode.Polite`); the failure line is assertive (`LiveRegionMode.Assertive`). While a
+capture is in flight the button stays enabled, with *Taking the Photo…* as its state description, and
+ignores a second tap, so TalkBack's focus never sits on a control that has just been disabled.
+
 | Moment | What the player sees |
 | --- | --- |
 | Visit screen opens, camera paired | the state chip: *Looking for the camera*, then *Connected* or *Camera not found* |
-| *Take with the mounted camera* | *Taking the Photo…*; the button disabled until it returns or fails |
+| *Take with the mounted camera* | *Taking the Photo…*; the button ignores taps, still focusable, until it returns or fails |
 | Photo arrives | phase 1's *Reading the Photo…*, then the result |
 | No reply in 10 s, link lost, or `ERROR` | the reason in one line, *Try again*, and *Take a Photo* and the Picker as always |
 | *Camera not found* | *Is the camera on the same Wi-Fi, with its screen open? Guest networks can keep phones apart; your phone's hotspot works instead* |
@@ -340,7 +365,10 @@ camera: the player taps the button they want.
   works.
 - Process death on the Player's phone during *Taking the Photo…* (`adb shell am kill` with the app in
   the background): no crash on return, and no half-written Photo left after the sweep.
-- TalkBack reads the state chip and the button's disabled state.
+- TalkBack, on both phones, announces each state as it appears without moving focus: *Looking for
+  the camera*, *Connected*, *Camera not found* and *Taking the Photo…* politely, the failure line
+  assertively, on the Player's phone; *Waiting for your phone* and *Connected* on the camera screen.
+  Focus stays on *Take with the mounted camera* through a capture, and it reads *Taking the Photo…*.
 - On the two real phones: R2 to R6.
 
 ---
@@ -360,8 +388,9 @@ camera: the player taps the button they want.
   app or exhausting its memory.
 - **The QR payload**: a wrong version, a malformed fingerprint or a short token is refused. Fails
   toward pairing with garbage.
-- **`BackupRulesTest`**, unchanged, already fails if the pairing store's file is ever named in a
-  backup rule.
+- **`PairingStoreTest`**: the pairing store's file is under `noBackupFilesDir`, never under `filesDir`,
+  whose `datastore/` both backup rule files include whole. Fails toward a restored phone coming back
+  in the camera role with stale pins. `BackupRulesTest` stays unchanged.
 
 ## Documents this phase amends
 
@@ -370,7 +399,10 @@ camera: the player taps the button they want.
 - The privacy policy, `play-app-content.md`'s prose and `store-listing.md`: E, before B.
 - `aab-permissions.py`, `play-app-content.md`'s artifact table, `CLAUDE.md` and the manifest's
   comment: B and C, with the permissions they describe.
-- `PLAN.md`'s *Asks* table: already carries the handheld `CAMERA` ask (D5), from checkpoint 0.
+- `PLAN.md`'s *Asks* table: already carries the handheld `CAMERA` ask (D5), and marks phase 1's
+  row as replaced by it from B, both from checkpoint 0.
+- `CLAUDE.md`'s and `README.md`'s *the photos never leave the phone*: C, which first declares
+  `INTERNET`.
 - android-starter's `ui/support/SupportHandoff.kt`, whose comment says the app declares no `INTERNET`:
   a comment-only change there, synced in with `sync-support.py`, since synced files are never edited
   in the app.
@@ -406,7 +438,7 @@ only for readings that are not about the battery.
 | R2 | Pairing on the real phones: QR scanned at arm's length in room light, in how many tries | by hand, counted | |
 | R3 | Tap to scored result, on the home Wi-Fi: median and worst of 20 | the debug timing line on the Player's phone | |
 | R4 | The Photo: the Board's long axis in px, and a Dart's Entry point sharp at 100% | the stored Photo, `adb exec-out run-as <id> cat files/photos/<uuid>.jpg > r4.jpg`, opened at 100% | |
-| R5 | Battery and heat on the spare, one hour unplugged, screen dimmed, camera bound. **Verdict now:** under 15% an hour → as designed; over → the camera is bound only while the Player's phone is connected, and opened per capture if still over | `adb shell dumpsys battery` at the start and the end | |
+| R5 | Battery and heat on the spare, one hour unplugged, screen dimmed, camera bound, the `MulticastLock` held (Android 11). **Verdict now:** under 15% an hour → as designed; over → the camera is bound only while the Player's phone is connected, and opened per capture if still over | `adb shell dumpsys battery` at the start and the end | |
 | R6 | The link through the Player's phone's own hotspot, no router | by hand, a capture scored | |
 | R7 | The tip with `transport-backend-cct` excluded: prices and the purchase sheet, on the internal-track build | by hand on the owner's phone | |
 | R8 | The Darts half of the bar from the mount position, when the owner can throw again | `darts-ml predict` and `evaluate` on Visits taken with the Mounted camera | |
