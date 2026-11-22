@@ -2,8 +2,8 @@
 
 Written 2026-11-22, before any code of phase G ([`phase-G.md`](../phase-G.md)). The owner decided
 the camera, the permissions and the order on 2026-11-22, and the same day the handheld `CAMERA` ask,
-when the paperwork merges and the Data safety answer (`phase-G.md` D1 to D9); those are recorded as
-decided. Every other point below was recommended here and is decided as written when the pull request
+when the paperwork merges and the Data safety answer (`phase-G.md` D1 to D9), and on 2026-11-23 a
+second pairing route beside the QR (decision 4, `phase-G.md` D10); those are recorded as decided. Every other point below was recommended here and is decided as written when the pull request
 that carries this ADR merges.
 
 ## Context
@@ -14,9 +14,9 @@ default.
 
 Three constraints shape it:
 
-- **The photos never leave the phone** (`CLAUDE.md`, `README.md`), with phase S's opt-in as the
-  only planned exception. A Mounted camera widens that to *the player's own phones* (ADR-0008's
-  amendment), and both sentences are rewritten to say so (*Consequences*). There is no server, and
+- **The photos never leave the phone** (`CLAUDE.md`, `README.md`, `docs/index.md`), with phase S's
+  opt-in as the only planned exception. A Mounted camera widens that to *the player's own phones*
+  (ADR-0008's amendment), and all three are rewritten to say so (*Consequences*). There is no server, and
   there will be none for this.
 - **The app has no network today.** `INTERNET` is removed from the merged manifest, and
   `scripts/aab-permissions.py` forbids it, because the privacy policy and the Data safety answers
@@ -79,8 +79,9 @@ discovers and resolves with `NsdManager`.
 
 - Both phones are on the same Wi-Fi. With no Wi-Fi at the Board, the Player's phone's own hotspot is
   that network: the Mounted camera joins it like any Wi-Fi, and no code changes.
-- **A `WifiManager.MulticastLock` is held while NSD runs on Android 12 and below.** The `NsdManager`
-  reference (*Wi-Fi Multicast Lock*, read 2026-11-23): before T extensions 7, *"Apps must manually
+- **A `WifiManager.MulticastLock` is held while NSD runs below T extensions 7**, which is not the
+  same as *Android 12 and below*: T extensions arrive through Google Play system updates, so the
+  Android version alone does not tell, and the check below reads them. The `NsdManager` reference (*Wi-Fi Multicast Lock*, read 2026-11-23): before T extensions 7, *"Apps must manually
   acquire a `WifiManager.MulticastLock` to receive mDNS packets, even when the app is in the
   foreground"*; from T extensions 7 the system does it for a foreground app. Without the lock, the
   Mounted camera on D9's Android 11 phone would not hear the queries it has to answer. So when
@@ -120,7 +121,7 @@ either end:
   what stands where the forbidden `INTERNET` stood: the permission now exists, so the guard on where
   the app talks is the code's.
 
-### 4. Pairing and trust: a QR on the Player's phone, mutual TLS pinned to both phones
+### 4. Pairing and trust: a QR on the Player's phone or its text, mutual TLS pinned to both phones
 
 A stranger's phone on the same Wi-Fi must neither trigger a capture nor read a Photo, and nothing on
 the LAN may read a Photo in transit.
@@ -131,8 +132,23 @@ the LAN may read a Photo in transit.
 - **The Player's phone shows a QR** on its *Add a mounted camera* screen: a protocol version, its own
   certificate's SHA-256 fingerprint and a fresh 128-bit pairing token. The token exists in memory
   only, while that screen is open, and is used once.
+- **The QR has a content description** naming what it is for (*Pairing code for your mounted
+  camera. Copy or share it as text if you cannot scan it*), so TalkBack reads its purpose
+  (WCAG 2.2, 1.1.1 Non-text Content).
 - **The Mounted camera scans it** with the camera it already has (decision 9), pins the Player's
   phone's fingerprint and starts advertising.
+- **Or the player pastes the same payload as text** (the owner's decision, 2026-11-23, `phase-G.md`
+  D10). Beside the QR, the Player's phone offers *Copy the code* and *Share the code* (Android's
+  share sheet); the camera screen has a *Paste a pairing code* field. The text is the QR's own
+  payload, one line, parsed by the same function, so the fingerprint, the 128-bit token, the proof
+  below and the pins are the same on both routes, and nothing in the TLS pinning or the HMAC binding
+  changes. This is the route for a player who cannot see or frame the QR, or cannot hold one phone
+  steady in front of the other. What differs is only where the token travels: a shared code passes
+  through the app the player shares it with. It is still used once and forgotten when the *Add a
+  mounted camera* screen closes, and whoever reads it in that time can at most pose as the camera to
+  the Player's phone, on the same Wi-Fi, before the real one answers. That never yields a Photo,
+  since Photos flow from the camera and the real camera's pin is unchanged, and it shows: the real
+  camera stays on *Waiting for your phone* while the Player's phone reports a camera paired.
 - **The Player's phone connects in pairing mode**: it presents its own certificate, accepts the
   camera's certificate for this one connection, sends a random nonce, and gets back
   `HMAC-SHA256(token, "pair" ‖ nonce ‖ camera fingerprint ‖ player fingerprint)`, the camera
@@ -204,10 +220,10 @@ rectilinear, and most phones already correct what is left in their still pipelin
 ### 9. Choosing the role: a Settings row, then a screen of its own
 
 - Settings gains **Mounted camera**, opening a screen with two choices: *Add a mounted camera*
-  (this is the Player's phone: shows the QR, lists the paired camera, unpairs it) and *Use this phone
-  as the mounted camera*.
+  (this is the Player's phone: shows the QR and offers its text, lists the paired camera, unpairs
+  it) and *Use this phone as the mounted camera*.
 - The second asks for `CAMERA`, opens a full-screen camera screen with a preview for aiming, and
-  scans the QR there. The role is stored (by enum name, in the store of decision 4), so a phone left
+  scans the QR there, or takes its text in the paste field. The role is stored (by enum name, in the store of decision 4), so a phone left
   in the camera role opens straight into that screen until *Stop being a camera* is pressed.
 - Nothing changes for a player who never opens the row, apart from decision 11.
 
@@ -232,7 +248,7 @@ rectilinear, and most phones already correct what is left in their still pipelin
 | `CAMERA` | runtime, API 26–36 | the Mounted camera; and, see below, the handheld path | at *Use this phone as the mounted camera*; and at the first *Take a Photo* |
 | `ACCESS_LOCAL_NETWORK` | runtime, *Nearby devices* group, only when targeting API 37 | both | **not declared at target SDK 36**, as Google's guidance says; the target-SDK bump that reaches 37 owes its ask, on both phones, at pairing |
 | `NEARBY_WIFI_DEVICES`, `ACCESS_FINE_LOCATION`, `BLUETOOTH_*` | runtime | — | never: forbidden in `aab-permissions.py` |
-| `CHANGE_WIFI_MULTICAST_STATE` | normal, granted at install, API 26–36 | both; the lock is taken only on Android 12 and below (decision 2) | never |
+| `CHANGE_WIFI_MULTICAST_STATE` | normal, granted at install, API 26–36 | both; the lock is taken only when `SDK_INT < 30` or T extensions are below 7 (decision 2) | never |
 | `WAKE_LOCK`, `FOREGROUND_SERVICE*` | normal | — | never: not declared |
 
 - **`<uses-feature>` for the camera is declared, at `required="false"`**, for both
@@ -332,7 +348,10 @@ ADR-0007 gains a dated amendment saying so.
 - **A short code typed on one phone.** Six digits are 20 bits: an HMAC under them can be broken
   offline by anyone who recorded the exchange, so it needs a password-authenticated key exchange
   (SPAKE2, J-PAKE), which means a crypto library and protocol code to get right. The QR carries 128
-  bits and needs neither.
+  bits and needs neither, and so does its text (decision 4), which is pasted, never typed.
+- **Pairing by the QR alone, recorded as visual-only.** Simpler by one field and two buttons, but it
+  leaves a player who cannot see or frame the QR no way to set up the Mounted camera. The owner
+  chose the text route beside it on 2026-11-23.
 - **The QR shown on the Mounted camera, scanned by the Player's phone.** The Player's phone has no
   camera of its own in the app (it uses the system camera), so it would photograph the QR through
   `TakePicture` and decode the still: a clumsier step, on the phone the player holds.
@@ -368,13 +387,16 @@ promise at the cost of one Gradle exclusion, one R8 `-dontwarn` and one check.
 
 ## Consequences
 
-- **The app has a network permission for the first time.** What keeps the photos on the owner's
-  phones moves from a permission's absence, which the artifact proved, to code: the local-peer check,
+- **The app has a network permission for the first time.** What keeps the photos on the player's
+  own phones moves from a permission's absence, which the artifact proved, to code: the local-peer check,
   the pinned TLS, and the backend exclusion with its check. `aab-permissions.py` moves `INTERNET`
   and `CAMERA` from *forbidden* to *expected*, expects `CHANGE_WIFI_MULTICAST_STATE`, and forbids
   the permissions this ADR rules out.
 - **One more permission ask on the handheld path** (decision 11). Phase 1's ask table and its *No
   camera app* banner change.
+- **Two routes into one pairing.** The QR and its text share a payload, a parser and a proof, so
+  the second route costs a field, two buttons and their checks with TalkBack on (`phase-G.md`, B and
+  C), not a second protocol.
 - **Two phones on two app versions** have to talk: the protocol is versioned from its first frame,
   and an old camera tells the player to update rather than failing quietly.
 - **Target SDK 37 costs a runtime ask on both phones.** The Mounted camera accepts incoming
@@ -392,7 +414,8 @@ promise at the cost of one Gradle exclusion, one R8 `-dontwarn` and one check.
   release ahead of the build that first carries the permissions (`phase-G.md` D6, checkpoint E);
   `aab-permissions.py`, `play-app-content.md`'s artifact table, `CLAUDE.md`'s stack table and the
   manifest's comment on `INTERNET` change with it. So do `CLAUDE.md`'s opening *the photos never
-  leave the phone* and `README.md`'s, rewritten to *the player's own phones* with the Mounted camera
-  named beside phase S, in checkpoint C, which first declares `INTERNET`.
+  leave the phone*, `README.md`'s and the public home page's (`docs/index.md`), rewritten to *the
+  player's own phones* with the Mounted camera named beside phase S, in checkpoint C, which first
+  declares `INTERNET`.
   The comment in the synced `ui/support/SupportHandoff.kt` that says the app declares no `INTERNET`
   is android-starter's to change, through `sync-support.py`.
