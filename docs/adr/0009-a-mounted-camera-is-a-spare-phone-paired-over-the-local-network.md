@@ -14,8 +14,10 @@ default.
 
 Three constraints shape it:
 
-- **The photos never leave the owner's own phones** (`CLAUDE.md`). There is no server, and there
-  will be none for this.
+- **The photos never leave the phone** (`CLAUDE.md`, `README.md`), with phase S's opt-in as the
+  only planned exception. A Mounted camera widens that to *the player's own phones* (ADR-0008's
+  amendment), and both sentences are rewritten to say so (*Consequences*). There is no server, and
+  there will be none for this.
 - **The app has no network today.** `INTERNET` is removed from the merged manifest, and
   `scripts/aab-permissions.py` forbids it, because the privacy policy and the Data safety answers
   rest on its absence (ADR-0007, `docs/play-app-content.md`). Any link between two devices needs it
@@ -77,8 +79,15 @@ discovers and resolves with `NsdManager`.
 
 - Both phones are on the same Wi-Fi. With no Wi-Fi at the Board, the Player's phone's own hotspot is
   that network: the Mounted camera joins it like any Wi-Fi, and no code changes.
-- `NsdManager` does the multicast in the system's own process, so no `CHANGE_WIFI_MULTICAST_STATE`
-  and no multicast lock.
+- **A `WifiManager.MulticastLock` is held while NSD runs on Android 12 and below.** The `NsdManager`
+  reference (*Wi-Fi Multicast Lock*, read 2026-11-23): before T extensions 7, *"Apps must manually
+  acquire a `WifiManager.MulticastLock` to receive mDNS packets, even when the app is in the
+  foreground"*; from T extensions 7 the system does it for a foreground app. Without the lock, the
+  Mounted camera on D9's Android 11 phone would not hear the queries it has to answer. So when
+  `Build.VERSION.SDK_INT < 30`, or `SdkExtensions.getExtensionVersion(TIRAMISU) < 7`, the Mounted
+  camera holds the lock while its service is registered (only while the camera screen is in front),
+  and the Player's phone holds it while it discovers and resolves, as the reference's own samples do.
+  It needs `CHANGE_WIFI_MULTICAST_STATE`, a normal permission granted at install (decision 11).
 - NSD needs no `NEARBY_WIFI_DEVICES` and no location permission at any API level. Those belong to
   Wi-Fi Direct, Wi-Fi Aware and the local-only hotspot, none of which is used.
 
@@ -138,9 +147,14 @@ the LAN may read a Photo in transit.
   through the platform's own `SSLSocket`. No crypto library is added.
 - **Unpairing** is a row on either phone; it deletes that pin, and the other phone fails its next
   handshake and says *Pair again*.
-- **The pins, the camera list and the role live in a store outside Auto Backup**: a DataStore file
-  the backup rules do not name, so `BackupRulesTest`'s include-only check keeps it out. A restored
-  phone starts unpaired, which is right, since its Keystore key did not travel with it.
+- **The pins, the camera list and the role live in a store outside Auto Backup**: a DataStore file in
+  `noBackupFilesDir`
+  (`PreferenceDataStoreFactory.create(produceFile = { File(context.noBackupFilesDir, "pairing.preferences_pb") })`),
+  not under `files/datastore/`, which both backup rule files include whole. Files there are *"always
+  excluded even if you try to include them"*, from cloud backup and device transfer alike
+  (developer.android.com, *Auto Backup*, read 2026-11-23). `PairingStoreTest` asserts the store's
+  path is under `noBackupFilesDir` (`phase-G.md`, *Tests*). A restored phone starts unpaired, which
+  is right, since its Keystore key did not travel with it.
 
 ### 5. What triggers a capture: a button on the Player's phone
 
@@ -218,7 +232,8 @@ rectilinear, and most phones already correct what is left in their still pipelin
 | `CAMERA` | runtime, API 26–36 | the Mounted camera; and, see below, the handheld path | at *Use this phone as the mounted camera*; and at the first *Take a Photo* |
 | `ACCESS_LOCAL_NETWORK` | runtime, *Nearby devices* group, only when targeting API 37 | both | **not declared at target SDK 36**, as Google's guidance says; the target-SDK bump that reaches 37 owes its ask, on both phones, at pairing |
 | `NEARBY_WIFI_DEVICES`, `ACCESS_FINE_LOCATION`, `BLUETOOTH_*` | runtime | — | never: forbidden in `aab-permissions.py` |
-| `CHANGE_WIFI_MULTICAST_STATE`, `WAKE_LOCK`, `FOREGROUND_SERVICE*` | normal | — | never: not declared |
+| `CHANGE_WIFI_MULTICAST_STATE` | normal, granted at install, API 26–36 | both; the lock is taken only on Android 12 and below (decision 2) | never |
+| `WAKE_LOCK`, `FOREGROUND_SERVICE*` | normal | — | never: not declared |
 
 - **`<uses-feature>` for the camera is declared, at `required="false"`**, for both
   `android.hardware.camera` and `android.hardware.camera.autofocus`. `CAMERA` implies both as
@@ -236,8 +251,15 @@ a route off the phone for the first time (ADR-0007). The decision is that it sti
 
 - **`com.google.android.datatransport:transport-backend-cct` is excluded** from the billing
   dependency in Gradle. It is the only backend `datatransport` has, registered through a
-  `backend:` meta-data entry in the merged manifest; without it, `datatransport` has nowhere to send
-  and drops what it logs.
+  `backend:` meta-data entry in the merged manifest.
+- **`-dontwarn com.google.android.datatransport.cct.**` goes into `app/proguard-rules.pro`** with it.
+  Billing 9.1.0's logger (`com.android.billingclient.api.zzdt`) reads
+  `CCTDestination.INSTANCE` directly in its constructor, and its consumer rules carry no
+  `-dontwarn` for it, so without the rule R8 fails `bundleRelease` on the missing class.
+- **What stops the logging is the billing logger failing to initialise.** That constructor catches
+  any throwable, the `NoClassDefFoundError` included, marks itself failed, and from then on logs
+  *Skipping logging since initialization failed.* to logcat instead of sending: nothing is handed
+  to `datatransport` at all.
 - `aab-permissions.py` gains a check that no `backend:` meta-data entry is in the artifact, so a
   dependency bump that brings a backend back fails the upload, as a merged `INTERNET` did before.
 - **The tip is read working afterwards**, prices and the purchase sheet, on the first internal-track
@@ -342,14 +364,15 @@ waits for a reading that asks for it.
 
 **The billing library's logging:** declare it in Data safety and let it send (the honest fallback,
 decision 12), or remove the tip (ADR-0007's own *no tip at all*). Excluding the backend keeps today's
-promise at the cost of one Gradle line and one check.
+promise at the cost of one Gradle exclusion, one R8 `-dontwarn` and one check.
 
 ## Consequences
 
 - **The app has a network permission for the first time.** What keeps the photos on the owner's
   phones moves from a permission's absence, which the artifact proved, to code: the local-peer check,
   the pinned TLS, and the backend exclusion with its check. `aab-permissions.py` moves `INTERNET`
-  and `CAMERA` from *forbidden* to *expected* and forbids the permissions this ADR rules out.
+  and `CAMERA` from *forbidden* to *expected*, expects `CHANGE_WIFI_MULTICAST_STATE`, and forbids
+  the permissions this ADR rules out.
 - **One more permission ask on the handheld path** (decision 11). Phase 1's ask table and its *No
   camera app* banner change.
 - **Two phones on two app versions** have to talk: the protocol is versioned from its first frame,
@@ -368,6 +391,8 @@ promise at the cost of one Gradle line and one check.
 - The privacy policy, `play-app-content.md`'s Data safety reasoning and the store listing change one
   release ahead of the build that first carries the permissions (`phase-G.md` D6, checkpoint E);
   `aab-permissions.py`, `play-app-content.md`'s artifact table, `CLAUDE.md`'s stack table and the
-  manifest's comment on `INTERNET` change with it.
+  manifest's comment on `INTERNET` change with it. So do `CLAUDE.md`'s opening *the photos never
+  leave the phone* and `README.md`'s, rewritten to *the player's own phones* with the Mounted camera
+  named beside phase S, in checkpoint C, which first declares `INTERNET`.
   The comment in the synced `ui/support/SupportHandoff.kt` that says the app declares no `INTERNET`
   is android-starter's to change, through `sync-support.py`.

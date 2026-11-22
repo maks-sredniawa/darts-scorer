@@ -93,8 +93,12 @@ holds, and what it protected moves:
 
 - **The billing library's `datatransport` would have a route off the phone.** Its only backend,
   `com.google.android.datatransport:transport-backend-cct`, is excluded from the billing dependency in
-  Gradle, so `datatransport` has nowhere to send what it logs. The manifest declares `INTERNET`
-  itself and its `tools:node="remove"` goes.
+  Gradle, and `app/proguard-rules.pro` gains `-dontwarn com.google.android.datatransport.cct.**`,
+  since billing's logger names `CCTDestination` directly and R8 would otherwise fail the release
+  build on the missing class. At run time that logger's constructor then fails, it catches the error
+  and skips every log after it (*Skipping logging since initialization failed.*), so nothing reaches
+  `datatransport` (ADR-0009, decision 12). The manifest declares `INTERNET` itself and its
+  `tools:node="remove"` goes.
 - **`scripts/aab-permissions.py` checks the artifact carries no `datatransport` backend**, in place of
   the forbidden `INTERNET`: a dependency bump that brings a backend back fails the upload.
 - **The tip is read working on the first internal-track build with the exclusion** (`phase-G.md` R7).
