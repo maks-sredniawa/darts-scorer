@@ -517,7 +517,9 @@ something:
 4. **One real purchase on the phone, as a licence tester**, from the internal-testing install: the
    Support section shows Play's prices, Play's sheet opens, and *Thank you. It means a lot.* appears.
    That line is only shown after a successful consume, so it is the proof the consume works. Play
-   refuses adb-injected taps on its own Buy and Update buttons — a person taps those.
+   refuses adb-injected taps on its own Buy and Update buttons — a person taps those. **Not repeated
+   per app:** proven once on Binky (2026-11-13) for every app sharing `TipJar` and `TipBilling`, so it
+   is owed again only when that shared code changes.
 5. **Re-submit the content rating** with *digital purchases* Yes, before the build reaches production
    (`play-app-content.md` — expect Brazil at 14+).
 6. After production: one real tip from an account that is **not** a licence tester, seen in *Order

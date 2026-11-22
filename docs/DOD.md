@@ -169,7 +169,7 @@ only on a model that met this phase's bar.
 - [x] **Decide the `applicationId` deliberately.** `com.maksforge.dartsscorer`, fixed by the Play
       entry created 2026-11-22 (default listing language en-US, free).
 
-## The tip — open until a real purchase is consumed
+## The tip — products live, the purchase proven once on Binky
 
 ADR-0007. The code is in; these are the parts only Play and a phone can prove. The steps are
 *Selling the tip* in [`RELEASING.md`](RELEASING.md).
@@ -182,10 +182,12 @@ ADR-0007. The code is in; these are the parts only Play and a phone can prove. T
 - [x] **One purchase from a licence tester** on the internal install, ending in the thank-you line,
       and the *same* tip bought again. Not owed by Darts Scorer: `TipJar` and `TipBilling` are the
       shared code, and the purchase was proven once for every app on Binky (2026-11-13).
-- [x] **The debug build shows no tip section and no card.** Read on `pixel-api36`, 2026-11-22, with
-      the debug build from `main`: Help and feedback has no tip section and the Visit tab no card. That
-      AVD has no Google account, so `BillingClient` reported billing unavailable and `offers` stayed
-      empty, which is the same empty state `.debug` gets from Play; the card waits on `offers` too.
+- [x] **The debug build shows no tip section and no card.** The section is read on `pixel-api36`,
+      2026-11-22, with the debug build from `main`: Help and feedback has no tip section. That AVD has
+      no Google account, so `BillingClient` reported billing unavailable and `offers` stayed empty,
+      the same empty state `.debug` gets from Play. The card is ticked on the code, not that reading:
+      `tipAskDue` hides it on a fresh install whatever Play returns, and `VisitViewModel` also requires
+      `offers.isNotEmpty()`, so an empty `offers` never shows it.
 - [x] **Content rating submitted** with *digital purchases* Yes, 2026-11-22: ClassInd 14+, the rest 3+
       or Everyone ([`play-app-content.md`](play-app-content.md)).
 
