@@ -133,8 +133,8 @@ only on a model that met this phase's bar.
       account and check it lands outside Spam. One address everywhere — the listing's contact field
       and IARC's rating contact too; `ui/support/SupportConfig.kt` says why it lives on our own domain.
 - [x] **Write the listing.** `docs/store-listing.md`, English and Polish, category *Sports*,
-      2026-11-22; both pasted into the Console as drafts. The AI-generated assets declaration, when
-      the Console's *Review* step asks for it, is the owner's to make.
+      2026-11-22, and in the Console in both languages. The AI asset declaration is the owner's:
+      *Label assets as created or edited using AI* ([`play-app-content.md`](play-app-content.md)).
 - [x] **Capture the screenshots.** An interim set, 2026-11-22, on the emulator from the release
       build, light theme, English and Polish: the Visit tab, Settings, and Help and feedback, padded to
       9:16 in `art/play-screenshots/`. No scored Visit yet: the shipped run misread the owner's board
