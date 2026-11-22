@@ -308,7 +308,8 @@ The design brief behind D3 was taken on 2026-11-20; its wireframes go into the c
   as one Score; the preselected key shows a check and a fill, never tint alone; every key is at
   least 48 dp.
 - **Adding a Dart:** *Add a Dart* while fewer than three are shown, or a tap on an empty spot of the
-  Photo, which preselects the bed under the finger through the homography.
+  Photo while fewer than three are shown or a filled Miss remains to take over, which preselects the
+  bed under the finger through the homography.
 - **Removing a Dart:** *Remove Dart* in the sheet, with *Undo*. It is not *Miss*: a Miss is a thrown
   Dart that scored 0, a removed one was never there.
 - **Fewer than three found** is made up to three with Misses (2026-11-22; until then it was shown
@@ -404,8 +405,8 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   Score; it sits on a bed's centre, not a tip, so it hides nothing, and it is kept inside the crop.
   **A Miss has no bed, so it keeps its place**: a Dart set to Miss stays where it was, and one added
   by a tap sits at the tap, both as a badge (2026-11-20; until then a Miss set by hand lost its
-  marker while a measured one kept it). A Dart with no place, a Miss from *Add a Dart* or a Visit
-  entered by hand, has no marker. **A dragged Dart keeps a ring** (2026-11-20): the player put its
+  marker while a measured one kept it). A Dart with no place, a Miss from *Add a Dart*, a filled Miss
+  or a Visit entered by hand, has no marker. **A dragged Dart keeps a ring** (2026-11-20): the player put its
   point on the Entry point, so it is drawn as a solid ring there with its badge beside it, in
   `inverseSurface` with an `inverseOnSurface` number. A keypad commit after a drag deliberately
   clears that and draws the badge alone at the new bed's centre, like any keypad change.
@@ -422,15 +423,16 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   labels are hidden from it so they are not read twice. Unselected keys are outlined in `outline`.
 - **A tap on the Photo** on a marker's badge, or within 24 dp of its point, opens that Dart, at any
   zoom, and a long press there drags its ring (§3, *Moving a Dart's ring*); anywhere else, held or
-  not, proposes a new one
-  while fewer than three are shown, *Miss* when it lands off the Board.
+  not, proposes a new one while fewer than three are shown or a filled Miss remains to take over,
+  *Miss* when it lands off the Board.
 - ***Undo* is a snackbar with no timer** (WCAG 2.2.1: nothing to adjust): it stays until *Undo*, its
   dismiss button, or the Visit's next change (a commit, another removal, a new Photo). The screen
   leaves room for it at the end of its scroll, so it never hides *Next Visit* for good. *Undo* puts
   the Dart back with its number unless a new Dart has taken it.
 - **Focus.** After *Remove Dart* it goes to the next chip in order, else *Add a Dart*; closing the
-  sheet without *Done* returns it to the Dart's chip, or to *Add a Dart* for a new one, or to *Enter
-  the Score yourself* on *No Board found*. Those three are made focusable in touch mode, since a
+  sheet without *Done* returns it to the Dart's chip, or to *Add a Dart* for a new one (with three
+  shown, where it is hidden, to the filled Miss a tap would have taken), or to *Enter the Score
+  yourself* on *No Board found*. Those three are made focusable in touch mode, since a
   button is not, and focus could not be moved back to them otherwise. The sheet's drag handle is drawn without its semantics: as the sheet's first
   node it took TalkBack's focus on opening, where §3 puts it on the title. Read on `pixel-api36` with
   TalkBack on: into the sheet on *Dart 1*, back to its chip on *Done*.
