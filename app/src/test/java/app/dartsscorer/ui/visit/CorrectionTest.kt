@@ -147,14 +147,20 @@ class CorrectionTest {
     }
 
     @Test
-    fun `a removed Dart is restored in its place unless the Visit has moved on`() {
-        val darts = listOf(ShownDart(1, null, Score.BULL), ShownDart(2, null, Score.MISS))
+    fun `the Darts after a removed one close up, and Undo puts it back in its place`() {
+        val darts =
+            listOf(
+                ShownDart(1, null, Score.BULL),
+                ShownDart(2, null, Score.MISS),
+                ShownDart(3, null, Score(Ring.SINGLE, 7)),
+            )
         val removed = Correction.remove(darts, 1)
+        assertEquals(listOf(1 to Score.MISS, 2 to Score(Ring.SINGLE, 7)), removed.map { it.number to it.score })
         assertEquals(darts, Correction.restore(removed, darts[0]))
-        assertEquals(VisitFocus.Chip(2), Correction.focusAfterRemoving(removed, 1))
-        assertEquals(VisitFocus.AddDart, Correction.focusAfterRemoving(Correction.remove(darts, 2), 2))
-        val refilled = Correction.commit(removed, Keypad(dart = null).withNumber(4), null)
-        assertEquals(refilled, Correction.restore(refilled, darts[0]))
+        assertEquals(darts, Correction.restore(Correction.remove(darts, 2), darts[1]))
+        assertEquals(VisitFocus.Chip(1), Correction.focusAfterRemoving(removed, 1))
+        assertEquals(VisitFocus.AddDart, Correction.focusAfterRemoving(Correction.remove(darts, 3), 3))
+        assertEquals(darts, Correction.restore(darts, ShownDart(1, null, Score.BULL)))
     }
 
     @Test

@@ -161,25 +161,31 @@ object Correction {
     fun remove(
         darts: List<ShownDart>,
         number: Int,
-    ): List<ShownDart> = darts.filter { it.number != number }
+    ): List<ShownDart> = darts.filter { it.number != number }.renumbered()
 
-    /** Puts a removed Dart back with its number, unless a new Dart has taken its place since. */
     fun restore(
         darts: List<ShownDart>,
         dart: ShownDart,
     ): List<ShownDart> =
-        if (!canAdd(darts) || darts.any { it.number == dart.number }) darts else (darts + dart).sortedBy { it.number }
+        if (!canAdd(darts)) {
+            darts
+        } else {
+            (darts.map { if (it.number >= dart.number) it.copy(number = it.number + 1) else it } + dart).renumbered()
+        }
 
     fun focusAfterRemoving(
         darts: List<ShownDart>,
         removed: Int,
-    ): VisitFocus = darts.firstOrNull { it.number > removed }?.let { VisitFocus.Chip(it.number) } ?: VisitFocus.AddDart
+    ): VisitFocus = darts.firstOrNull { it.number >= removed }?.let { VisitFocus.Chip(it.number) } ?: VisitFocus.AddDart
 
     /** With three shown *Add a Dart* is hidden, so focus returns to the Miss a tap would have taken. */
     fun focusAfterDismissing(darts: List<ShownDart>): VisitFocus {
         if (canAdd(darts)) return VisitFocus.AddDart
         return VisitFocus.Chip((darts.lastOrNull { it.filled } ?: darts.first()).number)
     }
+
+    private fun List<ShownDart>.renumbered(): List<ShownDart> =
+        sortedBy { it.number }.mapIndexed { i, dart -> dart.copy(number = i + 1) }
 
     private fun freeNumbers(darts: List<ShownDart>): List<Int> =
         (1..MOST_DARTS).filter { n ->
