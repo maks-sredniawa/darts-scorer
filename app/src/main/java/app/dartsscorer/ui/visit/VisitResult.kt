@@ -27,8 +27,8 @@ data class DartRead(
 
 /**
  * A Dart as the screen shows it. [number] counts from the top of the Photo, never throw order, and
- * stays with the Dart through corrections. [at] is its marker in Photo pixels, null where the Dart has
- * no place: a Miss added with no tap or [filled], or a Visit entered by hand. A [corrected] Dart's
+ * stays with the Dart through every correction but Remove Dart (phase-1.md §4). [at] is its marker in
+ * Photo pixels, null where the Dart has no place: a Miss added with no tap or [filled], or a Visit entered by hand. A [corrected] Dart's
  * Score is the player's, so it is drawn as a badge alone: at its bed's centre, or for a Miss where it
  * was or was tapped. A [moved] one was dragged onto its Entry point, so it keeps a ring at [at] and
  * its Score is read from there; a keypad commit after the drag clears it, and only [moved] tells a
