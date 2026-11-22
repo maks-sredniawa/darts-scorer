@@ -647,7 +647,7 @@ private suspend fun AwaitPointerEventScope.dragRing(
     fun offsetNow() = liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
 
     fun place(offset: Offset) {
-        val at = finger + offset
+        val at = keptInside(finger + offset, size.toSize(), ringOuter())
         if (travel > viewConfiguration.touchSlop) ring.drag(dart, at) else ring.lift(at)
     }
     try {
@@ -670,6 +670,12 @@ private suspend fun AwaitPointerEventScope.dragRing(
         ring.release()
     }
 }
+
+internal fun keptInside(
+    at: Offset,
+    box: Size,
+    inset: Float,
+): Offset = Offset(at.x.coerceIn(inset, box.width - inset), at.y.coerceIn(inset, box.height - inset))
 
 internal fun liftOffset(
     grab: Offset,
