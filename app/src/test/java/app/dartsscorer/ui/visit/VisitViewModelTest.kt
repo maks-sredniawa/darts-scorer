@@ -332,12 +332,29 @@ class VisitViewModelTest {
         visit.addDartAt(Point(400.0, 400.0 + 2 * 164.0))
         assertEquals(Score(Ring.DOUBLE, 3), visit.stateWhen { it.keypad != null }.keypad?.score)
         visit.commitKeypad()
-        val darts = visit.scored().darts
+        val state = visit.stateWhen { it.keypad == null }
+        val darts = (state.phase as VisitPhase.Scored).darts
         assertEquals(listOf(1, 2, 3), darts.map { it.number })
         val dart = darts.single { !it.filled }
         assertEquals(Score(Ring.DOUBLE, 3), dart.score)
         assertEquals(Score(Ring.DOUBLE, 3), Board.score(BOARD.project(dart.at!!)))
         assertTrue(dart.corrected)
+        assertEquals(VisitFocus.Chip(dart.number), state.focus)
+        assertEquals(3, dart.number)
+    }
+
+    @Test
+    fun `a tap's keypad closed without Done with three shown returns focus to the Miss it would have taken`() {
+        photos.next = board()
+        val visit = viewModel()
+        visit.photoChosen("content://picked/1")
+        visit.scored()
+        visit.addDartAt(Point(400.0, 400.0))
+        visit.stateWhen { it.keypad != null }
+        visit.dismissKeypad()
+        val state = visit.stateWhen { it.keypad == null }
+        assertEquals(VisitFocus.Chip(3), state.focus)
+        assertTrue((state.phase as VisitPhase.Scored).darts.all { it.filled })
     }
 
     @Test

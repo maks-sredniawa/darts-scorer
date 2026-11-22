@@ -197,6 +197,7 @@ class VisitViewModel(
             val focus =
                 when {
                     keypad.dart != null -> VisitFocus.Chip(keypad.dart)
+                    state.phase is VisitPhase.Shown -> Correction.focusAfterDismissing(state.phase.darts)
                     state.phase is VisitPhase.NoBoard -> VisitFocus.EnterScore
                     else -> VisitFocus.AddDart
                 }
@@ -219,7 +220,7 @@ class VisitViewModel(
                     }
                 else -> return
             }
-        val committed = keypad.dart ?: darts.map { it.number }.firstOrNull { n -> shown.darts.none { it.number == n } }
+        val committed = keypad.dart ?: darts.firstOrNull { it !in shown.darts }?.number
         visit.value =
             before.copy(
                 phase = shown.withDarts(darts),

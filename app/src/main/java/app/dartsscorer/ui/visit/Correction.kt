@@ -175,6 +175,12 @@ object Correction {
         removed: Int,
     ): VisitFocus = darts.firstOrNull { it.number > removed }?.let { VisitFocus.Chip(it.number) } ?: VisitFocus.AddDart
 
+    /** With three shown *Add a Dart* is hidden, so focus returns to the Miss a tap would have taken. */
+    fun focusAfterDismissing(darts: List<ShownDart>): VisitFocus {
+        if (canAdd(darts)) return VisitFocus.AddDart
+        return VisitFocus.Chip((darts.lastOrNull { it.filled } ?: darts.first()).number)
+    }
+
     private fun freeNumbers(darts: List<ShownDart>): List<Int> =
         (1..MOST_DARTS).filter { n ->
             darts.none {

@@ -28,14 +28,14 @@ data class DartRead(
 /**
  * A Dart as the screen shows it. [number] counts from the top of the Photo, never throw order, and
  * stays with the Dart through corrections. [at] is its marker in Photo pixels, null where the Dart has
- * no place: a Miss added with no tap, or a Visit entered by hand. A [corrected] Dart's Score is the
- * player's, so it is drawn as a badge alone: at its bed's centre, or for a Miss where it was or was
- * tapped. A [moved] one was dragged onto its Entry point, so it keeps a ring at [at] and its Score is
- * read from there; a keypad commit after the drag clears it, and only [moved] tells a dragged point
- * from a bed's centre.
+ * no place: a Miss added with no tap or [filled], or a Visit entered by hand. A [corrected] Dart's
+ * Score is the player's, so it is drawn as a badge alone: at its bed's centre, or for a Miss where it
+ * was or was tapped. A [moved] one was dragged onto its Entry point, so it keeps a ring at [at] and
+ * its Score is read from there; a keypad commit after the drag clears it, and only [moved] tells a
+ * dragged point from a bed's centre.
  *
  * [read] is the model's reading, set once when the result arrives and never written by a correction;
- * null for a Dart added by hand.
+ * null for a Dart added by hand or [filled].
  */
 data class ShownDart(
     val number: Int,
@@ -45,10 +45,10 @@ data class ShownDart(
     val corrected: Boolean = false,
     val moved: Boolean = false,
     val read: DartRead? = null,
-    /** A Miss standing in for a Dart the model did not find, so a Visit always has three. */
+    /** A Miss standing in for a Dart the model did not find, until the player checks it. */
     val filled: Boolean = false,
 ) {
-    /** The Dart as the model read it, or itself when it was added by hand. */
+    /** The Dart as the model read it, or itself when it has no reading. */
     val asRead: ShownDart
         get() =
             read?.let { copy(at = it.at, score = it.score, unsure = it.unsure, corrected = false, moved = false) }
