@@ -1,0 +1,7 @@
+app.dartsscorer.spike-pngs-0 /home/maks/repos/maks-sredniawa/darts-scorer/.worktrees/phase-g-spikes/spike/build/generated/res/pngs/debug
+app.dartsscorer.spike-updated_navigation_xml-1 /home/maks/repos/maks-sredniawa/darts-scorer/.worktrees/phase-g-spikes/spike/build/generated/updated_navigation_xml/debug
+app.dartsscorer.spike-packageDebugResources-2 /home/maks/repos/maks-sredniawa/darts-scorer/.worktrees/phase-g-spikes/spike/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+app.dartsscorer.spike-packageDebugResources-3 /home/maks/repos/maks-sredniawa/darts-scorer/.worktrees/phase-g-spikes/spike/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+app.dartsscorer.spike-debug-4 /home/maks/repos/maks-sredniawa/darts-scorer/.worktrees/phase-g-spikes/spike/build/intermediates/merged_res/debug/mergeDebugResources
+app.dartsscorer.spike-debug-5 /home/maks/repos/maks-sredniawa/darts-scorer/.worktrees/phase-g-spikes/spike/src/debug/res
+app.dartsscorer.spike-main-6 /home/maks/repos/maks-sredniawa/darts-scorer/.worktrees/phase-g-spikes/spike/src/main/res

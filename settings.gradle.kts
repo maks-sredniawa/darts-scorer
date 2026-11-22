@@ -31,3 +31,4 @@ plugins {
 
 rootProject.name = "darts-scorer"
 include(":app")
+include(":spike")
