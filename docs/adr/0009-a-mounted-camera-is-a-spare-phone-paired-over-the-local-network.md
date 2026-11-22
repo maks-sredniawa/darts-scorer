@@ -131,7 +131,9 @@ the LAN may read a Photo in transit.
   backup.
 - **The Player's phone shows a QR** on its *Add a mounted camera* screen: a protocol version, its own
   certificate's SHA-256 fingerprint and a fresh 128-bit pairing token. The token exists in memory
-  only, while that screen is open, and is used once.
+  only, while that screen is open, and is used once. It is held by the screen's `ViewModel`, so it
+  survives the share sheet and a trip to another app, but not process death, after which the screen
+  makes a new one and pairing starts again.
 - **The QR has a content description** naming what it is for (*Pairing code for your mounted
   camera. Copy or share it as text if you cannot scan it*), so TalkBack reads its purpose
   (WCAG 2.2, 1.1.1 Non-text Content).
@@ -157,7 +159,7 @@ the LAN may read a Photo in transit.
 - **From then on both ends are pinned**: TLS with client authentication required, each side
   accepting only the one certificate it pinned. A stranger's phone fails the handshake; a phone that
   pretends to be the camera during pairing cannot compute the MAC without the token, which only
-  someone who saw the Player's phone's screen has; a relay between the two fails because the MAC
+  someone who saw the Player's phone's screen or read its shared code has (the limit of that above); a relay between the two fails because the MAC
   binds the fingerprint the Player's phone saw.
 - TLS 1.3 where the platform has it (Android 10 and later) and TLS 1.2 with ECDHE and AES-GCM below,
   through the platform's own `SSLSocket`. No crypto library is added.
