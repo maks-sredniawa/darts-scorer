@@ -16,6 +16,25 @@ or Apache-2.0 data is usable with a Credits-screen entry (name, author, licence 
 used to train the model"), provided the uploader appears to own the images and the set has passed the
 DeepDarts duplicate check below; CC BY-SA and any NC licence are not usable.
 
+## Since this survey (2026-11-22)
+
+The rest of this page is the 2026-11-20 record and is left as it was. Four things have moved since:
+
+- **Share-alike.** Later on 2026-11-20 the owner accepted CC BY-SA training data, such as dartscribe,
+  even though it would make `darts.tflite` CC BY-SA; the app's code stays all-rights-reserved and NC
+  data stays out. ADR-0008 does not record this yet: it needs a dated amendment before any
+  share-alike set is used.
+- **`dart-pose-v6-ovihb` was tried and dropped.** A fine-tune with it at weight 0.3 fell to 64.2% of
+  DeepDarts validation Photos exactly right, against the shipped run's 69.2%, and read the owner's
+  marked Visits worse.
+- **`autodartapp/dartsai` was imported and tried.** Its own held-out Darts improved, from 16 to 22 of 46,
+  but DeepDarts validation fell. It is not in the shipped model.
+- **Renders were tried**, from `maks-sredniawa/darts-render`, the owner's fork of `ahie/darts-model`
+  (ADR-0008). Every mix so far loses to the shipped run on DeepDarts validation and on the owner's Visits.
+
+What has held: labelled Photos of the owner's own board, which recommendation 1 calls the data the
+bar is measured on, remain the lever.
+
 ## How far the checks got
 
 - **Roboflow Universe refused every automated read.** Each page answers a fetch with HTTP 403 and a
