@@ -403,7 +403,9 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
   re-entering after process death, or a later Photo cannot count it twice.
 - **A Dart keeps its number through corrections.** The top-to-bottom rule numbers the model's Darts
   when a result arrives; a corrected marker that moves does not renumber them, and a new Dart takes
-  the lowest free number, so a chip never changes under the player's finger.
+  the lowest free number, so a chip never changes under the player's finger. *Remove Dart* is the
+  exception (2026-11-22): the Darts after it close up, 1, 2 rather than 1, 3, since the row changes
+  anyway and a gap reads as a missing Dart.
 - **The corrected marker** has no ring, only its badge centred on its place, in `inverseSurface` with
   an `inverseOnSurface` number (a corrected Dart is never unsure). No ring means the player set the
   Score; it sits on a bed's centre, not a tip, so it hides nothing, and it is kept inside the crop.
@@ -432,8 +434,9 @@ below the model's confidence of 0.5, shown with *Check*; not *low confidence* in
 - ***Undo* is a snackbar with no timer** (WCAG 2.2.1: nothing to adjust): it stays until *Undo*, its
   dismiss button, or the Visit's next change (a commit, another removal, a new Photo). The screen
   leaves room for it at the end of its scroll, so it never hides *Next Visit* for good. *Undo* puts
-  the Dart back with its number unless a new Dart has taken it.
-- **Focus.** After *Remove Dart* it goes to the next chip in order, else *Add a Dart*; closing the
+  the Dart back in its place, and the Darts after it take their numbers back.
+- **Focus.** After *Remove Dart* it goes to the chip that took the removed Dart's number, else *Add a
+  Dart*; closing the
   sheet without *Done* returns it to the Dart's chip, or to *Add a Dart* for a new one (with three
   shown, where it is hidden, to the filled Miss a tap would have taken), or to *Enter the Score
   yourself* on *No Board found*. Those three are made focusable in touch mode, since a
