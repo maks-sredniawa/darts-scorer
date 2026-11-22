@@ -180,6 +180,10 @@ captures no audio, so say so in the declaration if the service's job is a sound.
   so these went live at once rather than with a review. Public on the listing and the same address
   `ui/support/SupportConfig.kt` compiles in. The Console field changes without a release; the app's copy needs
   one.
+- **AI asset declaration:** *Label assets as created or edited using AI*, answered by the owner
+  2026-11-22 on the store listing's *Review* step. The mark, and with it the icon and the feature
+  graphic, was chosen from designs an AI model drew and is rendered by code an AI wrote; the
+  screenshots are captures of the app. Would change: listing art made by hand.
 - **Privacy policy:** `https://maksforge.com/darts-scorer/privacy-policy`, set 2026-11-22, served from `docs/` by
   maksforge.com. It updates within about 15 minutes of a merge to `main`, with no release, which is why it has to be right before the
   app it describes ships rather than after. Read against these answers 2026-11-22 and re-dated that day,
