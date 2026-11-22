@@ -630,10 +630,7 @@ private fun Modifier.zoomGestures(
         }
     }
 
-/**
- * Every change is consumed, the lift included, so the hold is neither a tap, a pan nor a scroll. The
- * ring rises from where it was grabbed to [lift] above the finger, so the finger never hides it.
- */
+/** Every change is consumed, the lift included, so the hold is neither a tap, a pan nor a scroll. */
 private suspend fun AwaitPointerEventScope.dragRing(
     down: PointerInputChange,
     dart: Int,
@@ -647,14 +644,17 @@ private suspend fun AwaitPointerEventScope.dragRing(
     var finger = down.position
     var travel = 0f
 
-    fun place() {
-        val at = finger + liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
+    fun offsetNow() = liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
+
+    fun place(offset: Offset) {
+        val at = finger + offset
         if (travel > viewConfiguration.touchSlop) ring.drag(dart, at) else ring.lift(at)
     }
     try {
         while (true) {
-            place()
-            val rising = liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis) != lift
+            val offset = offsetNow()
+            place(offset)
+            val rising = offset != lift
             val event =
                 (if (rising) withTimeoutOrNull(FRAME_MS) { awaitPointerEvent() } else awaitPointerEvent()) ?: continue
             event.changes.forEach { it.consume() }
@@ -662,7 +662,7 @@ private suspend fun AwaitPointerEventScope.dragRing(
             finger = change.position
             travel = maxOf(travel, (finger - down.position).getDistance())
             if (!change.pressed) {
-                place()
+                place(offsetNow())
                 break
             }
         }
@@ -816,10 +816,7 @@ private fun DrawScope.drawRing(
     drawCircle(colors.inverseSurface, middle, at, alpha, style = Stroke(width = dark, pathEffect = dashes))
 }
 
-/**
- * Long arms out from the held ring and short ticks inside it, leaving its centre clear, so the point
- * reads at a glance while the finger is down. Keylines first, so no arm's keyline cuts another's ink.
- */
+/** Keylines first, so no arm's keyline cuts another's ink. */
 private fun DrawScope.drawCrosshair(
     at: Offset,
     colors: ColorScheme,
