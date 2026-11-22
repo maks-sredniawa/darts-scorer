@@ -1,7 +1,7 @@
 package app.dartsscorer.ui.visit
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -23,11 +23,17 @@ class LiftOffsetTest {
     }
 
     @Test
-    fun aRingLiftedPastAnEdgeWaitsOneRadiusInsideIt() {
-        val box = Size(400f, 400f)
-        assertEquals(Offset(200f, 30f), keptInside(Offset(200f, -150f), box, 30f))
-        assertEquals(Offset(30f, 370f), keptInside(Offset(-5f, 900f), box, 30f))
-        assertEquals(Offset(370f, 200f), keptInside(Offset(399f, 200f), box, 30f))
-        assertEquals(Offset(120f, 80f), keptInside(Offset(120f, 80f), box, 30f))
+    fun aRingLiftedPastAnEdgeWaitsInsideIt() {
+        val bounds = Rect(30f, 30f, 370f, 370f)
+        assertEquals(Offset(200f, 30f), keptInside(Offset(200f, -150f), bounds))
+        assertEquals(Offset(30f, 370f), keptInside(Offset(-5f, 900f), bounds))
+        assertEquals(Offset(120f, 80f), keptInside(Offset(120f, 80f), bounds))
+    }
+
+    @Test
+    fun theInsetNeverHidesTheBoardsRim() {
+        val box = Rect(0f, 0f, 400f, 400f)
+        assertEquals(Rect(30f, 30f, 370f, 370f), insideRim(box, Rect(40f, 40f, 360f, 360f), 30f))
+        assertEquals(Rect(30f, 10f, 370f, 400f), insideRim(box, Rect(40f, 10f, 360f, 410f), 30f))
     }
 }

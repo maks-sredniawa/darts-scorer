@@ -454,6 +454,16 @@ internal fun BoardPhoto(
                     }
                 }
 
+                override fun bounds(): Rect {
+                    val shown = latest
+                    val view = zoom.clampedTo(box)
+                    val scale = box.width / shown.crop.width
+                    val toPhoto = shown.toBoard.inverse()
+                    val rim = BOARD_RIM.map { view.toScreen(toPhoto.project(it).screen(shown.crop, scale)) }
+                    val rimBox = Rect(rim.minOf { it.x }, rim.minOf { it.y }, rim.maxOf { it.x }, rim.maxOf { it.y })
+                    return insideRim(Rect(Offset.Zero, box), rimBox, density.ringOuter())
+                }
+
                 override fun ringAt(dart: Int): Offset? =
                     shownMarkers().firstOrNull { it.dart.number == dart }?.spot?.at
 
@@ -564,6 +574,9 @@ private interface RingDrag {
 
     fun ringAt(dart: Int): Offset?
 
+    /** Where a held ring's centre may go: the Photo, inset by up to a ring's radius but never past the Board's rim. */
+    fun bounds(): Rect
+
     fun hold(dart: Int)
 
     /** Before the finger has moved past touch slop: the ring is drawn there, and the Dart is not moved. */
@@ -647,7 +660,7 @@ private suspend fun AwaitPointerEventScope.dragRing(
     fun offsetNow() = liftOffset(grab, lift, SystemClock.uptimeMillis() - held, liftMillis)
 
     fun place(offset: Offset) {
-        val at = keptInside(finger + offset, size.toSize(), ringOuter())
+        val at = keptInside(finger + offset, ring.bounds())
         if (travel > viewConfiguration.touchSlop) ring.drag(dart, at) else ring.lift(at)
     }
     try {
@@ -671,11 +684,24 @@ private suspend fun AwaitPointerEventScope.dragRing(
     }
 }
 
+internal fun insideRim(
+    box: Rect,
+    rim: Rect,
+    inset: Float,
+): Rect {
+    fun gap(distance: Float) = distance.coerceIn(0f, inset)
+    return Rect(
+        box.left + gap(rim.left - box.left),
+        box.top + gap(rim.top - box.top),
+        box.right - gap(box.right - rim.right),
+        box.bottom - gap(box.bottom - rim.bottom),
+    )
+}
+
 internal fun keptInside(
     at: Offset,
-    box: Size,
-    inset: Float,
-): Offset = Offset(at.x.coerceIn(inset, box.width - inset), at.y.coerceIn(inset, box.height - inset))
+    bounds: Rect,
+): Offset = Offset(at.x.coerceIn(bounds.left, bounds.right), at.y.coerceIn(bounds.top, bounds.bottom))
 
 internal fun liftOffset(
     grab: Offset,

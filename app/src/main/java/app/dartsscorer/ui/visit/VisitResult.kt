@@ -104,7 +104,7 @@ fun VisitPhase.Shown.withDarts(darts: List<ShownDart>): VisitPhase.Shown =
         is VisitPhase.Entered -> copy(darts = darts)
     }
 
-private val RIM = (0 until 72).map { Board.point(Board.OUTER_DOUBLE.outerMm, it * 5.0) }
+internal val BOARD_RIM = (0 until 72).map { Board.point(Board.OUTER_DOUBLE.outerMm, it * 5.0) }
 
 fun phaseOf(
     photo: File,
@@ -113,7 +113,7 @@ fun phaseOf(
     val toBoard = reading.located.toBoard ?: return VisitPhase.NoBoard(photo, reading.width, reading.height)
     // The window the second pass read the Darts in, so the crop shows what the model saw.
     val toPhoto = toBoard.inverse()
-    val rim = RIM.map(toPhoto::project)
+    val rim = BOARD_RIM.map(toPhoto::project)
     val centreX = (rim.minOf { it.x } + rim.maxOf { it.x }) / 2
     val centreY = (rim.minOf { it.y } + rim.maxOf { it.y }) / 2
     val half =
