@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/maks-sredniawa/darts-scorer/compare/v0.2.0...v0.2.1) (2026-11-22)
+
+
+### Performance Improvements
+
+* read Photos on 2 threads, the count R2 settled on ([9dfd2bb](https://github.com/maks-sredniawa/darts-scorer/commit/9dfd2bb447a1e27bbc09b559d0b677a09625ca4a))
+
 ## [0.2.0](https://github.com/maks-sredniawa/darts-scorer/compare/v0.1.0...v0.2.0) (2026-11-22)
 
 
