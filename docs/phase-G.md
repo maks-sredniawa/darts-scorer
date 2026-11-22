@@ -58,7 +58,7 @@ same pull request as this file:**
 
 | # | Decision | Decided |
 | --- | --- | --- |
-| **D10** | **A way to pair without seeing the QR** (WCAG 2.2, 1.1.1) | **The QR stays, with a content description, and its payload can also be copied or shared as text** from the Player's phone and pasted into a field on the Mounted camera: the same fingerprint and one-time token, the same TLS pinning and HMAC binding. Both routes are accepted with TalkBack on, in B and C (ADR-0009, decision 4). Not pairing recorded as visual-only |
+| **D10** | **A way to pair without seeing the QR** (WCAG 2.2, 1.1.1) | **The QR stays, with a content description, and its payload can also be copied or shared as text** from the Player's phone and pasted into a field on the Mounted camera: the same fingerprint and one-time token, the same TLS pinning and HMAC binding. Both routes are accepted with TalkBack on, in B and C (ADR-0009, decision 4). Chosen over recording pairing as visual-only |
 
 ### Recommended in ADR-0009, decided as written when its pull request merges
 
@@ -308,7 +308,9 @@ are declared in the manifest and `INTERNET`'s `tools:node="remove"` deleted;
 
 **The Player's phone's QR** carries a content description naming its purpose, and *Copy the code*
 and *Share the code* beside it put the same payload, as one line of text, on the clipboard or in
-Android's share sheet (D10). Emulators pair through that text route too, so the debug build no
+Android's share sheet (D10). *Copy the code* marks the clip sensitive
+(`ClipDescription.EXTRA_IS_SENSITIVE`, Android 13 and later), so the system's clipboard preview does
+not show the token. Emulators pair through that text route too, so the debug build no
 longer needs a QR text field of its own.
 
 **For emulators,** `app/src/debug/` adds a field for an address and port instead of NSD, so a reading
@@ -341,8 +343,10 @@ can be taken where a multicast cannot reach. It does not exist in the release bu
 - **Both pairing routes with TalkBack on** (D10), on both phones: TalkBack reads the QR's content
   description; *Copy the code* and *Share the code* are reachable and labelled, and the share sheet
   opens with the one-line payload; pairing completes by the QR (on the real phones, R2) and by the
-  pasted text (on the emulators and on the real phones), each with TalkBack on throughout, and the
-  pins on both routes are the same kind of pin, read in `adb logcat` under the link's tag.
+  pasted text (on the emulators and on the real phones), each with TalkBack on throughout; on both
+  phones the paired state (*Connected* on the camera, the camera listed as paired on the Player's
+  phone) is announced politely without moving focus (WCAG 2.2, 4.1.3); and the pins on both routes
+  are the same kind of pin, read in `adb logcat` under the link's tag.
 - Unpairing on one side: the other's next handshake fails and it says *Pair again*.
 - Restarting either app, and turning the camera emulator's Wi-Fi off and on: the link comes back
   without pairing again.
