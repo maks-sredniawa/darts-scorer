@@ -15,7 +15,7 @@ pairs it once by pointing it at a QR on their own phone, and from then on taps *
 camera* after a Visit: the spare phone takes the Photo, sends it over the home Wi-Fi to the player's
 phone, and the Visit is scored there exactly as a handheld Photo is. The Photo travels between the
 player's two phones over a pinned, encrypted link and nowhere else. A player who never pairs a camera
-sees one change at most (Q1). The difference a device can be asked about: **on two emulators on one
+sees one change: the first *Take a Photo* asks for the camera permission (D5). The difference a device can be asked about: **on two emulators on one
 virtual Wi-Fi, a paired Mounted camera answers a capture with a Photo that the Player's phone scores,
 a third unpaired emulator can neither connect nor capture, and on two real phones at a real Board the
 Board half of M1's bar is read on the Mounted camera's own Photos (R1).**
@@ -32,7 +32,8 @@ same pull request as this file:**
 - It asked how several cameras are reached at once. With one camera, it is not this phase's question;
   each camera is its own connection, and the camera list is a list from the start.
 - It did not foresee that declaring `CAMERA` for the camera role changes the handheld path on every
-  phone (ADR-0009, *Context*). That is Q1 below.
+  phone (ADR-0009, *Context*). The owner chose to ask for it at the first handheld *Take a Photo*
+  (D5).
 
 ---
 
@@ -46,6 +47,11 @@ same pull request as this file:**
 | **D2** | **The permissions** | **`INTERNET` returns for the local link only**, phone to phone on the same Wi-Fi, never to a server. **The Mounted camera holds `CAMERA`** and captures through CameraX; the handheld path keeps the system camera. The privacy policy, Data safety and `aab-permissions.py` change before any build carries either |
 | **D3** | **Where Photos go** | **Never off the owner's own phones**: from the Mounted camera to the Player's phone over the local network, and nowhere else |
 | **D4** | **The order** | **One-camera phase G before phase 2.** It needs no merge of Angles. Two cameras wait for phase 2 |
+| **D5** | **The handheld path, now that `CAMERA` is declared** (`TakePicture` throws unless it is granted, on every phone) | **Ask for `CAMERA` at the first handheld *Take a Photo***, with one line saying why; a denial leaves the Photo Picker. Not a second app for the camera role, and not in-app capture on the handheld path |
+| **D6** | **When the paperwork merges** | **E merges first, right after checkpoint 0 and before B**, so the privacy policy runs one release ahead of the app rather than one behind. Release PRs are then merged on green CI as usual; none has to be held |
+| **D7** | **Data safety once a Photo crosses the Wi-Fi** | **Still *No data collected***, on Play's end-to-end-encryption exemption: the Photo is readable only by the two phones that hold the keys, and the developer never receives one |
+| **D8** | **Mount positions for gate A** | **All three are possible, and gate A reads all three**: (a) the wall to one side at Board height, 0.5–1 m out from the Board's face; (b) above the Board, looking down at it; (c) a stand by the oche |
+| **D9** | **The spare phone** | **A Redmi Note 8 Pro on Android 11 (API 30)**, already on the owner's Wi-Fi with the debug app installed |
 
 ### Recommended in ADR-0009, decided as written when its pull request merges
 
@@ -55,16 +61,6 @@ JPEG never stored on the camera; the phone's own lens correction and nothing els
 behaviour when it drops; a Settings row for the role; the screen kept on by a window flag with no
 service; `ACCESS_LOCAL_NETWORK` left undeclared until target SDK 37; the billing backend excluded.
 Each has its options and reasons in ADR-0009.
-
-### Open: the owner's choice
-
-| # | Question | Options | Recommended |
-| --- | --- | --- | --- |
-| **Q1** | **Declaring `CAMERA` makes `TakePicture` throw unless `CAMERA` is granted, on every phone. How should the handheld path change?** | **(a)** Ask for `CAMERA` at the first *Take a Photo*, with one line saying why; a denial leaves the Picker. **(b)** A second app for the camera role, so this app gains `INTERNET` only and the handheld path stays exactly as it is, at the cost of a second listing, closed test and pipeline. **(c)** Drop the system camera on the handheld path and take handheld Photos in-app with CameraX too, which asks for `CAMERA` at the same moment as (a) and rewrites phase 1's flow | **(a)**: one dialog, once, at the moment the camera is used, and the Picker still works without it |
-| **Q2** | **The paperwork must be live before any build carrying `INTERNET` or `CAMERA` reaches a track, internal included, and this repo merges release PRs as soon as CI is green. When does E merge?** | **(a)** E merges first, before B, so the policy runs one release ahead of the app. **(b)** E merges last, as listed, and the release PRs that B to D open are held unmerged until it does. **(c)** B to E go in one pull request | **(a)**: a policy that describes a capability one release early errs on the safe side; one a release late breaks Play's policy, and (b) depends on remembering to hold a PR that is normally merged without asking |
-| **Q3** | **The Data safety answer once a Photo crosses the Wi-Fi** | **(a)** Still *No data collected*, on Play's end-to-end-encryption exemption: the Photo is readable only by the two phones that hold the keys. **(b)** Declare *Photos and videos → Photos: collected, required for app functionality, not shared, encrypted in transit* | **(a)**: it is what the exemption's words describe, and the developer never receives a Photo. (b) is the cautious reading if the owner would rather over-declare |
-| **Q4** | **Where can the Mounted camera go at your Board?** For gate A | **(a)** On the wall to one side, at Board height, 0.5–1 m out from the Board's face. **(b)** Above the Board, looking down at it. **(c)** On a stand to one side of the throwing line, further back | Try **(a)** and **(b)** in gate A, since both stay clear of a thrown Dart; (c) only if neither finds the Board |
-| **Q5** | **Which phone is the spare?** | Its model and Android version. It needs Android 8 or later, Wi-Fi and a working main camera | — |
 
 ---
 
@@ -93,7 +89,7 @@ Each has its options and reasons in ADR-0009.
 
 **In:** the camera role on a spare phone (CameraX, a screen that stays on, aiming, QR scanning); NSD
 discovery; the pinned TLS link and its pairing; *Take with the mounted camera* on the Visit screen,
-its states and its failure paths; the handheld path's `CAMERA` ask as Q1 decides; the billing backend
+its states and its failure paths; the handheld path's `CAMERA` ask (D5); the billing backend
 excluded; the permission tables, privacy policy, Data safety reasoning, store listing and `CLAUDE.md`
 brought in line; the gate's Board readings from the mount.
 
@@ -130,30 +126,75 @@ a cached fit with a drift check against the new Photo is a decision of its own, 
 | | Checkpoint | Merges | Depends on |
 | --- | --- | --- | --- |
 | **0** | **The ADR and this plan**: ADR-0009, the amendments to ADR-0007 and ADR-0008, `CONTEXT.md`'s terms, `PLAN.md`'s paragraph | `docs:` | — |
-| **A** | **The gate**: is the Board found from a mount position, within the Board half of M1's bar? | a `docs:` with the verdict; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | 0, Q4, Q5 |
-| **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning; the handheld path's `CAMERA` ask (Q1) | `feat:` | A (verdict 1 or 2), Q1, E if Q2 is (a) |
+| **E** | **The paperwork**: the privacy policy, `play-app-content.md`'s Data safety reasoning, the store listing in every language, written for the app as it will be once B to D ship | `docs:` | 0 |
+| **A** | **The gate**: is the Board found from each of the three mount positions (D8), within the Board half of M1's bar? | a `docs:` with the verdict; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | 0 |
+| **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning; the handheld path's `CAMERA` ask (D5) | `feat:` | E, A (verdict 1 or 2) |
 | **C** | **The link and pairing**: Keystore keys, NSD, the TLS socket and its frames, the QR and the pairing proof, unpairing, the store outside the backup; `INTERNET` declared, the billing backend excluded | `feat:` | B |
 | **D** | **The capture-and-score flow**: *Take with the mounted camera* on the Visit screen, the camera's state, the timeouts and failure paths, the Photo into phase 1's path | `feat:` | C |
-| **E** | **The paperwork**: the privacy policy, `play-app-content.md` (Data safety, the artifact table), the store listing in every language, `aab-permissions.py`'s tables and its backend check, `CLAUDE.md`'s stack table, the manifest's comment | `docs:` with `chore:` for the script | 0; merges before B if Q2 is (a) |
 
-**The order the owner listed is 0, B, C, D, E**, and B to D stay in that order: the link needs a
-camera to serve, and the flow needs the link. Two things move around it:
+**The order is 0, E, A, B, C, D.** B to D stay in the order the owner listed them: the link needs a
+camera to serve, and the flow needs the link. Around them:
 
+- **E comes right after 0** (D6). The privacy policy, the Data safety reasoning and the listing must
+  be live before any build carrying `INTERNET` or `CAMERA` reaches a track, internal included, and
+  this repo merges release PRs as soon as CI is green. Merged first, they run one release ahead of
+  the app, which errs on the safe side; merged last, they would run a release behind, which breaks
+  Play's policy. What describes the artifact rather than the app moves with the code instead:
+  `aab-permissions.py`'s tables and `play-app-content.md`'s artifact table travel with the commit
+  that adds each permission, because the upload gate fails otherwise, and `CLAUDE.md`'s stack rows
+  and the manifest's comment travel with B and C.
 - **A goes before B** because it is the one finding that could make the rest wait. If the shipped
   model cannot find the Board from any place a camera can be mounted, the link still works but the
   phase cannot close, and the honest next step is data for M2, not code. A needs no code: the spare
   phone's own camera app takes the Photos.
-- **E's timing is Q2.** Each code checkpoint still edits `aab-permissions.py`'s `EXPECTED` and
-  `play-app-content.md`'s artifact table in the same commit as the permission it adds, because the
-  upload gate fails otherwise; E carries the prose that a reader of the policy and the listing sees.
 
 ---
 
-## 1. The gate: is the Board found from where a camera can be mounted?
+## 1. The paperwork (E)
+
+Merged right after checkpoint 0 (D6), so each document describes the app as it will be once B to D
+ship, one release before it does. The policy says what the app does when a Mounted camera is set up;
+a player who sets none up meets none of it.
+
+- **`docs/privacy-policy.md`**, re-dated: the *collects nothing* section keeps its title and loses *no
+  permission to use the internet*; a section for the Mounted camera says the app uses the local
+  network only to send a Photo from a phone you set up as a camera to your own phone, encrypted, and
+  never to a server; the camera permission's two uses, the Mounted camera and the system camera; the
+  billing library's logging still has no way out (ADR-0009, decision 12).
+- **`docs/play-app-content.md`**, prose only: Data safety's point 1 rewritten from *the app cannot
+  transmit anything* to *the app transmits only a Photo, only between the player's own paired phones,
+  end to end encrypted*, with Play's exemption quoted (D7); a sixth point for the billing backend;
+  *Would change* gaining *a connection to anything but a paired phone*; the content rating's reasoning
+  for *users interact: No*; production access's engagement answer, which leans on *no internet
+  permission*, reworded to *no analytics and no server*. The Data safety answer itself does not
+  change, so nothing is re-submitted in the Console.
+- **`docs/store-listing.md`**, every language: *does not request the internet permission* goes; the
+  *PERMISSIONS* block names the camera and the local network. Translated per the translation brief,
+  from English, in the same pull request.
+
+**What moves with the code instead**, because it describes the artifact rather than the app:
+
+- **`scripts/aab-permissions.py`**: `CAMERA` to `EXPECTED` and both camera features into
+  `EXPECTED_FEATURES` at `False` in B; `INTERNET` to `EXPECTED`, the `backend:` meta-data check, and
+  `FORBIDDEN` gaining `NEARBY_WIFI_DEVICES`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`,
+  `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_LOCAL_NETWORK` (until target
+  SDK 37) and `FOREGROUND_SERVICE_CAMERA` in C. Its docstring and comments come in line with each.
+- **`play-app-content.md`'s artifact table and forbidden list**, in the same commits.
+- **`CLAUDE.md`**: the camera row (*`TakePicture` for the handheld path; CameraX for the Mounted
+  camera, ADR-0009*) in B; the billing row (*`INTERNET` kept, its logging backend excluded*) and a row
+  for the link in C.
+- **The manifest's comment** on `INTERNET`, rewritten for the local link, in C.
+
+**Acceptance (E):** the policy and the listing read against ADR-0009's decisions 11 to 13 and
+`play-app-content.md`, in one pull request; `python3 scripts/translation-gate.py origin/main` passes;
+the policy is live at `https://maksforge.com/darts-scorer/privacy-policy` before B merges.
+
+## 2. The gate: is the Board found from where a camera can be mounted?
 
 ### The question, in the form that can be measured
 
-On Photos the spare phone takes from each candidate mount position (Q4), of an empty Board in the
+On Photos the Redmi Note 8 Pro (D9) takes from each of the three mount positions (D8), of an empty
+Board in the
 room's ordinary light, does the shipped model find the Board in at least 98% of them, with the error
 at the treble wires and at the double wires each within a median of 0.5 mm and a 95th percentile of
 1.0 mm: the Board half of `phase-M1.md` D1?
@@ -174,21 +215,22 @@ at the treble wires and at the double wires each within a median of 0.5 mm and a
 
 ### The verdicts, decided now rather than argued about later
 
-1. **One position meets the Board half of the bar** → that position is the one the copy recommends;
+1. **At least one position meets the Board half of the bar** → the best of them is the one the copy
+   recommends;
    B to E are built; the Darts half is read in R8 when the owner can throw again.
 2. **The Board is found at one position in at least 98% of Photos but its error misses the bar** →
    B to E are built, since the link does not depend on the model; the sessions become phase M2 data
    (a training session and a Validation one, per M2's rules), and the phase closes only on a model
    that meets the bar from the mount, as phase 1 closes only on M2's.
 3. **No position finds the Board in 98% of Photos** → B is not started. The finding goes to the owner
-   with the Photos' overlays, and the choices are a position further in front (Q4 (c)), training data
-   from the mount first, or pausing the phase.
+   with the Photos' overlays, and the choices are training data from the mount first, or pausing the
+   phase.
 
 ### The verdict, taken *(date)*
 
 *(Which one, the figures per position, and anything neither verdict anticipated.)*
 
-## 2. The camera role (B)
+## 3. The camera role (B)
 
 **Shape.** Settings gains a **Mounted camera** row; it opens a screen with *Add a mounted camera* and
 *Use this phone as the mounted camera* (ADR-0009, decision 9). The second asks for `CAMERA`; denied,
@@ -208,7 +250,7 @@ preview hides and the window's brightness drops to its lowest, leaving a status 
 position every minute; a touch restores both (ADR-0009, decision 10). No lock on orientation: the
 Photo's rotation is baked in from the display's, so a phone mounted sideways sends an upright Photo.
 
-**The handheld path (Q1).** Under (a): the first *Take a Photo* on any phone asks for `CAMERA` with a
+**The handheld path (D5).** The first *Take a Photo* on any phone asks for `CAMERA` with a
 line of rationale; granted, `TakePicture` runs as today; denied, phase 1's *No camera app* banner
 becomes *Camera not allowed* with a way to the system settings, and the Picker stays. Phase 1's ask
 table in `PLAN.md` is amended in B.
@@ -221,13 +263,14 @@ table in `PLAN.md` is amended in B.
   `files/` or `cache/` after it (`adb shell run-as <id> find files cache`).
 - The dimming after 30 s and its undoing on a touch, read with `adb shell dumpsys window` for the
   window's brightness.
-- Under Q1 (a): a fresh install's first *Take a Photo* asks for `CAMERA`; granted, the system camera
+- A fresh install's first *Take a Photo* asks for `CAMERA`; granted, the system camera
   opens; denied, the banner and the Picker.
 - `aab-permissions.py` on a `bundleRelease`: `CAMERA` expected, both camera features at
   `required="false"`, nothing else new. A merged permission from CameraX fails it, and is decided then.
-- On the spare phone (Q5): the preview, a capture, and the default camera being the main lens.
+- On the Redmi Note 8 Pro (D9): the preview, a capture, and the default camera being the main lens,
+  not its ultra-wide or macro.
 
-## 3. The link and pairing (C)
+## 4. The link and pairing (C)
 
 **Shape.** ADR-0009, decisions 2 to 4: an EC P-256 Keystore key per phone; the Mounted camera
 registers `_dartsscorer._tcp` and listens on TLS; the Player's phone shows the QR, the camera scans
@@ -272,7 +315,7 @@ a multicast cannot reach. Neither exists in the release build.
 - The tip, on the first internal-track build carrying the exclusion: prices load and the purchase
   sheet opens (R7).
 
-## 4. The capture-and-score flow (D)
+## 5. The capture-and-score flow (D)
 
 **Shape.** With a camera paired, the Visit screen shows the camera's state and *Take with the mounted
 camera* beside *Take a Photo* and the Picker. A tap sends `CAPTURE`; *Taking the Photo…* until it
@@ -300,33 +343,6 @@ camera: the player taps the button they want.
 - TalkBack reads the state chip and the button's disabled state.
 - On the two real phones: R2 to R6.
 
-## 5. The paperwork (E)
-
-- **`docs/privacy-policy.md`**, re-dated: the *collects nothing* section keeps its title and loses *no
-  permission to use the internet*; a section for the Mounted camera says the app uses the local
-  network only to send a Photo from a phone you set up as a camera to your own phone, encrypted, and
-  never to a server; the camera permission's two uses; the billing library's logging still has no
-  way out (ADR-0009, decision 12).
-- **`docs/play-app-content.md`**: the artifact table and the forbidden list; Data safety's point 1
-  rewritten from *the app cannot transmit anything* to *the app transmits only a Photo, only between
-  the player's own paired phones, end to end encrypted* with Play's exemption quoted (Q3); a sixth
-  point for the billing backend; *Would change* gaining *a connection to anything but a paired phone*;
-  the content rating's reasoning for *users interact: No*; production access's engagement answer,
-  which leans on *no internet permission*, reworded to *no analytics and no server*.
-- **`docs/store-listing.md`**, every language: *does not request the internet permission* goes; the
-  *PERMISSIONS* block names the camera and the local network. Translated per the translation brief,
-  from English, in the same pull request.
-- **`scripts/aab-permissions.py`**: `INTERNET` and `CAMERA` to `EXPECTED` with their reasons;
-  `EXPECTED_FEATURES` with both camera features at `False`; `FORBIDDEN` gaining
-  `NEARBY_WIFI_DEVICES`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `BLUETOOTH_SCAN`,
-  `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`, `ACCESS_LOCAL_NETWORK` (until target SDK 37) and
-  `FOREGROUND_SERVICE_CAMERA`; the `backend:` meta-data check. The table edits travel with B and C;
-  E brings the docstring and comments in line.
-- **`CLAUDE.md`**: the stack rows for the camera (*`TakePicture` for the handheld path; CameraX for
-  the Mounted camera, ADR-0009*), billing (*`INTERNET` kept, its logging backend excluded*) and a row
-  for the link.
-- **The manifest's comment** on `INTERNET`, rewritten for the local link.
-
 ---
 
 ## Tests
@@ -351,9 +367,10 @@ camera: the player taps the button they want.
 
 - ADR-0007 and ADR-0008, `CONTEXT.md` and `PLAN.md`: in checkpoint 0, the pull request carrying this
   file.
-- The privacy policy, `play-app-content.md`, `store-listing.md`, `aab-permissions.py`, `CLAUDE.md`
-  and the manifest's comment: E, with the tables in B and C.
-- `PLAN.md`'s *Asks* table: B, for the handheld `CAMERA` ask under Q1.
+- The privacy policy, `play-app-content.md`'s prose and `store-listing.md`: E, before B.
+- `aab-permissions.py`, `play-app-content.md`'s artifact table, `CLAUDE.md` and the manifest's
+  comment: B and C, with the permissions they describe.
+- `PLAN.md`'s *Asks* table: already carries the handheld `CAMERA` ask (D5), from checkpoint 0.
 - android-starter's `ui/support/SupportHandoff.kt`, whose comment says the app declares no `INTERNET`:
   a comment-only change there, synced in with `sync-support.py`, since synced files are never edited
   in the app.
@@ -377,9 +394,11 @@ camera: the player taps the button they want.
 
 Device state they depend on: the emulators run under emulator 37.2.13 (shared virtual Wi-Fi from
 36.5), driven with the `emulator-test` skill, and never an AVD on a non-standard port, which is
-another session's; the real phones are the owner's phone and the spare (Q5), both on the home Wi-Fi,
-the spare kept awake with `adb shell svc power stayon usb` only for readings that are not about the
-battery.
+another session's. The real phones are the owner's phone and the Redmi Note 8 Pro on Android 11
+(D9), both on the home Wi-Fi, the Redmi with the debug app already installed. The Redmi runs MIUI, so
+before installing a new build check that `adb shell getprop persist.sys.miui_optimization` reads
+`false` (`CLAUDE.md`, *Environment notes*), and keep it awake with `adb shell svc power stayon usb`
+only for readings that are not about the battery.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
