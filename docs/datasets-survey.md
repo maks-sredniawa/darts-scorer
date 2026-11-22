@@ -19,7 +19,8 @@ ADR-0008 either: like the share-alike change below, it waits for a dated amendme
 
 ## Since this survey (2026-11-22)
 
-The rest of this page is the 2026-11-20 record and is left as it was. Four things have moved since:
+The rest of this page is the 2026-11-20 record and is left as it was, apart from the dated
+*Outcome* lines under *Recommendation*. Four things have moved since:
 
 - **Share-alike.** Later on 2026-11-20 the owner accepted CC BY-SA training data, such as dartscribe,
   even though it may make `darts.tflite` CC BY-SA (whether a trained model is Adapted Material is
@@ -179,15 +180,18 @@ skip review. The one that does most of the work, the homography from four Hand p
    each dart's landing point exactly. Use it with procedural backgrounds or the owner's own empty-wall
    photos, never its optional Places365 backgrounds, whose terms are non-commercial research and
    education.
-   **Outcome, 2026-11-22:** tried through the owner's fork, `maks-sredniawa/darts-render`; no mix so
-   far beats the shipped run, so renders are not the stronger lever after all ([Since this survey](#since-this-survey-2026-11-22)).
-4. **Leave out** dartscribe (share-alike, unless the owner decides otherwise; the owner has since
-   accepted share-alike, so it waits only on ADR-0008's amendment, [Since this survey](#since-this-survey-2026-11-22)), the Hugging Face
+   **Outcome, 2026-11-22:** tried through the owner's fork, `maks-sredniawa/darts-render`; no mix
+   tried so far beats the shipped run ([Since this survey](#since-this-survey-2026-11-22)), and
+   `phase-M2.md` §7 still lists further render steps, so the question stays open.
+4. **Leave out** dartscribe (share-alike, unless the owner decides otherwise), the Hugging Face
    DeepDarts re-upload and the two on Roboflow (`dartboard-detection`, `dart-app`), the Roboflow sets
    whose uploader shows no sign of owning the photos (`darts-eob9x`, `onecamsteeldarts`, `dartpose`),
    dart-sense, the Kaggle in-flight set, and, as not worth the effort, Wikimedia Commons, Open Images
    and the Roboflow box sets that pass (`darts-su3`, `darts-3jiso`, the AI-Dartboard set,
    `mydartboard`).
+   **Outcome, 2026-11-22:** the owner has since accepted share-alike, so dartscribe now waits on
+   ADR-0008's amendment and on the DeepDarts duplicate check this page requires
+   ([Since this survey](#since-this-survey-2026-11-22)).
 5. **For labelling, keep `prefill` and the project's own model.** Add an open-vocabulary detector
    (OWLv2, Apache-2.0) only if unlabelled public photos are ever triaged in bulk, after the question in
    the section above has an answer.
