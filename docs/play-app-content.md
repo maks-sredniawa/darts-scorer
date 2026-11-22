@@ -77,8 +77,15 @@ No except *purchase digital goods* (Yes) and its loot-box follow-up (No).
 In the Console the questionnaire shows one section at a time, and *Next* stays disabled until
 *Save* has been pressed. With managed publishing off, saving the summary sends it for review at once.
 
+**The Mounted camera keeps every answer No** (ADR-0009, decision 13). *Do users interact or exchange
+content?* is about people reaching each other through the app; the Mounted camera's link joins one
+player's own two phones, the Player's phone and the spare phone it paired, and carries only that
+player's Photo between them. No user reaches another user, and nothing a user makes is shown to anyone
+else. Nothing is re-answered for it.
+
 Would change: user-generated content, communication between users, or a link out to anything that
-has either. A support `mailto:` hand-off is not user-to-user communication — it opens the user's own
+has either. A Mounted camera that could be paired with someone else's phone, or a Photo shown to
+another player, would be the first. A support `mailto:` hand-off is not user-to-user communication — it opens the user's own
 mail app, addressed to the developer — and a rate row opens Play's own listing, whose reviews are
 Play's surface rather than the app's.
 
@@ -87,7 +94,8 @@ Play's surface rather than the app's.
 **18 and over.** Answered 2026-11-22. *Restrict users that Google has determined to be minors* left
 unticked. Re-read after the rating was submitted: no band blocked, nothing flagged.
 
-Would change: lowering it. Any age band under 18 brings in the Families policy and its design and
+The Mounted camera does not change it: no content and no contact between users (*Content rating*
+above). Would change: lowering it. Any age band under 18 brings in the Families policy and its design and
 SDK requirements.
 
 ⚠ Re-read this page once the content rating is submitted. On Darek, built from this template
@@ -109,6 +117,12 @@ listing. Would change: copy or a tag that sells the app as good for you.
 collect or share any of the required user data types?* **No**, which skips every later step. No
 badge claimed.
 
+**The Mounted camera keeps that answer** (ADR-0009, decision 13; the owner's choice, `phase-G.md` D7),
+so nothing is re-submitted in the Console when its build ships. The reasoning below is written for the
+app as it will be once phase G's checkpoints B to D ship, one release ahead of them (`phase-G.md` D6).
+Until the build that declares `INTERNET`, point 1's older and stronger fact still holds as well: the
+artifact carries no `INTERNET` at all (the table above).
+
 Play's definitions, from its Data safety help page (support.google.com, answer 10787469) — re-read
 them at each re-declaration rather than trusting this quote:
 
@@ -116,20 +130,40 @@ them at each re-declaration rather than trusting this quote:
 >
 > "User data accessed by your app that is only processed locally on the user's device and not sent
 > off device does **not** need to be disclosed."
+>
+> "**End-to-end encryption:** User data that is sent off device, but that is unreadable by you or
+> anyone other than the sender and recipient as a result of end-to-end encryption does **not** need
+> to be disclosed." Under it: "The encrypted data must not be readable by any intermediary entity,
+> including the developer, and only sender and recipient may have necessary keys." (Read 2026-11-23.)
 
 The answer rests on one fact per route data could take:
 
-1. **The app cannot transmit anything.** `INTERNET` is absent from the artifact, and
-   `aab-permissions.py` fails the upload if it ever appears. This one fact is most of the answer.
-2. **Photos are processed only on the device.** Picked or taken, re-encoded by `media/MediaFiles.kt`
-   with their metadata — GPS included — stripped, and stored in the app's private storage, which no
-   backup takes them out of (point 3). The app has no share or export of its own.
+1. **The app transmits one thing: a Photo, only between the player's own paired phones, end to end
+   encrypted.** A Mounted camera sends the Photo it took to its Player's phone over the local
+   network, and nowhere else (ADR-0009, decisions 3 and 4). It is "sent off device", so the answer
+   rests on the exemption quoted above, not on the definition: the link is TLS, mutually
+   authenticated and pinned to the two phones' Keystore keys, which cannot be exported, so only the
+   sender and the recipient hold the keys and the developer, the router and anyone else on the
+   network can read nothing. The app connects only to a private or link-local address that NSD
+   resolved, makes no DNS lookup and holds no URL (the local-peer check, `isLocalPeer`, with its
+   test). **The encryption is load-bearing for this answer, not a nicety**: a Photo sent in the clear,
+   or to anything but the paired phone, makes Photos *collected*. What stands where the forbidden
+   `INTERNET` stood is therefore code: the local-peer check, the pinned TLS, and point 6's
+   exclusion, each with its test or gate.
+2. **Photos are processed only on the player's own phones.** Picked or taken, re-encoded by
+   `media/MediaFiles.kt` with their metadata — GPS included — stripped, and stored in the app's
+   private storage, which no backup takes them out of (point 3). A Mounted camera encodes its Photo
+   the same way into memory, sends it and drops it, writing nothing to its own storage (ADR-0009,
+   decision 6). The app has no share or export of its own.
 3. **Auto Backup is still "no data collected".** The platform moves the user's backup to the user's
    own Google Drive; the developer never sees it. That is Android transmitting the user's backup, not
    the app transmitting to the developer. It carries the preferences and the chosen language, and
    **never a photo**: both rule files are include-only and name nothing else, for the cloud backup
    and the device transfer alike, and `BackupRulesTest` fails on any other include. ⚠ Every key the
-   backup carries lands on the user's *next* phone too — see ADR-0005's 2026-11-12 amendment.
+   backup carries lands on the user's *next* phone too — see ADR-0005's 2026-11-12 amendment. The
+   Mounted camera's pairing store (its pins, the camera list and the role) lives in
+   `noBackupFilesDir`, which Android excludes from both whatever the rules say, and `PairingStoreTest`
+   holds it there (ADR-0009, decision 4).
 4. **A support mail is still "no data collected", and the reason is the definition rather than an
    exemption.** A `mailto:` hands a draft to **another app**; the user reads it, can edit every line,
    and sends it from their own mail client, or does not. ⚠ **Do not write "Play exempts support
@@ -143,10 +177,23 @@ The answer rests on one fact per route data could take:
    receives back: that is a purchase token and a product id, which the app hands straight back to Play
    to consume, never stores and never sends anywhere else, so by the definition above it is not
    collected. The developer's order report comes from Google, not from the app.
+6. **The billing library's usage logging still cannot leave**, now that `INTERNET` is declared
+   (ADR-0009, decision 12; ADR-0007's 2026-11-22 amendment). Its only `datatransport` backend,
+   `transport-backend-cct`, is excluded from the build, so billing's logger fails to initialise and
+   skips every log (*Skipping logging since initialization failed.*) instead of handing it on, and
+   `aab-permissions.py` fails the upload if a `backend:` meta-data entry ever reappears. Before the
+   build that declares `INTERNET`, the missing permission does the same job. If the tip stops working
+   without the backend (`phase-G.md` R7), the exclusion is reverted and this point becomes a
+   declaration of what the library collects, in the same commit.
 
 Would change any of it:
 
-- **`INTERNET` on the artifact**, from our code or a dependency. Every answer here becomes a question.
+- **A connection to anything but a paired phone**: a server, a URL, a DNS lookup, or a peer outside
+  the local network, from our code or a dependency. Before the Mounted camera's build, `INTERNET` on
+  the artifact at all is this; after it, the local-peer check and the pinned TLS are what stop one.
+- **A Photo sent without the pinned, end-to-end encryption**, or readable by anything between the
+  two phones: point 1 then rests on nothing.
+- **A `datatransport` backend in the artifact** (point 6), or the exclusion reverted.
 - **Anything the app sends by itself**, such as crash reporting or analytics. There is none today.
 - **The app keeping a purchase**, such as a tip history or a supporter badge: that is *Purchase
   history* the app collects, and the form has no way to declare it as Google Play's.
@@ -165,6 +212,11 @@ forbids it. Answered 2026-11-22.
 app gains a foreground service, this section records the type, the `PROPERTY_SPECIAL_USE_FGS_SUBTYPE`
 text if it is `specialUse`, and the three answers the declaration asks for: what the user sees, why
 it cannot wait, and why no named type fits.
+
+The Mounted camera deliberately needs none: it works only while its screen is open, kept on by a
+window flag, so there is no `camera` foreground service, notification or video to declare (ADR-0009,
+decision 10). Neither `CAMERA` nor `INTERNET` is on Play's list of permissions that need a
+declaration form (decision 13).
 
 The declaration also wants **a video** of the service doing its job. Record its link here, and keep
 it viewable by anyone with the link for as long as the declaration is on file. `adb screenrecord`
@@ -188,6 +240,10 @@ captures no audio, so say so in the declaration if the service's job is a sound.
   maksforge.com. It updates within about 15 minutes of a merge to `main`, with no release, which is why it has to be right before the
   app it describes ships rather than after. Read against these answers 2026-11-22 and re-dated that day,
   when its opening line dropped "one or more photos" for the single photo the app reads today.
+  Re-dated 2026-11-23 for phase G's checkpoint E (`phase-G.md` §1), one release ahead of the Mounted
+  camera: it drops *no permission to use the internet*, says the camera and the local network arrive
+  with the Mounted camera, and describes the Mounted camera as coming. The words *coming* and *today's
+  version* go in the release that ships it, with the store listing's.
 
 ## Production access — the application, and the answers it was given
 
@@ -224,9 +280,9 @@ them:**
 
 1. **The audience answer agrees with *Target audience* above.** A reviewer reads the two side by side.
    A mismatch is a question rather than a rejection, but it can cost days.
-2. **Engagement is answered from what the app can know.** With no `INTERNET` permission there is no
-   telemetry, so the true answer is what is visible without it: *"The app has no internet permission
-   and no analytics, so I cannot see how often testers used it. What I can see is the testers who
+2. **Engagement is answered from what the app can know.** With no analytics and no server there is no
+   telemetry, so the true answer is what is visible without it: *"The app has no analytics and no
+   server, so I cannot see how often testers used it. What I can see is the testers who
    stayed opted in through the 14 days, and the messages some of them sent."* A guessed figure would
    contradict *Data safety* in this same file.
 3. **The changes answer says where the changes came from.** If the testers reported nothing, say so and
@@ -279,7 +335,7 @@ What a reviewer can still ask about, and the answer:
 - **The *Contains in-app purchases* label** on a free app: the tip unlocks nothing, and the Support
   section says so in the user's language.
 - **The content rating**: re-answered above, with Brazil at 14+.
-- **Data safety**: point 5 above.
+- **Data safety**: points 5 and 6 above.
 - **Financial features**: unchanged. A tip is an in-app purchase, not a financial feature.
 
 ---
