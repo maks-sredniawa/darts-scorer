@@ -126,12 +126,10 @@ only on a model that met this phase's bar.
       AndroidX), none of the six forbidden, no features, no orientation locks, Polish complete.
 - [x] **Choose the palette.** Brass `8A6500`, khaki grey `6E6552`, steel blue `3F6E8C`, near-grey
       `E4E2DE` in `scripts/gen_scheme.py`; every contrast check passes.
-- [ ] **Make the support address work both ways.** `bootstrap.py` compiled in
-      `<repo>.support@maksforge.com` (or `--support`) and wrote it into the site, the privacy policy
-      and the Play docs. Mail to it arrives through the domain's catch-all; replying from it needs the
-      receiving Gmail's *Send mail as* entry, confirmed. Send *Report a problem* from a non-Gmail
-      account and check it lands outside Spam. One address everywhere — the listing's contact field
-      and IARC's rating contact too; `ui/support/SupportConfig.kt` says why it lives on our own domain.
+- [x] **Make the support address work both ways.** `darts-scorer.support@maksforge.com`: Gmail's
+      *Send mail as* lists it through Brevo, verified, read 2026-11-22; the listing's contact field
+      and IARC use the same address. No test mail: a configured send-as is taken as working, and the
+      domain is the owner's own (owner, 2026-11-22).
 - [x] **Write the listing.** `docs/store-listing.md`, English and Polish, category *Sports*,
       2026-11-22, and in the Console in both languages. The AI asset declaration is the owner's:
       *Label assets as created or edited using AI* ([`play-app-content.md`](play-app-content.md)).
