@@ -182,7 +182,8 @@ captures no audio, so say so in the declaration if the service's job is a sound.
   one.
 - **Privacy policy:** `https://maksforge.com/darts-scorer/privacy-policy`, set 2026-11-22, served from `docs/` by
   maksforge.com. It updates within about 15 minutes of a merge to `main`, with no release, which is why it has to be right before the
-  app it describes ships rather than after.
+  app it describes ships rather than after. Read against these answers 2026-11-22 and re-dated that day,
+  when its opening line dropped "one or more photos" for the single photo the app reads today.
 
 ## Production access — the application, and the answers it was given
 
