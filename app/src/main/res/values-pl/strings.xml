@@ -43,7 +43,7 @@
     <string name="visit_entered_by_hand">Wpisany ręcznie</string>
     <string name="visit_add_dart">Dodaj rzutkę</string>
     <string name="visit_remove_dart">Usuń rzutkę</string>
-    <string name="visit_removed">Usunięto rzutkę %1$d</string>
+    <string name="visit_removed">Usunięto rzutkę %1$d (%2$s)</string>
     <string name="visit_undo">Cofnij</string>
     <string name="visit_photo_zoom_in">Powiększ</string>
     <string name="visit_photo_zoom_out">Pomniejsz</string>

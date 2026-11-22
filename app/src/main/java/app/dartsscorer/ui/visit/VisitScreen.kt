@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -90,7 +91,11 @@ fun VisitScreen(
     val snackbar = remember { SnackbarHostState() }
     val density = LocalDensity.current
     var snackbarHeight by remember { mutableStateOf(0.dp) }
-    val removedMessage = state.removed?.let { stringResource(R.string.visit_removed, it.number) }
+    val resources = LocalResources.current
+    val removedMessage =
+        state.removed?.let {
+            stringResource(R.string.visit_removed, it.number, resources.shortName(it.score))
+        }
     val undo = stringResource(R.string.visit_undo)
     // No timer to adjust (WCAG 2.2.1): the snackbar stays until Undo, its dismiss action or the
     // Visit's next change, which clears `removed` and so cancels this effect.

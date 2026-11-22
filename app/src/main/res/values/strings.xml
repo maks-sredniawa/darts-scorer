@@ -69,7 +69,7 @@
     <string name="visit_add_dart">Add a Dart</string>
     <string name="visit_remove_dart">Remove Dart</string>
     <!-- The snackbar after Remove Dart. %1$d is the Dart's number. -->
-    <string name="visit_removed">Dart %1$d removed</string>
+    <string name="visit_removed">Dart %1$d (%2$s) removed</string>
     <string name="visit_undo">Undo</string>
     <!-- The screen reader's actions on the Photo. Zoom steps about its centre; each Move shows the
          part of the zoomed Photo in that direction, and is offered only while zoomed in. -->
