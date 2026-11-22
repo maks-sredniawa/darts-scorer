@@ -255,6 +255,8 @@ taken up now, before the bar's readings.
   apart. Each render set's manifest names the renderer commit and options that made it.
 - **The owner's marked Visits are the real test set.** `evaluate-marked` reads a chosen run on them;
   they are never trained or chosen on.
+- **2026-11-22: no render mix kept so far.** None beat the shipped run on DeepDarts val; the runs
+  and figures are in [`phase-M2.md`](../phase-M2.md) §7.
 
 ## Amendment — 2026-11-21: public real photos as a training source
 
@@ -277,3 +279,6 @@ taken up now, before the bar's readings.
   records the set's licence, mirror, counts and credit.
 - **Credited if it ships.** A shipped model trained on it adds its credit to the Credits screen
   (`SupportConfig.BUNDLED_CREDITS`), as DeepDarts' is.
+- **2026-11-22: dropped after its runs.** None of them beat the shipped run on DeepDarts val; the
+  runs and figures are in [`phase-M2.md`](../phase-M2.md) §7. The rules above stand if it is tried
+  again.

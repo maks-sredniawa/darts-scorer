@@ -482,6 +482,29 @@ three readings in this phase.
   Capture sessions, D2 reopened, synthetic renders, or the bar's evidence weighed again. The bar is
   not moved to meet a model.
 
+**2026-11-22: the escalations tried before the first reading, and none replaces the shipped run.**
+Each run below starts from the shipped run, `2026-11-19-darts-640-s2-ring-ext` (its epoch-26
+`best.pt` is `darts.tflite`), and is read on DeepDarts val: Photos scored exactly right, of 1,070, at
+the run's `best.pt`, from its `epochs.jsonl` in `$DARTS_DATA/runs/`. None was read on the Held-out
+set or chosen for it. The control adds no data and lands at the shipped run's own level, so a few
+Photos either way is noise; every run that adds a source or widens the ring reads below the control.
+
+| Run | What changed from the shipped run | Exactly right |
+| --- | --- | --- |
+| `2026-11-19-darts-640-s2-ring-ext` | the shipped run | 737 |
+| `2026-11-21-darts-640-dd-frozen-control` | DeepDarts only, `--freeze-norm`, lr 3e-5, 5 epochs | 735–740 by epoch; `best.pt` 740 |
+| `2026-11-21-darts-640-s2-public` | `dart-pose-v6` at `--public-weight 0.3`, lr 3e-4, 10 epochs | 692 |
+| `2026-11-21-darts-640-s2-public-frozen` | the same with `--freeze-norm`, lr 3e-5, 5 epochs | 692 |
+| `2026-11-21-darts-640-s2-public-lowlr` | the same at lr 3e-5 without `--freeze-norm`, 5 epochs | 651 |
+| `2026-11-21-darts-640-renders` | both render sets at `--render-weight 0.5`, lr 1e-3, 15 epochs | 715 |
+| `2026-11-21-darts-640-renders-owner-frozen` | the owner-look render set at 0.1, `--freeze-norm`, lr 3e-5, 5 epochs | 722 |
+| `2026-11-21-darts-640-dartsai-frozen` | `autodartapp/dartsai` at `--public-weight 0.1`, `--freeze-norm`, lr 3e-5, 5 epochs; an exploratory local run, not a recorded source | 715 |
+| `2026-11-22-darts-640-ring40-w8-frozen` | DeepDarts only, `--ring-mm 4 40 --ring-weight 8`, `--freeze-norm`, lr 3e-5, 5 epochs | 731 |
+
+So `dart-pose-v6` is dropped and no render mix is kept; ADR-0008's two 2026-11-21 amendments still
+set the rules if either is tried again. The lever left is labelled Photos of the owner's own board
+(§6, F).
+
 ---
 
 ## Tests
