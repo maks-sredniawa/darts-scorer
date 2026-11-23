@@ -92,7 +92,7 @@ WHAT IT CANNOT DO
 • It reads one photo at a time. Combining photos taken from several sides comes later.
 
 COMING: A MOUNTED CAMERA
-A later version will let a spare Android phone, mounted beside the board and running this app, take the photo for you. Tap on your phone after a visit; the mounted camera takes the photo and sends it to your phone, which scores it. The photo goes only between your two phones, encrypted, over your Wi-Fi or your phone's hotspot, never to a server. You pair the phones once by scanning a QR code. It will need both phones on the same network, the camera permission on the spare phone, and access to your local network. The version you install today does not do this yet.
+A later version will let a spare Android phone, mounted beside the board and running this app, take the photo for you. Tap on your phone after a visit; the mounted camera takes the photo and sends it to your phone, which scores it. The photo goes only between your two phones, encrypted, over your Wi-Fi or your phone's hotspot, never to a server. You pair the phones once by scanning a QR code or pasting its code. It will need both phones on the same network, the camera permission on the spare phone, and access to your local network. The version you install today does not do this yet.
 
 PERMISSIONS
 • Today, none to ask for. Photos come from your camera app or the system photo picker, and neither needs a permission.
@@ -138,7 +138,7 @@ CZEGO NIE POTRAFI
 • Odczytuje jedno zdjęcie naraz. Łączenie zdjęć zrobionych z kilku stron pojawi się później.
 
 W PRZYGOTOWANIU: APARAT PRZY TARCZY
-W jednej z kolejnych wersji zapasowy telefon z Androidem, zamocowany przy tarczy i z tą aplikacją, zrobi zdjęcie za Ciebie. Po podejściu dotknij przycisku na swoim telefonie; aparat przy tarczy zrobi zdjęcie i wyśle je na Twój telefon, który policzy wynik. Zdjęcie jest przesyłane tylko między Twoimi dwoma telefonami, zaszyfrowane, przez Twoje Wi-Fi albo hotspot Twojego telefonu, nigdy na serwer. Telefony parujesz raz, skanując kod QR. Oba telefony będą musiały być w tej samej sieci, zapasowy telefon będzie potrzebował uprawnienia do aparatu, a aplikacja dostępu do sieci lokalnej. Wersja, którą instalujesz dziś, jeszcze tego nie robi.
+W jednej z kolejnych wersji zapasowy telefon z Androidem, zamocowany przy tarczy i z tą aplikacją, zrobi zdjęcie za Ciebie. Po podejściu dotknij przycisku na swoim telefonie; aparat przy tarczy zrobi zdjęcie i wyśle je na Twój telefon, który policzy wynik. Zdjęcie jest przesyłane tylko między Twoimi dwoma telefonami, zaszyfrowane, przez Twoje Wi-Fi albo hotspot Twojego telefonu, nigdy na serwer. Telefony parujesz raz, skanując kod QR albo wklejając jego kod. Oba telefony będą musiały być w tej samej sieci, zapasowy telefon będzie potrzebował uprawnienia do aparatu, a aplikacja dostępu do sieci lokalnej. Wersja, którą instalujesz dziś, jeszcze tego nie robi.
 
 UPRAWNIENIA
 • Dziś żadnych do udzielenia. Zdjęcia pochodzą z aplikacji aparatu albo z systemowego wyboru zdjęć i żadne z nich nie wymaga uprawnienia.
