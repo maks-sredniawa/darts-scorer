@@ -4,8 +4,12 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import app.dartsscorer.camera.CameraRig
+import app.dartsscorer.camera.PairingStore
+import app.dartsscorer.camera.pairingStoreFile
 import app.dartsscorer.data.AppPreferences
 import app.dartsscorer.media.MediaFiles
 import app.dartsscorer.tip.TipJar
@@ -47,6 +51,14 @@ class AppContainer(
     private val appContext = context.applicationContext
 
     val media by lazy { MediaFiles(appContext) }
+
+    /** The role, the pins and the camera ask, outside Auto Backup (ADR-0009, decision 4). */
+    val pairing by lazy {
+        PairingStore(PreferenceDataStoreFactory.create { pairingStoreFile(appContext.noBackupFilesDir) })
+    }
+
+    /** One per camera screen: it binds to that screen's lifecycle. */
+    fun cameraRig() = CameraRig(appContext, media)
 
     /** Holds the model, so it outlives the Visit screen and is mapped only when the first Photo needs it. */
     val visitPhotos by lazy { DeviceVisitPhotos(appContext, media) }

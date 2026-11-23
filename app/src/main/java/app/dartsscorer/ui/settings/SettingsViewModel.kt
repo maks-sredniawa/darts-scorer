@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.dartsscorer.MainApplication
+import app.dartsscorer.camera.PairingStore
+import app.dartsscorer.camera.PhoneRole
 import app.dartsscorer.data.AppPreferences
 import app.dartsscorer.data.ThemeMode
 import app.dartsscorer.theme.applyThemeMode
@@ -19,17 +21,20 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val materialYou: Boolean = false,
+    val cameraRole: Boolean = false,
 )
 
 class SettingsViewModel(
     private val preferences: AppPreferences,
+    pairing: PairingStore,
 ) : ViewModel() {
     val state: StateFlow<SettingsUiState> =
         combine(
             preferences.themeMode,
             preferences.materialYou,
-        ) { theme, materialYou ->
-            SettingsUiState(theme, materialYou)
+            pairing.role,
+        ) { theme, materialYou, role ->
+            SettingsUiState(theme, materialYou, role == PhoneRole.MOUNTED_CAMERA)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     /**
@@ -67,7 +72,7 @@ class SettingsViewModel(
             viewModelFactory {
                 initializer {
                     val app = this[APPLICATION_KEY] as MainApplication
-                    SettingsViewModel(app.preferences)
+                    SettingsViewModel(app.preferences, app.container.pairing)
                 }
             }
     }

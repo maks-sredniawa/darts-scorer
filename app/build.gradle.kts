@@ -304,6 +304,12 @@ dependencies {
     // Finds the Board and the Darts in a Photo (ADR-0008); the model is in assets/model/.
     implementation(libs.litert)
 
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.zxing.core)
+
     // The licences screen reads licensee's artifact list.
     implementation(libs.kotlinx.serialization.json)
 

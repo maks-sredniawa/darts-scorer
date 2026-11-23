@@ -3,6 +3,7 @@ package app.dartsscorer.ui.visit
 import android.app.Activity
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
+import app.dartsscorer.camera.PairingStore
 import app.dartsscorer.data.AppPreferences
 import app.dartsscorer.scoring.Board
 import app.dartsscorer.scoring.FoundDart
@@ -53,6 +54,9 @@ class VisitViewModelTest {
     private val preferences by lazy {
         AppPreferences(PreferenceDataStoreFactory.create(scope = scope) { folder.newFile("app.preferences_pb") })
     }
+    private val pairing by lazy {
+        PairingStore(PreferenceDataStoreFactory.create(scope = scope) { folder.newFile("pairing.preferences_pb") })
+    }
     private val tipJar by lazy { TipJar(scope) { NoBilling } }
     private val photos = FakePhotos()
 
@@ -65,7 +69,7 @@ class VisitViewModelTest {
     }
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        VisitViewModel(preferences, tipJar, Instant.EPOCH, photos, saved, dispatcher)
+        VisitViewModel(preferences, pairing, tipJar, Instant.EPOCH, photos, saved, dispatcher)
 
     /** The state once it shows [settled]: `state` is shared while watched, so its first value may be stale. */
     private fun VisitViewModel.stateWhen(settled: (VisitUiState) -> Boolean): VisitUiState =
@@ -95,7 +99,7 @@ class VisitViewModelTest {
         val saved = SavedStateHandle(mapOf(VisitViewModel.CAMERA to "content://camera/pending.jpg"))
         photos.camera += "content://camera/pending.jpg"
         photos.next = board()
-        val visit = VisitViewModel(preferences, tipJar, Instant.EPOCH, photos, saved, io)
+        val visit = VisitViewModel(preferences, pairing, tipJar, Instant.EPOCH, photos, saved, io)
         visit.cameraReturned(taken = true)
         io.scheduler.advanceUntilIdle()
         visit.scored()

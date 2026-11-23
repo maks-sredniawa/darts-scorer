@@ -20,13 +20,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -91,6 +89,7 @@ import app.dartsscorer.R
 import app.dartsscorer.scoring.Point
 import app.dartsscorer.scoring.Score
 import app.dartsscorer.theme.Spacing
+import app.dartsscorer.ui.common.NoticeBanner
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
@@ -197,32 +196,6 @@ private fun Modifier.photoSize(
             widthIn(max = (window.width / 2).toDp()).fillMaxHeight().aspectRatio(aspect.toFloat(), true)
         } else {
             heightIn(max = (window.height * 2 / 5).toDp()).aspectRatio(aspect.toFloat())
-        }
-    }
-}
-
-/** A banner for what came back wrong: a shape and a title as well as its colour. */
-@Composable
-internal fun NoticeBanner(
-    title: String,
-    body: String,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-        shape = MaterialTheme.shapes.medium,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-    ) {
-        Row(modifier = Modifier.padding(Spacing.base), horizontalArrangement = Arrangement.spacedBy(Spacing.snug)) {
-            Icon(Icons.Filled.Warning, contentDescription = null)
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.hair)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                Text(text = body, style = MaterialTheme.typography.bodyMedium)
-            }
         }
     }
 }

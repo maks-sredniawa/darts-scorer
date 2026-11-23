@@ -31,6 +31,10 @@ licensee = "1.14.1"
 billing = "9.1.0"
 # The on-device runtime (ADR-0008's 2026-11-19 amendment): 1.x, because 2.x pulls in Play's ai-delivery.
 litert = "1.4.2"
+# The Mounted camera's preview, capture into memory and QR frames (ADR-0009); the handheld path keeps the system camera.
+camerax = "1.7.0"
+# Reads the pairing QR on the Mounted camera, and makes it on the Player's phone (ADR-0009, decision 4).
+zxing = "3.5.4"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
@@ -66,6 +70,11 @@ androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runt
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
 litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
+camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
 
 [plugins]

@@ -1,6 +1,8 @@
 package app.dartsscorer.ui.visit
 
+import android.Manifest
 import android.content.ActivityNotFoundException
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +31,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -47,6 +52,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -55,6 +61,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.dartsscorer.R
 import app.dartsscorer.theme.Spacing
 import app.dartsscorer.ui.appViewModelExtras
+import app.dartsscorer.ui.common.NoticeBanner
+import app.dartsscorer.ui.common.OpenAppSettingsButton
+import app.dartsscorer.ui.common.hasCameraPermission
 import app.dartsscorer.ui.common.isShortWindow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,12 +82,41 @@ fun VisitScreen(
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             viewModel.photoChosen(uri?.toString())
         }
-    val takePhoto = {
+    val openCamera = {
         try {
             camera.launch(viewModel.cameraTarget().toUri())
         } catch (e: ActivityNotFoundException) {
             viewModel.cameraUnavailable()
         }
+    }
+    // Declaring CAMERA for the Mounted camera makes the system camera intent need it too (phase-G.md D5).
+    val askCamera =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            viewModel.cameraPermissionAnswered(granted)
+            if (granted) openCamera()
+        }
+    val context = LocalContext.current
+    val activity = LocalActivity.current
+    val takePhoto = {
+        if (context.hasCameraPermission()) {
+            openCamera()
+        } else {
+            val explain =
+                activity?.let {
+                    ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.CAMERA)
+                } ?: false
+            viewModel.cameraNotAllowed(explain)
+        }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (context.hasCameraPermission()) viewModel.cameraAllowed() }
+    if (state.cameraRationale) {
+        CameraRationale(
+            onContinue = {
+                viewModel.cameraRationaleClosed()
+                askCamera.launch(Manifest.permission.CAMERA)
+            },
+            onDismiss = viewModel::cameraRationaleClosed,
+        )
     }
     val choosePhoto = {
         try {
@@ -234,6 +272,13 @@ private fun Notice(notice: VisitNotice?) {
                 stringResource(R.string.visit_no_camera_body),
                 spacing,
             )
+        VisitNotice.CameraDenied ->
+            NoticeBanner(
+                stringResource(R.string.camera_denied_title),
+                stringResource(R.string.visit_camera_denied_body),
+                spacing,
+                action = { OpenAppSettingsButton() },
+            )
         VisitNotice.Unreadable ->
             NoticeBanner(
                 stringResource(R.string.visit_unreadable_title),
@@ -242,6 +287,19 @@ private fun Notice(notice: VisitNotice?) {
             )
         null -> Unit
     }
+}
+
+@Composable
+private fun CameraRationale(
+    onContinue: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        text = { Text(stringResource(R.string.visit_camera_rationale)) },
+        confirmButton = { TextButton(onClick = onContinue) { Text(stringResource(R.string.visit_camera_continue)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.visit_camera_not_now)) } },
+    )
 }
 
 @Composable
