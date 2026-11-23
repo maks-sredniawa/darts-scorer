@@ -52,7 +52,7 @@ have installed does not do this yet. When it does, this is what happens:
 - **The photo goes only from the mounted camera to your own phone**, over your Wi-Fi, or over your
   phone's own hotspot. It is never sent to a server, to the developer, or to anyone else.
 - **It travels encrypted, readable only by your two phones.** You pair them once: the mounted camera
-  scans a QR code shown on your phone. From then on each phone talks only to the other, and a phone
+  scans a QR code shown on your phone, or you paste its code into the mounted camera. From then on each phone talks only to the other, and a phone
   you have not paired can neither ask your mounted camera for a photo nor read one.
 - **The mounted camera keeps nothing.** It sends the photo and forgets it, and stores no copy. On
   your phone the photo is kept exactly as one you took with your phone's own camera.
