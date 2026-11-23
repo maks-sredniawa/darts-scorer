@@ -358,6 +358,25 @@ longer needs a QR text field of its own.
 can be taken where a multicast cannot reach, and a switch that skips the `MulticastLock`, for R2's
 lock-off reading on the Redmi. Neither exists in the release build.
 
+*Amended 2026-11-23, deciding C's open points under the owner's delegation:*
+
+- **When the Player's phone's link state is *Pair again*, the paired row shows a single *Pair
+  again* button** (the screen design's point 8). It unpairs without a confirmation, since the camera
+  has already dropped this phone, and the QR comes back with a new token. *Unpair*, with its
+  confirmation, stays for every other state.
+- **The pairing nonce and proof ride in `HELLO`**: the Player's phone's `HELLO` carries the nonce in
+  pairing mode, and the camera's answering `HELLO` carries the MAC. The five frame types stay five.
+- **The camera's side of *Pair again*.** The camera listens and advertises whenever its screen is in
+  front, paired or not, so a Player's phone that the camera unpaired fails its handshake and says
+  *Pair again* rather than *Camera not found*. The other way round, a Player's phone that unpaired
+  comes back in pairing mode with its unchanged certificate; the camera, still pinned to it but
+  holding no token, takes that as the unpairing, drops its pin, and its status line says *Pair
+  again* above the scan block.
+- **A fresh TLS context per connection**, on both phones, so no session is ever resumed past a pin
+  that has since changed.
+- **The debug build's camera also accepts a loopback peer**, so the address field can point at an
+  `adb forward`; the release build's local-peer check refuses loopback, as the *Tests* section says.
+
 ### Two questions this checkpoint answers first, with their verdicts written now
 
 - **Can a Keystore key serve both ends of TLS on every API level from 26?** Read as a handshake between

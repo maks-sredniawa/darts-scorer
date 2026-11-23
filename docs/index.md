@@ -5,8 +5,8 @@ title: Darts Scorer
 
 # Darts Scorer
 
-**Scores a darts visit from a photo of the board, so you don't have to tally the darts by hand.** The photos never leave your phone unless you choose to share one, from version 1.0
-(below): finding the board and the darts runs on the device, offline. Free, no ads, no account.
+**Scores a darts visit from a photo of the board, so you don't have to tally the darts by hand.** The photos never leave your own phones: a mounted camera, a spare phone on a stand by the board, sends its photo only to your phone, over your Wi-Fi and encrypted, and you can choose to share one from version 1.0
+(below). Finding the board and the darts runs on the device, offline. Free, no ads, no account.
 
 Darts Scorer is still being built, and is not on Google Play yet.
 

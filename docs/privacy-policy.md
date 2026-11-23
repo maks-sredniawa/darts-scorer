@@ -23,8 +23,7 @@ readable only by the app.
 
 There is no analytics, no crash reporting, no advertising, and no third-party SDK that phones home.
 The Google Play Billing library, which handles tips, carries usage logging of its own, and it has no
-way to send it: today the app has no permission to use the network at all, and the version that adds
-the mounted camera leaves out the part of the library that would send the log.
+way to send it: the app leaves out the part of the library that would send the log.
 
 ## What the app can access, and why
 
