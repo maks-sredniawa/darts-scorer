@@ -51,7 +51,7 @@ same pull request as this file:**
 | **D5** | **The handheld path, now that `CAMERA` is declared** (`TakePicture` throws unless it is granted, on every phone) | **Ask for `CAMERA` at the first handheld *Take a Photo***, with one line saying why; a denial leaves the Photo Picker. Not a second app for the camera role, and not in-app capture on the handheld path |
 | **D6** | **When the paperwork merges** | **E merges first, right after checkpoint 0 and before B**, so the privacy policy runs one release ahead of the app rather than one behind. Release PRs are then merged on green CI as usual; none has to be held |
 | **D7** | **Data safety once a Photo crosses the Wi-Fi** | **Still *No data collected***, on Play's end-to-end-encryption exemption: the Photo is readable only by the two phones that hold the keys, and the developer never receives one |
-| **D8** | **Mount positions for gate A** | **All three are possible, and gate A reads all three**: (a) the wall to one side at Board height, 0.5–1 m out from the Board's face; (b) above the Board, looking down at it; (c) a stand by the oche |
+| **D8** | **Mount positions for gate A** | **All three are possible, and gate A reads all three**: (a) the wall to one side at Board height, 0.5–1 m out from the Board's face; (b) above the Board, looking down at it; (c) a stand by the oche (see D11) |
 | **D9** | **The spare phone** | **A Redmi Note 8 Pro on Android 11 (API 30)**, already on the owner's Wi-Fi with the debug app installed |
 
 ### Decided 2026-11-23, by the owner
@@ -135,13 +135,13 @@ a cached fit with a drift check against the new Photo is a decision of its own, 
 | --- | --- | --- | --- |
 | **0** | **The ADR and this plan**: ADR-0009, the amendments to ADR-0007 and ADR-0008, `CONTEXT.md`'s terms, `PLAN.md`'s paragraph | `docs:` | — |
 | **E** | **The paperwork**: the privacy policy, `play-app-content.md`'s Data safety reasoning, the store listing in every language, written for the app as it will be once B to D ship | `docs:` | 0 |
-| **A** | **The gate**: is the Board found from the stand's positions (D8, D11), within the Board half of M1's bar? Read on the finished app, after D | a `docs:` with the verdict; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | 0 |
+| **A** | **The gate**: is the Board found from the stand's positions (D8, D11), within the Board half of M1's bar? Read on the finished app, after D | a `docs:` with the verdict; a `feat:` or `fix:` for the app when a verdict changes it: verdict 1's recommended position in the copy, translated, or verdict 3's row behind the debug seam; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | D |
 | **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning and the paste field (D10); the handheld path's `CAMERA` ask (D5) | `feat:` | E |
 | **C** | **The link and pairing**: Keystore keys, NSD, the TLS socket and its frames, the QR with its content description and its text to copy or share (D10), the pairing proof, unpairing, the store outside the backup; `INTERNET` declared, the billing backend excluded | `feat:` | B |
 | **D** | **The capture-and-score flow**: *Take with the mounted camera* on the Visit screen, the camera's state, the timeouts and failure paths, the Photo into phase 1's path | `feat:` | C |
 
-**The order is 0, E, B, C, D, then A on the finished app (D11).** B to D stay in the order the owner listed them: the link needs a
-camera to serve, and the flow needs the link. Around them:
+**The order is 0, E, B, C, D, then A on the finished app (D11).** B to D stay in the order the owner
+listed them: the link needs a camera to serve, and the flow needs the link. Around them:
 
 - **E comes right after 0** (D6). The privacy policy, the Data safety reasoning and the listing must
   be live before any build carrying `INTERNET` or `CAMERA` reaches a track, internal included, and
@@ -210,21 +210,29 @@ the policy is live at `https://maksforge.com/darts-scorer/privacy-policy` before
 
 ### The question, in the form that can be measured
 
-On Photos the Redmi Note 8 Pro (D9) takes from each of the three mount positions (D8), of an empty
-Board in the
-room's ordinary light, does the shipped model find the Board in at least 98% of them, with the error
-at the treble wires and at the double wires each within a median of 0.5 mm and a 95th percentile of
-1.0 mm: the Board half of `phase-M1.md` D1?
+On Photos the Redmi Note 8 Pro (D9) takes from each position the owner sets the stand at (D11), at
+least three, each recorded as its height, its distance from the Board's face and its angle, of an
+empty Board in the room's ordinary light, does the shipped model find the Board in at least 98% of
+them, with the error at the treble wires and at the double wires each within a median of 0.5 mm and
+a 95th percentile of 1.0 mm: the Board half of `phase-M1.md` D1?
 
 ### The apparatus
 
 - The Mounted camera itself (D11): the finished app on the Redmi, on the owner's 3 m stand with its
-  360° holder, the Photos taken through the link or the debug capture; at least 20 Photos per position, moving the mount a few centimetres between groups of five, so the
-  figure is not one framing's luck.
+  360° holder; at least 20 Photos per position, moving the mount a few centimetres between groups of
+  five, so the figure is not one framing's luck.
+- The Photos reach `ml/` as the debug build's marked Visits: each is taken with *Take with the
+  mounted camera* on the debug Player's phone, which keeps it in `files/marked/` (`phase-1.md` §4).
+  A Visit is kept only with a result, so D's debug half also keeps a Photo the link delivers on
+  which no Board is found: those are the Photos the gate most needs. After each position,
+  `uv run --directory ml darts-ml pull-marked --serial <serial> --delete-after` copies them into
+  `$DARTS_DATA/phone-captures/<date>/`, and that position's Photos go into `inbox/<session>/` for
+  `ingest`.
 - Each position is a **Capture session** in `CONTEXT.md`'s widened sense: one Mounted camera at one
-  position, one kind of light, one day. It goes through `darts-ml ingest`, `label`, `prefill`,
-  `review` and `check` like every session, Hand points and all, so the Calibration points are labelled
-  rather than guessed.
+  position, one kind of light, one day. Its height, distance and angle are written down at the
+  stand and repeated in the verdict. It goes through `darts-ml ingest`, `label`, `prefill`, `review`
+  and `check` like every session, Hand points and all, so the Calibration points are labelled rather
+  than guessed.
 - The Board figures are read with `predict` and `evaluate` for the shipped run, pointed at that
   session by a manifest of its own (`--manifest`). If `evaluate` cannot read a session outside the
   Held-out set, A adds that option and its test as a `chore(ml):`.
@@ -233,15 +241,18 @@ at the treble wires and at the double wires each within a median of 0.5 mm and a
 ### The verdicts, decided now rather than argued about later
 
 1. **At least one position meets the Board half of the bar** → the best of them is the one the copy
-   recommends;
-   the Darts half is read in R8 when the owner can throw again.
+   recommends; the Darts half is read in R8 when the owner can throw again.
 2. **The Board is found at one position in at least 98% of Photos but its error misses the bar** →
-   the sessions become phase M2 data
-   (a training session and a Validation one, per M2's rules), and the phase closes only on a model
-   that meets the bar from the mount, as phase 1 closes only on M2's.
-3. **No position finds the Board in 98% of Photos** → the Mounted camera row stays out of any production release. The finding goes to the owner
-   with the Photos' overlays, and the choices are training data from the mount first, or pausing the
-   phase.
+   the sessions become phase M2 data (a training session and a Validation one, per M2's rules), and
+   the phase closes only on a model that meets the bar from the mount, as phase 1 closes only on
+   M2's.
+3. **No position finds the Board in 98% of Photos** → the Mounted camera row stays out of any
+   production release: a `fix:` moves Settings' *Mounted camera* row behind the `app/src/debug/`
+   seam, with a no-op in `src/release/`, which leaves *Take with the mounted camera* unreachable
+   since it shows only with a camera paired. It merges before any production release, and none goes
+   out before A's verdict is written, since a production release is only a manual dispatch of
+   `publish-play-production.yml`. The finding goes to the owner with the Photos' overlays, and the
+   choices are training data from the mount first, or pausing the phase.
 
 ### The verdict, taken *(date)*
 
@@ -303,17 +314,16 @@ as replaced by it once B ships.
 **Shape.** ADR-0009, decisions 2 to 4: an EC P-256 Keystore key per phone; the Mounted camera
 registers `_dartsscorer._tcp` and listens on TLS; the Player's phone shows the QR, the camera scans
 it or the player pastes its text (D10), the Player's phone connects in pairing mode, checks the MAC
-and pins; from then on, mutual TLS
-pinned both ways, the five frame types, `PING` every 5 s. When `SDK_INT < 30` or
-`SdkExtensions.getExtensionVersion(TIRAMISU) < 7`, each side holds a `MulticastLock` while NSD runs
-(ADR-0009, decision 2). Each Keystore key allows `DIGEST_NONE` as well as `DIGEST_SHA256`, or no
-handshake completes, and the Player's phone connects through the Wi-Fi `Network`, retrying on the
-next resolve (both from the verdicts below): `NsdServiceInfo.network` on API 33 and later; below that,
-the `ConnectivityManager` network with `TRANSPORT_WIFI` (`ACCESS_NETWORK_STATE`, ADR-0009,
-decision 11). `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE`
-are declared in the manifest and `INTERNET`'s `tools:node="remove"` deleted;
-`transport-backend-cct` is excluded from billing in the same commit, with the R8 `-dontwarn` for
-`com.google.android.datatransport.cct.**` (ADR-0009, decision 12).
+and pins; from then on, mutual TLS pinned both ways, the five frame types, `PING` every 5 s. When
+`SDK_INT < 30` or `SdkExtensions.getExtensionVersion(TIRAMISU) < 7`, each side holds a
+`MulticastLock` while NSD runs (ADR-0009, decision 2). Each Keystore key allows `DIGEST_NONE` as
+well as `DIGEST_SHA256`, or no handshake completes, and the Player's phone connects through the
+Wi-Fi `Network`, retrying on the next resolve (both from the verdicts below):
+`NsdServiceInfo.network` on API 33 and later; below that, the `ConnectivityManager` network with
+`TRANSPORT_WIFI` (`ACCESS_NETWORK_STATE`, ADR-0009, decision 11). `INTERNET` and
+`CHANGE_WIFI_MULTICAST_STATE` are declared in the manifest and `INTERNET`'s `tools:node="remove"`
+deleted; `transport-backend-cct` is excluded from billing in the same commit, with the R8
+`-dontwarn` for `com.google.android.datatransport.cct.**` (ADR-0009, decision 12).
 
 **The Player's phone's QR** carries a content description naming its purpose, and *Copy the code*
 and *Share the code* beside it put the same payload, as one line of text, on the clipboard or in
@@ -349,8 +359,8 @@ never merged. The excerpt below is the part C carries over.
 
 **Keystore keys and mutual TLS: verdict 1, as designed, with one condition on the key.**
 
-- `urgent-api26` and `pixel-api36`, each as both roles in turn, a Keystore EC P-256 key on each side,
-  client authentication required, each side pinned to the other's SHA-256 fingerprint, the
+- `urgent-api26` and `pixel-api36`, each as both roles in turn, a Keystore EC P-256 key on each
+  side, client authentication required, each side pinned to the other's SHA-256 fingerprint, the
   connection carried by `adb forward` because API 26 is not on the shared Wi-Fi (below): both
   directions handshake, `TLSv1.2 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`, and a line goes each way.
   Pinned to the wrong fingerprint, the camera side refuses the handshake
@@ -391,8 +401,8 @@ So, as the verdict says, the floor's readings go through the debug address field
 and NSD is read on the newer images and on the real phones. What the table adds:
 
 - **`urgent-api33` is the emulator for the `MulticastLock`.** It joins the shared Wi-Fi and is below
-  T extensions 7, so the rule takes the lock there and its acquire and release can be read in
-  `adb logcat`. The emulator cannot show that the lock is *needed*: with the lock off, `urgent-api33`
+  T extensions 7, so the rule takes the lock there and its acquire and release can be read in `adb
+  logcat`. The emulator cannot show that the lock is *needed*: with the lock off, `urgent-api33`
   still answered `pixel-api36`'s discovery. That half stays with the Redmi in R2, through the debug
   switch that skips the lock.
 - **The first connect after a resolve can leave by the wrong interface.** On `urgent-api33` the
