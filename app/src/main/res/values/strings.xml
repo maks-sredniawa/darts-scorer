@@ -182,6 +182,8 @@
     <!-- The action TalkBack names on the dimmed screen: a touch brings the preview back. -->
     <string name="camera_role_show_preview">Show the preview</string>
     <string name="camera_role_unavailable">The camera could not be opened.</string>
+    <string name="camera_role_paired">Paired</string>
+    <string name="camera_role_unpaired">Unpaired</string>
     <string name="settings_data">Data</string>
     <!-- Settings → Data: every setting, the app language included, back to how the app came, after a confirmation. -->
     <string name="settings_restore">Restore default settings</string>
