@@ -136,4 +136,5 @@ private fun CameraFailure.message(): Int =
         CameraFailure.NotReady -> R.string.visit_camera_not_ready
         CameraFailure.NoPermission -> R.string.visit_camera_no_permission
         CameraFailure.Failed -> R.string.visit_camera_failed
+        CameraFailure.NotSaved -> R.string.visit_camera_not_saved
     }

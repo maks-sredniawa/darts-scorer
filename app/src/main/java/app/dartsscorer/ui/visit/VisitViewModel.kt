@@ -41,7 +41,18 @@ import java.io.IOException
 import java.time.Instant
 
 /** Why *Take with the mounted camera* brought no Photo (ADR-0009, decision 8), said until the next try. */
-enum class CameraFailure { NoReply, Lost, NotFound, PairAgain, Outdated, Busy, NotReady, NoPermission, Failed }
+enum class CameraFailure {
+    NoReply,
+    Lost,
+    NotFound,
+    PairAgain,
+    Outdated,
+    Busy,
+    NotReady,
+    NoPermission,
+    Failed,
+    NotSaved,
+}
 
 /** The Mounted camera on the Visit screen; absent while none is paired. */
 data class MountedCameraUi(
@@ -220,7 +231,7 @@ class VisitViewModel(
                     val seen = link.state.value
                     failureOf(e, seen).also { if (it in FROM_LINK) readFrom = seen }
                 } catch (e: IOException) {
-                    CameraFailure.Failed
+                    CameraFailure.NotSaved
                 }
             capture.value = Capture(failure = failure, readFrom = readFrom)
         }

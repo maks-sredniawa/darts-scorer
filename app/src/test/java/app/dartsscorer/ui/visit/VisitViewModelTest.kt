@@ -593,6 +593,18 @@ class VisitViewModelTest {
     }
 
     @Test
+    fun `a Photo this phone cannot save says so, not that the camera failed`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        link.state.value = PlayerLinkState.CONNECTED
+        photos.failReceive = true
+        val visit = viewModel()
+        visit.takeWithMountedCamera()
+        val state = visit.stateWhen { it.camera?.failure != null }
+        assertEquals(CameraFailure.NotSaved, state.camera!!.failure)
+        assertEquals(VisitPhase.Empty, state.phase)
+    }
+
+    @Test
     fun `a camera not found fails the tap without asking it`() {
         runBlocking { pairing.pinCamera(PIN) }
         link.state.value = PlayerLinkState.NOT_FOUND
@@ -743,12 +755,14 @@ class VisitViewModelTest {
         val kept = mutableListOf<Pair<VisitPhase.Shown, List<ShownDart>>>()
         val keptNoBoard = mutableListOf<VisitPhase.NoBoard>()
         var received = 0
+        var failReceive = false
         val log = mutableListOf<String>()
         private var made = 0
 
         override fun newCameraTarget() = "content://camera/${made++}.jpg"
 
         override suspend fun receive(jpeg: ByteArray): String {
+            if (failReceive) throw IOException("disk full")
             received++
             return newCameraTarget().also { camera += it }
         }
