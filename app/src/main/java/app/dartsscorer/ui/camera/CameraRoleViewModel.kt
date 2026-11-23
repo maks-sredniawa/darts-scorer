@@ -11,12 +11,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.dartsscorer.MainApplication
-import app.dartsscorer.camera.CameraRig
 import app.dartsscorer.camera.DimSlot
 import app.dartsscorer.camera.DimTimer
 import app.dartsscorer.camera.PairingPayload
 import app.dartsscorer.camera.PairingStore
 import app.dartsscorer.camera.PhoneRole
+import app.dartsscorer.camera.Rig
 import app.dartsscorer.data.AppPreferences
 import app.dartsscorer.media.EncodedPhoto
 import kotlinx.coroutines.CancellationException
@@ -32,12 +32,15 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 data class CameraRoleUiState(
-    val paired: Boolean = false,
+    /** Null until the pairing store has been read, so neither block shows before it is known. */
+    val paired: Boolean? = null,
     val codeRejected: Boolean = false,
     val dimmed: Boolean = false,
     val slot: DimSlot = DimSlot.Start,
     val materialYou: Boolean = false,
     val cameraFailed: Boolean = false,
+    /** How often [paired] has flipped while this screen was open: each flip is announced and moves focus. */
+    val pairingSwaps: Int = 0,
 )
 
 /**
@@ -47,9 +50,10 @@ data class CameraRoleUiState(
 class CameraRoleViewModel(
     private val pairing: PairingStore,
     preferences: AppPreferences,
-    private val rig: CameraRig,
+    private val rig: Rig,
     private val clock: () -> Long = SystemClock::elapsedRealtime,
     private val random: Random = Random.Default,
+    private val log: (String) -> Unit = { Log.i(PairingStore.TAG, it) },
 ) : ViewModel() {
     private val local = MutableStateFlow(CameraRoleUiState())
     private var timer = DimTimer()
@@ -59,16 +63,21 @@ class CameraRoleViewModel(
     @Volatile private var paired = false
 
     val state: StateFlow<CameraRoleUiState> =
-        combine(local, pairing.playerPin, preferences.materialYou) { local, pin, materialYou ->
-            local.copy(paired = pin != null, materialYou = materialYou)
+        combine(local, preferences.materialYou) { local, materialYou ->
+            local.copy(materialYou = materialYou)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), local.value)
 
     init {
         viewModelScope.launch { pairing.setRole(PhoneRole.MOUNTED_CAMERA) }
         viewModelScope.launch {
             pairing.playerPin.collect { pin ->
-                paired = pin != null
+                val now = pin != null
+                paired = now
                 rig.onQrText = if (pin == null) ::scanned else null
+                local.update {
+                    val flipped = it.paired != null && it.paired != now
+                    it.copy(paired = now, pairingSwaps = it.pairingSwaps + if (flipped) 1 else 0)
+                }
             }
         }
     }
@@ -96,6 +105,8 @@ class CameraRoleViewModel(
         binding?.cancel()
         rig.unbind()
     }
+
+    fun rotated(displayRotation: Int) = rig.rotate(displayRotation)
 
     fun showPreviewOn(surface: Preview.SurfaceProvider?) = rig.showPreviewOn(surface)
 
@@ -131,7 +142,7 @@ class CameraRoleViewModel(
         dimming?.cancel()
         viewModelScope.launch {
             pairing.unpairPlayer()
-            Log.i(PairingStore.TAG, "Unpaired the Player's phone")
+            log("Unpaired the Player's phone")
         }
     }
 
@@ -140,7 +151,7 @@ class CameraRoleViewModel(
         route: String,
     ) {
         pairing.pinPlayer(payload)
-        Log.i(PairingStore.TAG, "Pinned the Player's phone ${payload.fingerprint} from $route")
+        log("Pinned the Player's phone ${payload.fingerprint} from $route")
     }
 
     /** Suspends until the role is written, so the screen leaving cannot cancel it. */

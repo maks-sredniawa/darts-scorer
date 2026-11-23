@@ -5,7 +5,8 @@ import kotlin.random.Random
 /**
  * When the camera screen dims (ADR-0009, decision 10, as amended 2026-11-23): 30 s after the last
  * touch, but only once a capture has been taken while paired, so aiming a stand is never interrupted,
- * and never while the paste field is in use. Times are milliseconds on one monotonic clock.
+ * and never while the paste field or the Unpair confirmation is in use. Times are milliseconds on one
+ * monotonic clock.
  */
 data class DimTimer(
     val armed: Boolean = false,
