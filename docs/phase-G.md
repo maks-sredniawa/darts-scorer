@@ -306,8 +306,10 @@ and pins; from then on, mutual TLS
 pinned both ways, the five frame types, `PING` every 5 s. When `SDK_INT < 30` or
 `SdkExtensions.getExtensionVersion(TIRAMISU) < 7`, each side holds a `MulticastLock` while NSD runs
 (ADR-0009, decision 2). Each Keystore key allows `DIGEST_NONE` as well as `DIGEST_SHA256`, or no
-handshake completes, and the Player's phone connects through the Wi-Fi `Network` the camera was
-found on, retrying on the next resolve (both from the verdicts below). `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE`
+handshake completes, and the Player's phone connects through the Wi-Fi `Network`, retrying on the
+next resolve (both from the verdicts below): `NsdServiceInfo.network` on API 33 and later; below that,
+the `ConnectivityManager` network with `TRANSPORT_WIFI` (`ACCESS_NETWORK_STATE`, ADR-0009,
+decision 11). `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE`
 are declared in the manifest and `INTERNET`'s `tools:node="remove"` deleted;
 `transport-backend-cct` is excluded from billing in the same commit, with the R8 `-dontwarn` for
 `com.google.android.datatransport.cct.**` (ADR-0009, decision 12).
@@ -320,7 +322,8 @@ not show the token. Emulators pair through that text route too, so the debug bui
 longer needs a QR text field of its own.
 
 **For emulators,** `app/src/debug/` adds a field for an address and port instead of NSD, so a reading
-can be taken where a multicast cannot reach. It does not exist in the release build.
+can be taken where a multicast cannot reach, and a switch that skips the `MulticastLock`, for R2's
+lock-off reading on the Redmi. Neither exists in the release build.
 
 ### Two questions this checkpoint answers first, with their verdicts written now
 
@@ -356,9 +359,10 @@ never merged. The excerpt below is the part C carries over.
   1.3), found by NSD.
 - **The condition: the key must allow `KeyProperties.DIGEST_NONE` besides `DIGEST_SHA256`.** The
   platform's TLS hashes the handshake itself and asks the Keystore to sign the digest, so a key
-  limited to `DIGEST_SHA256` fails every handshake, on API 26 and 36 alike: keystore2 logs
-  `Digest 0 was specified, but not authorized by key` → `INCOMPATIBLE_DIGEST`, and the TLS layer
-  sees only a closed connection. With `DIGEST_NONE` added, every reading above passes. The key is
+  limited to `DIGEST_SHA256` fails every handshake, on API 26 and 36 alike, with
+  `INCOMPATIBLE_DIGEST`: on 36 keystore2 (API 31 and later) logs `Digest 0 was specified, but not
+  authorized by key`, on 26 the older keystore returns the same error, and the TLS layer sees only a
+  closed connection. With `DIGEST_NONE` added, every reading above passes. The key is
   still sign-only and never leaves the Keystore; no software key, no Bouncy Castle.
 
 ```kotlin
@@ -388,13 +392,15 @@ and NSD is read on the newer images and on the real phones. What the table adds:
 - **`urgent-api33` is the emulator for the `MulticastLock`.** It joins the shared Wi-Fi and is below
   T extensions 7, so the rule takes the lock there and its acquire and release can be read in
   `adb logcat`. The emulator cannot show that the lock is *needed*: with the lock off, `urgent-api33`
-  still answered `pixel-api36`'s discovery. That half stays with the Redmi in R2.
+  still answered `pixel-api36`'s discovery. That half stays with the Redmi in R2, through the debug
+  switch that skips the lock.
 - **The first connect after a resolve can leave by the wrong interface.** On `urgent-api33` the
   emulator's `eth0` sits on 10.0.2.15/24 beside `wlan0`, and the first connect to the resolved
   10.0.2.16 went out of `eth0` and failed `EHOSTUNREACH`; the next resolve, a few seconds later,
-  connected. C connects through the Wi-Fi `Network` the service was found on (`Network.socketFactory`)
-  rather than the default route, and retries on the next resolve; a real phone whose default
-  network is mobile data has the same shape.
+  connected. C connects through the Wi-Fi `Network` (`Network.socketFactory`) rather than the
+  default route, `NsdServiceInfo.network` on API 33 and later and the `TRANSPORT_WIFI` network from
+  `ConnectivityManager` below, and retries on the next resolve; a real phone whose default network
+  is mobile data has the same shape.
 
 **Acceptance (C):**
 
@@ -422,8 +428,8 @@ and NSD is read on the newer images and on the real phones. What the table adds:
   other way round: the camera is found by NSD with the `MulticastLock` held (its acquire and release
   in `adb logcat` under the link's tag). `urgent-api26` does not join the shared Wi-Fi (the NSD
   question's verdict 2), so `urgent-api33` is the emulator below T extensions 7 that does. That the
-  lock is *needed* is read on the Redmi (Android 11) alone, in R2, where a missing lock would show
-  as *Camera not found*.
+  lock is *needed* is read on the Redmi (Android 11) alone, in R2, with the debug switch that skips
+  it.
 - `aab-permissions.py`: `INTERNET` and `CHANGE_WIFI_MULTICAST_STATE` expected; no `backend:`
   meta-data entry; `NEARBY_WIFI_DEVICES`, location and Bluetooth absent.
 - `./gradlew assembleDebug -PreleaseShapedDebug` and `bundleRelease` build with the exclusion (R8
@@ -534,7 +540,7 @@ only for readings that are not about the battery.
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | Gate A: the Board half of the bar per mount position | `uv run --directory ml darts-ml predict --run <shipped run> --manifest <position manifest>` then `evaluate --predictions <file> --manifest <position manifest>` | |
-| R2 | Pairing on the real phones: QR scanned at arm's length in room light, in how many tries; and once by the shared text with TalkBack on both phones (D10) | by hand, counted | |
+| R2 | Pairing on the real phones: QR scanned at arm's length in room light, in how many tries; and once by the shared text with TalkBack on both phones (D10). Then the Redmi as the camera with the debug switch skipping the `MulticastLock`, and again with it held: *Camera not found* with it off and found with it on, or, found both ways, the lock recorded as not needed on Android 11 | by hand, counted; the lock in `adb logcat` under the link's tag | |
 | R3 | Tap to scored result, on the home Wi-Fi: median and worst of 20 | the debug timing line on the Player's phone | |
 | R4 | The Photo: the Board's long axis in px, and a Dart's Entry point sharp at 100% | the stored Photo, `adb exec-out run-as <id> cat files/photos/<uuid>.jpg > r4.jpg`, opened at 100% | |
 | R5 | Battery and heat on the spare, one hour unplugged, screen dimmed, camera bound, the `MulticastLock` held (Android 11). **Verdict now:** under 15% an hour → as designed; over → the camera is bound only while the Player's phone is connected, and opened per capture if still over | `adb shell dumpsys battery` at the start and the end | |
