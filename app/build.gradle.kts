@@ -298,8 +298,11 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
-    // The tip (ADR-0007). Its transitive telemetry merges INTERNET, which the manifest removes again.
-    implementation(libs.billing.ktx)
+    // The tip (ADR-0007). Its logging's only backend is excluded, so with INTERNET declared for the
+    // Mounted camera it still cannot leave the phone (ADR-0009, decision 12).
+    implementation(libs.billing.ktx) {
+        exclude(group = "com.google.android.datatransport", module = "transport-backend-cct")
+    }
     // Consumes a cleared tip whenever the app comes to the foreground — see MainApplication.
     implementation(libs.androidx.lifecycle.process)
 

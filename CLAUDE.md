@@ -2,10 +2,11 @@
 
 An Android app for darts players: photograph the board after a throw, from one angle or a few, and
 it reads where each dart landed and adds up the score, asking for another photo only when a dart is
-hidden or unclear. The constraint that shapes everything: **the photos never leave the phone; the
-board and the darts are found by a model that runs on the device, offline.** The one exception is
-planned for 1.0: a player may choose to send a photo to help train the model (`docs/PLAN.md`,
-phase S).
+hidden or unclear. The constraint that shapes everything: **the photos never leave the player's own
+phones; the board and the darts are found by a model that runs on the device, offline.** A Mounted
+camera sends its photo only to the paired Player's phone, over a pinned TLS link on the local
+network (ADR-0009). The one exception is planned for 1.0: a player may choose to send a photo to
+help train the model (`docs/PLAN.md`, phase S).
 
 - **Vocabulary:** [`CONTEXT.md`](CONTEXT.md) — use these terms in code and UI.
 - **Decisions and why:** [`docs/adr/`](docs/adr/) — read before changing anything they cover.
@@ -48,7 +49,8 @@ let us do otherwise".">
 | Nothing scheduled, nothing posted | No WorkManager, alarms or notifications — ADR-0003's 2026-11-12 amendment |
 | Photo Picker + `TakePicture` for the handheld path; **CameraX for the Mounted camera** only | `CAMERA` is declared, so the handheld path asks for it first — ADR-0009, `phase-G.md` D5 |
 | Coil 3 images | Compose-native, local files only |
-| Play Billing (`tip/`), for the tip only | Unlocks nothing; adds `BILLING`, and its merged `INTERNET` is removed — ADR-0007 |
+| Play Billing (`tip/`), for the tip only | Unlocks nothing; adds `BILLING`. `INTERNET` is kept for the link, and billing's logging backend (`transport-backend-cct`) is excluded — ADR-0007, ADR-0009 decision 12 |
+| The link (`link/`): NSD, then mutual TLS pinned both ways | Platform `SSLSocket` and a Keystore EC key, no library; local peers only; the pins in the no-backup pairing store — ADR-0009 decisions 2 to 4 |
 | On-device storage only | No backend. Auto Backup, include-only: the preferences, never a photo — ADR-0005 |
 | `ml/`: uv, Python 3.12, code only | The data tools, off the phone; Photos, labels and training weights live in `DARTS_DATA`, never in git. The exported model the app ships is committed, in `assets/model/` — ADR-0008 (2026-11-20), `docs/phase-1.md` D1 |
 | LiteRT 1.4.2 (`scoring/`), on the CPU | The model on the phone; its Kotlin pipeline is held to `ml/`'s `locate()` by phase 1's gate — ADR-0008 (2026-11-19) |
@@ -131,6 +133,8 @@ app/src/main/java/<namespace>/
   scoring/     a Photo in, the Board and its Darts out: the port of ml/'s locate(), on LiteRT
   camera/      the Mounted camera (ADR-0009): CameraX, the pairing payload, the no-backup pairing
                store with the role, and the dim rules; its screens are in ui/camera/
+  link/        the Mounted camera's link (ADR-0009): the Keystore key, NSD, the frames, the pinned TLS,
+               the pairing proof and the local-peer check
   tip/         the tip through Play Billing, held by AppContainer so a purchase finishes after its
                screen is gone, and the rule for its one ask on the home screen (ADR-0007)
   ui/          Compose screens + ViewModels, one package per area; ui/visit/ is the home tab
@@ -140,7 +144,8 @@ app/src/main/java/<namespace>/
 
 app/src/debug/    the developer-only build: Settings' debug section (R2's thread count, the marked
                   Visits kept), the timing line, each marked Visit kept for `darts-ml pull-marked`,
-                  the camera screen's capture button, and the debug app name
+                  the camera screen's capture button, the link's address field, its capture
+                  button and R2's MulticastLock switch, and the debug app name
 app/src/release/  only the no-op half of each seam, so main/ can call it unconditionally
 scripts/          the Python toolchain. project.py is the one place the app's identity lives
 ml/               the data tools for ADR-0008's model, a uv project with its own lockfile; code

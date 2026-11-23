@@ -21,12 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.dartsscorer.R
 import app.dartsscorer.theme.Spacing
 import app.dartsscorer.ui.appViewModelExtras
 import app.dartsscorer.ui.common.DetailScaffold
-import app.dartsscorer.ui.common.EmptyState
 import app.dartsscorer.ui.common.LinkRow
 import app.dartsscorer.ui.common.LinkTarget
 import app.dartsscorer.ui.common.NoticeBanner
@@ -43,6 +43,7 @@ fun MountedCameraScreen(
         viewModel(factory = MountedCameraViewModel.Factory, extras = appViewModelExtras()),
 ) {
     val context = LocalContext.current
+    val state by viewModel.state.collectAsStateWithLifecycle()
     var denied by rememberSaveable { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (context.hasCameraPermission()) denied = false }
     val askCamera =
@@ -71,7 +72,14 @@ fun MountedCameraScreen(
             Spacer(Modifier.height(Spacing.section))
             LinkRow(
                 title = stringResource(R.string.mounted_camera_add),
-                subtitle = stringResource(R.string.mounted_camera_add_hint),
+                subtitle =
+                    stringResource(
+                        if (state.cameraPaired) {
+                            R.string.mounted_camera_add_paired
+                        } else {
+                            R.string.mounted_camera_add_hint
+                        },
+                    ),
                 target = LinkTarget.Inside,
                 onClick = onAddCamera,
             )
@@ -84,13 +92,5 @@ fun MountedCameraScreen(
                 },
             )
         }
-    }
-}
-
-/** *Add a mounted camera*: the QR and its text arrive with the link, in checkpoint C. */
-@Composable
-fun AddMountedCameraScreen(onBack: () -> Unit) {
-    DetailScaffold(title = stringResource(R.string.mounted_camera_add), onBack = onBack) { modifier ->
-        EmptyState(stringResource(R.string.mounted_camera_add_later), modifier)
     }
 }

@@ -45,9 +45,17 @@ android:permission guard on a service, and this artifact carries two of the
 latter (BIND_JOB_SERVICE and DUMP) that are not requests at all. So the protobuf
 gets walked properly.
 
+**A `datatransport` backend is checked too.** `INTERNET` is declared for the Mounted
+camera's local link (ADR-0009), so the permission no longer stops the Play Billing
+Library's usage logging from leaving; excluding its only backend,
+`transport-backend-cct`, does (decision 12). A backend registers itself through a
+`<meta-data android:name="backend:…">` entry, so any such entry fails here, and a
+dependency bump that brings one back fails the upload as a merged INTERNET did before.
+
 Exits non-zero if the artifact's <uses-permission> set differs from EXPECTED, if it
-declares a <uses-feature> not accounted for in EXPECTED_FEATURES, or if the screen
-locks it carries are not exactly EXPECTED_ORIENTATION.
+declares a <uses-feature> not accounted for in EXPECTED_FEATURES, if the screen
+locks it carries are not exactly EXPECTED_ORIENTATION, or if it carries a
+`backend:` meta-data entry.
 """
 
 import sys
@@ -82,14 +90,21 @@ PRIM_INT_HEX = 7
 # being true the day you remove a module docs/optional-modules.md lists, and that
 # is the day to edit it.
 EXPECTED = {
-    # Merged by the Play Billing Library's datatransport (the tip), its only owner,
-    # so it leaves with the tip.
+    # Ours since phase G's checkpoint C, and merged by the Play Billing Library too: the
+    # link connects through the Wi-Fi network the camera was found on (ADR-0009, 11).
     "android.permission.ACCESS_NETWORK_STATE": (
-        "Play Billing's datatransport, the tip — read connectivity state, open nothing"
+        "the Mounted camera's link picks the Wi-Fi network; Play Billing reads it too"
     ),
+    # Ours: the Mounted camera's link, phone to phone on the same Wi-Fi, never to a
+    # server (ADR-0009, decisions 3 and 12). What keeps it local is code — the
+    # local-peer check and the pinned TLS — and the billing logging's backend is
+    # excluded, which the backend: meta-data check below asserts.
+    "android.permission.INTERNET": "the Mounted camera's local link only — ADR-0009, decision 12",
+    # Ours: the MulticastLock NSD needs below T extensions 7 (ADR-0009, decision 2).
+    # Normal, granted at install.
+    "android.permission.CHANGE_WIFI_MULTICAST_STATE": "the MulticastLock for NSD below T extensions 7 — ADR-0009",
     # The tip (ADR-0007), merged from the Play Billing Library. It lets the app talk to
-    # the Play Store app's billing service; no dialog, and no data of the user's. Its
-    # datatransport dependency also merges INTERNET, which the manifest removes.
+    # the Play Store app's billing service; no dialog, and no data of the user's.
     "com.android.vending.BILLING": "the Play Billing Library — the tip, ADR-0007",
     # AndroidX defines and uses this itself, signature-level. The prefix is the
     # applicationId, which differs between the debug and release builds, so it is
@@ -107,12 +122,21 @@ FORBIDDEN = {
     "com.google.android.gms.permission.AD_ID": "Data safety says no advertising ID",
     "android.permission.QUERY_ALL_PACKAGES": "the <queries> element names intents instead",
     "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS": "Play restricts it, and nothing here runs in the background",
-    # "No backend, no account" is a claim the Data safety form and the privacy policy
-    # both make, and this is the only thing that checks it against the artifact: a
-    # dependency that merges INTERNET makes the claim false without touching a line of
-    # our source. An app that genuinely needs the network moves it to EXPECTED — and
-    # rewrites both of those documents in the same commit.
-    "android.permission.INTERNET": "no network: a merged one makes the privacy policy and Data safety wrong",
+    # NSD on the Wi-Fi needs none of these (ADR-0009, decision 2). Each belongs to Wi-Fi
+    # Direct, Wi-Fi Aware, the local-only hotspot or Bluetooth, none of which is used,
+    # and each would be a runtime ask and a privacy-policy line.
+    "android.permission.NEARBY_WIFI_DEVICES": "NSD needs no nearby-devices permission — ADR-0009, decision 2",
+    "android.permission.ACCESS_FINE_LOCATION": "no location of any kind — Data safety",
+    "android.permission.ACCESS_COARSE_LOCATION": "no location of any kind — Data safety",
+    "android.permission.BLUETOOTH_SCAN": "the link is Wi-Fi only — ADR-0009",
+    "android.permission.BLUETOOTH_CONNECT": "the link is Wi-Fi only — ADR-0009",
+    "android.permission.BLUETOOTH_ADVERTISE": "the link is Wi-Fi only — ADR-0009",
+    # Runtime only when targeting API 37; until the target-SDK bump owes its ask on
+    # both phones, it stays undeclared (ADR-0009, decision 11).
+    "android.permission.ACCESS_LOCAL_NETWORK": "undeclared until target SDK 37 — ADR-0009, decision 11",
+    # The Mounted camera keeps its screen on instead of running a camera service,
+    # which would need a notification and a Play declaration (ADR-0009, decision 10).
+    "android.permission.FOREGROUND_SERVICE_CAMERA": "no foreground service — ADR-0009, decision 10",
     # Play permits USE_EXACT_ALARM only for alarm clocks and calendars.
     "android.permission.USE_EXACT_ALARM": "Play policy: alarm-clock and calendar apps only, and nothing here is scheduled",
 }
@@ -304,7 +328,7 @@ def main():
     if root is None:
         sys.exit("no root element in base/manifest/AndroidManifest.xml")
 
-    requested, guards, features, oriented, handled, activities = [], [], [], [], [], []
+    requested, guards, features, oriented, handled, activities, backends = [], [], [], [], [], [], []
     for tag, attrs, raw in walk(root):
         name = attrs.get("name")
         if tag in ("uses-permission", "uses-permission-sdk-23") and name:
@@ -313,6 +337,8 @@ def main():
             features.append((name, required_attribute(attrs, raw)))
         elif tag in ("service", "receiver", "provider", "activity") and attrs.get("permission"):
             guards.append((name or "?", attrs["permission"]))
+        elif tag == "meta-data" and name and name.startswith("backend:"):
+            backends.append(name)
 
         # Not part of that chain: an orientation lock is worth finding on an activity
         # that also carries a permission guard, and those two branches are exclusive.
@@ -394,6 +420,14 @@ def main():
             "docs/play-app-content.md, then add it to EXPECTED_FEATURES."
         )
 
+    if backends:
+        problems.append(
+            "A datatransport backend is registered:\n"
+            + "\n".join(f"  {b}" for b in sorted(backends))
+            + "\nWith INTERNET declared, a backend gives the Play Billing Library's usage logging\n"
+            "a route off the phone (ADR-0009, decision 12). Exclude it in app/build.gradle.kts."
+        )
+
     if unexpected_orientation:
         problems.append(
             "android:screenOrientation nobody here decided on:\n"
@@ -422,7 +456,7 @@ def main():
         f"none of the {len(FORBIDDEN)} forbidden ones present; "
         f"{len(features)} <uses-feature> declared; "
         f"{len(oriented)} of the {len(activities)} activities lock their orientation, "
-        f"every one of them expected"
+        f"every one of them expected; no datatransport backend"
     )
     return 0
 

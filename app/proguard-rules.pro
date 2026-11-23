@@ -40,3 +40,8 @@
 #
 # `./gradlew assembleDebug -PreleaseShapedDebug` builds the debug variant through R8 with these
 # rules, keeping the debug applicationId — which is how you find this out before uploading.
+
+# transport-backend-cct is excluded from billing (ADR-0009, decision 12). Billing's logger reads
+# CCTDestination in its constructor and catches the NoClassDefFoundError; without this R8 fails the
+# build on the missing class.
+-dontwarn com.google.android.datatransport.cct.**

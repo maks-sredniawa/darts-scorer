@@ -163,7 +163,25 @@
     <string name="mounted_camera_use">Use this phone as the mounted camera</string>
     <string name="mounted_camera_use_hint">This phone goes on the stand</string>
     <string name="mounted_camera_denied_body">A mounted camera needs the camera. Allow it in the system settings.</string>
-    <string name="mounted_camera_add_later">Pairing with a mounted camera comes in a later version of the app.</string>
+    <!-- Add a mounted camera, on the phone the player holds: the pairing QR, its text, and the link's state. -->
+    <string name="settings_mounted_camera_paired">Paired</string>
+    <string name="mounted_camera_add_paired">Paired with a camera</string>
+    <string name="add_camera_step_1">1. On the spare phone, open Settings, Mounted camera, Use this phone as the mounted camera.</string>
+    <string name="add_camera_step_2">2. Point it at this code.</string>
+    <string name="add_camera_qr_description">Pairing code for your mounted camera. Copy or share it as text if you cannot scan it</string>
+    <string name="add_camera_copy">Copy the code</string>
+    <string name="add_camera_share">Share the code</string>
+    <string name="add_camera_copied">Code copied</string>
+    <string name="add_camera_caption">The code works once, while this screen is open. Send it only to yourself.</string>
+    <string name="add_camera_waiting">Waiting for the camera</string>
+    <string name="add_camera_paired_header">Paired camera</string>
+    <string name="add_camera_just_paired">Camera paired</string>
+    <string name="mounted_camera_unpair_body">This phone will forget the camera and stop asking it for Photos. To use it again, pair again.</string>
+    <string name="link_looking">Looking for the camera</string>
+    <string name="link_connected">Connected</string>
+    <string name="link_not_found">Camera not found</string>
+    <string name="link_pair_again">Pair again</string>
+    <string name="link_outdated">Update Darts Scorer on both phones</string>
     <!-- The camera screen, on the spare phone. The ring is drawn over the preview for aiming. -->
     <string name="camera_role_scan_area">Scan area. Hold the QR on your phone in front of this camera</string>
     <string name="camera_role_waiting">Waiting for your phone</string>

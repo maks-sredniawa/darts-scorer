@@ -78,4 +78,14 @@ class PairingStoreTest {
             store.markCameraAsked()
             assertTrue(store.cameraAsked.first())
         }
+
+    @Test
+    fun `the Player's phone pins cameras as a list, and unpairing clears it`() =
+        runBlocking {
+            assertEquals(emptySet<String>(), store.cameraPins.first())
+            store.pinCamera("AB".repeat(32))
+            assertEquals(setOf("AB".repeat(32)), store.cameraPins.first())
+            store.unpairCameras()
+            assertEquals(emptySet<String>(), store.cameraPins.first())
+        }
 }

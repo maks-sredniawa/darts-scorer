@@ -9,12 +9,15 @@ import app.dartsscorer.camera.PairingPayload
 import app.dartsscorer.camera.PairingStore
 import app.dartsscorer.camera.Rig
 import app.dartsscorer.data.AppPreferences
+import app.dartsscorer.link.CameraLinkState
+import app.dartsscorer.link.CameraListener
 import app.dartsscorer.media.EncodedPhoto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -70,7 +73,7 @@ class CameraRoleViewModelTest {
         }
 
     private fun TestScope.camera(): CameraRoleViewModel =
-        CameraRoleViewModel(pairing, preferences, NoCamera, clock = { testScheduler.currentTime }, log = {})
+        CameraRoleViewModel(pairing, preferences, NoCamera, NoLink, clock = { testScheduler.currentTime }, log = {})
             .also { viewModel = it }
             .also { vm -> backgroundScope.launch { vm.state.collect {} } }
             .also { runCurrent() }
@@ -177,5 +180,15 @@ class CameraRoleViewModelTest {
         override suspend fun capture() = EncodedPhoto(ByteArray(0), 1, 1)
 
         override fun close() = Unit
+    }
+
+    private object NoLink : CameraListener {
+        override val state = MutableStateFlow(CameraLinkState.WAITING)
+
+        override fun expectPairing(payload: PairingPayload) = Unit
+
+        override fun forget() = Unit
+
+        override suspend fun serve(capture: suspend () -> EncodedPhoto) = Unit
     }
 }
