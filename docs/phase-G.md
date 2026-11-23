@@ -59,6 +59,7 @@ same pull request as this file:**
 | # | Decision | Decided |
 | --- | --- | --- |
 | **D10** | **A way to pair without seeing the QR** (WCAG 2.2, 1.1.1) | **The QR stays, with a content description, and its payload can also be copied or shared as text** from the Player's phone and pasted into a field on the Mounted camera: the same fingerprint and one-time token, the same TLS pinning and HMAC binding. Both routes are accepted with TalkBack on, in B and C (ADR-0009, decision 4). Chosen over recording pairing as visual-only |
+| **D11** | **When the gate is read, and from where** | **B, C and D are built first, and A is read on the finished app**, from the Mounted camera's own Photos, as the owner's real test. The owner's spare phone sits on a 3 m stand with a 360° holder, so a position can be anywhere around the Board, not only the three of D8. Chosen over reading A first with the phone's own camera app |
 
 ### Recommended in ADR-0009, decided as written when its pull request merges
 
@@ -134,12 +135,12 @@ a cached fit with a drift check against the new Photo is a decision of its own, 
 | --- | --- | --- | --- |
 | **0** | **The ADR and this plan**: ADR-0009, the amendments to ADR-0007 and ADR-0008, `CONTEXT.md`'s terms, `PLAN.md`'s paragraph | `docs:` | — |
 | **E** | **The paperwork**: the privacy policy, `play-app-content.md`'s Data safety reasoning, the store listing in every language, written for the app as it will be once B to D ship | `docs:` | 0 |
-| **A** | **The gate**: is the Board found from each of the three mount positions (D8), within the Board half of M1's bar? | a `docs:` with the verdict; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | 0 |
-| **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning and the paste field (D10); the handheld path's `CAMERA` ask (D5) | `feat:` | E, A (verdict 1 or 2) |
+| **A** | **The gate**: is the Board found from the stand's positions (D8, D11), within the Board half of M1's bar? Read on the finished app, after D | a `docs:` with the verdict; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | 0 |
+| **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning and the paste field (D10); the handheld path's `CAMERA` ask (D5) | `feat:` | E |
 | **C** | **The link and pairing**: Keystore keys, NSD, the TLS socket and its frames, the QR with its content description and its text to copy or share (D10), the pairing proof, unpairing, the store outside the backup; `INTERNET` declared, the billing backend excluded | `feat:` | B |
 | **D** | **The capture-and-score flow**: *Take with the mounted camera* on the Visit screen, the camera's state, the timeouts and failure paths, the Photo into phase 1's path | `feat:` | C |
 
-**The order is 0, E, A, B, C, D.** B to D stay in the order the owner listed them: the link needs a
+**The order is 0, E, B, C, D, then A on the finished app (D11).** B to D stay in the order the owner listed them: the link needs a
 camera to serve, and the flow needs the link. Around them:
 
 - **E comes right after 0** (D6). The privacy policy, the Data safety reasoning and the listing must
@@ -150,10 +151,10 @@ camera to serve, and the flow needs the link. Around them:
   `aab-permissions.py`'s tables and `play-app-content.md`'s artifact table travel with the commit
   that adds each permission, because the upload gate fails otherwise, and `CLAUDE.md`'s stack rows
   and the manifest's comment travel with B and C.
-- **A goes before B** because it is the one finding that could make the rest wait. If the shipped
-  model cannot find the Board from any place a camera can be mounted, the link still works but the
-  phase cannot close, and the honest next step is data for M2, not code. A needs no code: the spare
-  phone's own camera app takes the Photos.
+- **A comes last** (D11, the owner's choice on 2026-11-23). Read first, it could have stopped B
+  before any code; read last, it is taken on the Photos the Mounted camera itself sends, which are
+  the Photos the phase is about. The link does not depend on the model, so B to D stand either way;
+  what A decides is whether the phase closes and what the copy recommends.
 
 ---
 
@@ -217,8 +218,8 @@ at the treble wires and at the double wires each within a median of 0.5 mm and a
 
 ### The apparatus
 
-- The spare phone's own camera app, on its main (1×) lens, held in the mount at each position; at
-  least 20 Photos per position, moving the mount a few centimetres between groups of five, so the
+- The Mounted camera itself (D11): the finished app on the Redmi, on the owner's 3 m stand with its
+  360° holder, the Photos taken through the link or the debug capture; at least 20 Photos per position, moving the mount a few centimetres between groups of five, so the
   figure is not one framing's luck.
 - Each position is a **Capture session** in `CONTEXT.md`'s widened sense: one Mounted camera at one
   position, one kind of light, one day. It goes through `darts-ml ingest`, `label`, `prefill`,
@@ -233,12 +234,12 @@ at the treble wires and at the double wires each within a median of 0.5 mm and a
 
 1. **At least one position meets the Board half of the bar** → the best of them is the one the copy
    recommends;
-   B to E are built; the Darts half is read in R8 when the owner can throw again.
+   the Darts half is read in R8 when the owner can throw again.
 2. **The Board is found at one position in at least 98% of Photos but its error misses the bar** →
-   B to E are built, since the link does not depend on the model; the sessions become phase M2 data
+   the sessions become phase M2 data
    (a training session and a Validation one, per M2's rules), and the phase closes only on a model
    that meets the bar from the mount, as phase 1 closes only on M2's.
-3. **No position finds the Board in 98% of Photos** → B is not started. The finding goes to the owner
+3. **No position finds the Board in 98% of Photos** → the Mounted camera row stays out of any production release. The finding goes to the owner
    with the Photos' overlays, and the choices are training data from the mount first, or pausing the
    phase.
 
