@@ -50,12 +50,14 @@ object Decoding {
     const val THRESHOLD = 0.25
     const val ENTRY_THRESHOLD = 0.25
     const val MOST_ENTRIES = 3
+    const val FARTHEST_RADII = 1.8
     const val CONFIDENT = 0.5
     const val RANSAC_MM = 3.0
     const val MIN_INLIERS = 8
     const val RANSAC_ROUNDS = 500
     val CALIBRATION_CHANNELS = Board.CALIBRATION_POINTS.size
     private val BOARD_MM = Board.CALIBRATION_POINTS.map { it.mm }
+    private val FARTHEST_MM = FARTHEST_RADII * Board.OUTER_DOUBLE.outerMm
 
     fun decode(
         heads: Heads,
@@ -148,11 +150,18 @@ object Decoding {
         confidence,
     )
 
-    /** The indices of the Entry points kept: the most confident first, at most [MOST_ENTRIES], in their original order. */
-    fun keptEntries(confidences: List<Double>): List<Int> =
+    /**
+     * The indices of the Entry points kept: the most confident first, none beyond [FARTHEST_RADII] of the
+     * Board, at most [MOST_ENTRIES], in their original order. [boardMm] holds each point in Board mm.
+     */
+    fun keptEntries(
+        boardMm: List<Point>,
+        confidences: List<Double>,
+    ): List<Int> =
         confidences.indices
             .sortedByDescending { confidences[it] }
             .takeWhile { confidences[it] >= ENTRY_THRESHOLD }
+            .filter { hypot(boardMm[it].x, boardMm[it].y) <= FARTHEST_MM }
             .take(MOST_ENTRIES)
             .sorted()
 

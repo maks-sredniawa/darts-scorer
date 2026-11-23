@@ -21,6 +21,31 @@ class DecodingTest {
     @Test
     fun threeDartsInThreeBeds() = check("three-beds")
 
+    @Test
+    fun aPeakJustInsideTheFarthestRadiusIsKept() {
+        assertEquals(
+            listOf(0),
+            Decoding.keptEntries(listOf(Point(0.0, radii(Decoding.FARTHEST_RADII - 0.01))), listOf(0.9)),
+        )
+    }
+
+    @Test
+    fun aPeakJustBeyondTheFarthestRadiusIsDropped() {
+        assertEquals(
+            emptyList<Int>(),
+            Decoding.keptEntries(listOf(Point(radii(Decoding.FARTHEST_RADII + 0.01), 0.0)), listOf(0.9)),
+        )
+    }
+
+    @Test
+    fun aDroppedFarPeakGivesItsPlaceToTheNextMostConfident() {
+        val boardMm =
+            listOf(Point(0.0, 20.0), Point(radii(1.81), 0.0), Point(-30.0, 0.0), Point(0.0, -60.0), Point(90.0, 0.0))
+        assertEquals(listOf(0, 2, 3), Decoding.keptEntries(boardMm, listOf(0.9, 0.85, 0.8, 0.7, 0.3)))
+    }
+
+    private fun radii(count: Double) = count * Board.OUTER_DOUBLE.outerMm
+
     private fun check(name: String) {
         val record = Fixtures.json("heads-$name.json").jsonObject
         val heads = Heads(Fixtures.tensor(record.getValue("board")), Fixtures.tensor(record.getValue("entry")))

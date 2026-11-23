@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from darts_ml.board import CALIBRATION_POINTS
-from darts_ml.decode import MIN_INLIERS, THRESHOLD, EntryRule, decode, kept_entries, ransac, sigmoid
+from darts_ml.board import CALIBRATION_POINTS, OUTER_DOUBLE
+from darts_ml.decode import FARTHEST_RADII, MIN_INLIERS, THRESHOLD, EntryRule, decode, kept_entries, ransac, sigmoid
 from darts_ml.homography import project
 from darts_ml.model import BOARD_STRIDE, ENTRY_POINT, ENTRY_STRIDE, Heads
 from darts_ml.training_data import targets
@@ -100,6 +100,20 @@ class EntryRuleTest(unittest.TestCase):
 
     def test_peaks_under_the_threshold_are_dropped(self):
         self.assertEqual(kept_entries(self.BOARD_MM, self.CONFIDENCES, EntryRule(0.5, 0.0, None)), [0, 2, 3])
+
+    def test_a_peak_just_inside_the_farthest_radius_is_kept(self):
+        self.assertEqual(kept_entries(np.array([[0.0, radii(FARTHEST_RADII - 0.01)]]), [0.9], EntryRule()), [0])
+
+    def test_a_peak_just_beyond_the_farthest_radius_is_dropped(self):
+        self.assertEqual(kept_entries(np.array([[radii(FARTHEST_RADII + 0.01), 0.0]]), [0.9], EntryRule()), [])
+
+    def test_a_dropped_far_peak_gives_its_place_to_the_next_most_confident(self):
+        board_mm = np.array([[0.0, 20.0], [radii(1.81), 0.0], [-30.0, 0.0], [0.0, -60.0], [90.0, 0.0]])
+        self.assertEqual(kept_entries(board_mm, [0.9, 0.85, 0.8, 0.7, 0.3], EntryRule()), [0, 2, 3])
+
+
+def radii(count: float) -> float:
+    return count * OUTER_DOUBLE.outer_mm
 
 
 if __name__ == "__main__":
