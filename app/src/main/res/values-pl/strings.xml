@@ -27,6 +27,17 @@
     <string name="visit_take_another">Zrób nowe zdjęcie</string>
     <string name="visit_next">Następne podejście</string>
     <string name="visit_reading">Odczytywanie zdjęcia…</string>
+    <string name="visit_take_mounted">Zrób zdjęcie aparatem przy tarczy</string>
+    <string name="visit_taking_photo">Robię zdjęcie…</string>
+    <string name="visit_camera_try_again">Spróbuj ponownie</string>
+    <string name="visit_camera_not_found_hint">Czy aparat jest w tej samej sieci Wi-Fi i ma otwarty ekran? Sieci dla gości potrafią rozdzielać telefony; zamiast tego zadziała hotspot twojego telefonu</string>
+    <string name="visit_camera_pair_again_hint">Sparuj aparat ponownie w Ustawieniach, Aparat przy tarczy.</string>
+    <string name="visit_camera_no_reply">Aparat nie odpowiedział w ciągu 10 sekund.</string>
+    <string name="visit_camera_lost">Połączenie z aparatem zostało przerwane.</string>
+    <string name="visit_camera_busy">Aparat wciąż robi poprzednie zdjęcie.</string>
+    <string name="visit_camera_not_ready">Aparat nie jest gotowy. Czy jego ekran jest otwarty?</string>
+    <string name="visit_camera_no_permission">Telefon z aparatem nie ma dostępu do aparatu.</string>
+    <string name="visit_camera_failed">Aparat nie mógł zrobić zdjęcia.</string>
     <string name="visit_score_label">Wynik podejścia</string>
     <string name="visit_no_darts">Nie znaleziono rzutek</string>
     <string name="visit_check_dart">Sprawdź rzutkę %1$d</string>

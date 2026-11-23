@@ -45,6 +45,18 @@
     <string name="visit_take_another">Take another Photo</string>
     <string name="visit_next">Next Visit</string>
     <string name="visit_reading">Reading the Photo…</string>
+    <!-- The Visit screen with a Mounted camera paired (phase-G.md §5): its button, its state and why a try failed. -->
+    <string name="visit_take_mounted">Take with the mounted camera</string>
+    <string name="visit_taking_photo">Taking the Photo…</string>
+    <string name="visit_camera_try_again">Try again</string>
+    <string name="visit_camera_not_found_hint">Is the camera on the same Wi-Fi, with its screen open? Guest networks can keep phones apart; your phone\'s hotspot works instead</string>
+    <string name="visit_camera_pair_again_hint">Pair the camera again in Settings, Mounted camera.</string>
+    <string name="visit_camera_no_reply">The camera did not answer within 10 seconds.</string>
+    <string name="visit_camera_lost">The connection to the camera was lost.</string>
+    <string name="visit_camera_busy">The camera is still taking the last Photo.</string>
+    <string name="visit_camera_not_ready">The camera is not ready. Is its screen open?</string>
+    <string name="visit_camera_no_permission">The camera phone does not allow the camera.</string>
+    <string name="visit_camera_failed">The camera could not take the Photo.</string>
     <string name="visit_score_label">Visit Score</string>
     <string name="visit_no_darts">No Darts found</string>
     <!-- Under the total, once per unsure Dart (below the model's confidence). %1$d is the Dart's number. -->

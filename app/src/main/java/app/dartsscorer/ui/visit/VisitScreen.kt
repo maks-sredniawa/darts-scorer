@@ -56,6 +56,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.dartsscorer.R
@@ -76,6 +77,10 @@ fun VisitScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.keepShown() }
+    LifecycleStartEffect(viewModel) {
+        viewModel.startLink()
+        onStopOrDispose { viewModel.stopLink() }
+    }
 
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture(), viewModel::cameraReturned)
     val picker =
@@ -180,7 +185,7 @@ fun VisitScreen(
         val details: @Composable ColumnScope.() -> Unit = {
             when (phase) {
                 VisitPhase.Empty -> EmptyVisit(state.showTipAsk, viewModel::answerTipAsk, onOpenSupport)
-                VisitPhase.Reading -> ReadingPhoto()
+                VisitPhase.Reading -> ReadingPhoto(state.focus == VisitFocus.Reading, viewModel::focusPlaced)
                 is VisitPhase.NoBoard -> NoBoardBanner(phase)
                 is VisitPhase.Shown ->
                     ShownDetails(
@@ -193,22 +198,32 @@ fun VisitScreen(
                     )
             }
         }
+        val mounted = state.camera?.let { MountedAction(it, viewModel::takeWithMountedCamera) }
         val actions: @Composable () -> Unit = {
             when (phase) {
-                VisitPhase.Empty -> Actions(stringResource(R.string.visit_take_photo), takePhoto, choosePhoto)
+                VisitPhase.Empty -> Actions(stringResource(R.string.visit_take_photo), takePhoto, choosePhoto, mounted)
                 VisitPhase.Reading -> Unit
                 is VisitPhase.NoBoard ->
                     Actions(
                         stringResource(R.string.visit_take_another),
                         takePhoto,
                         choosePhoto,
+                        mounted,
                         EnterScoreAction(
                             viewModel::addDart,
                             state.focus == VisitFocus.EnterScore,
                             viewModel::focusPlaced,
                         ),
                     )
-                is VisitPhase.Shown -> Actions(stringResource(R.string.visit_next), takePhoto, choosePhoto)
+                // With a Mounted camera paired, Next Visit would be a guess at which camera: the
+                // player taps the one they want (phase-G.md §5).
+                is VisitPhase.Shown ->
+                    Actions(
+                        stringResource(if (mounted == null) R.string.visit_next else R.string.visit_take_photo),
+                        takePhoto,
+                        choosePhoto,
+                        mounted,
+                    )
             }
         }
         if (photo != null && photoBeside) {
@@ -331,7 +346,10 @@ private fun EmptyVisit(
 }
 
 @Composable
-private fun ReadingPhoto() {
+private fun ReadingPhoto(
+    focusRequested: Boolean,
+    onFocusPlaced: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = Spacing.block),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -342,7 +360,8 @@ private fun ReadingPhoto() {
             text = stringResource(R.string.visit_reading),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            modifier =
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite }.takesFocusWhen(focusRequested, onFocusPlaced),
         )
     }
 }
@@ -352,13 +371,19 @@ private fun Actions(
     takeLabel: String,
     onTake: () -> Unit,
     onChoose: () -> Unit,
+    mounted: MountedAction?,
     enterScore: EnterScoreAction? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.base, vertical = Spacing.tight),
         verticalArrangement = Arrangement.spacedBy(Spacing.tight),
     ) {
-        Button(onClick = onTake, modifier = Modifier.fillMaxWidth()) { Text(takeLabel) }
+        if (mounted != null) {
+            MountedCameraActions(mounted.camera, mounted.onTake)
+            OutlinedButton(onClick = onTake, modifier = Modifier.fillMaxWidth()) { Text(takeLabel) }
+        } else {
+            Button(onClick = onTake, modifier = Modifier.fillMaxWidth()) { Text(takeLabel) }
+        }
         OutlinedButton(onClick = onChoose, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.visit_choose_photo))
         }
@@ -372,6 +397,11 @@ private fun Actions(
         }
     }
 }
+
+private class MountedAction(
+    val camera: MountedCameraUi,
+    val onTake: () -> Unit,
+)
 
 private class EnterScoreAction(
     val onClick: () -> Unit,

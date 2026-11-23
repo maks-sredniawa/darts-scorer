@@ -22,6 +22,12 @@ interface VisitPhotos {
 
     fun discardCameraTarget(target: String)
 
+    /**
+     * A Mounted camera's JPEG, written as a new camera target so it takes the handheld Photo's path
+     * from here, and so the start-up sweep removes it if the process dies before it is persisted.
+     */
+    suspend fun receive(jpeg: ByteArray): String
+
     /** Through `MediaFiles` as the `photos` kind; the relative path it wrote. */
     suspend fun persist(source: String): String
 
@@ -39,4 +45,7 @@ interface VisitPhotos {
         visit: VisitPhase.Shown,
         removed: List<ShownDart>,
     )
+
+    /** A Mounted camera's Photo on which no Board was found: the Photos gate A most needs (`phase-G.md` §2). */
+    fun keepNoBoard(visit: VisitPhase.NoBoard)
 }

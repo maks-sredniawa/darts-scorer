@@ -124,6 +124,16 @@ class CaptureFailed(
     val code: CaptureError? = null,
 ) : Exception(listOfNotNull(failure.name, code?.name).joinToString(" "))
 
+/** What a screen needs of the link to its paired camera; [PlayerLink] is the one on a phone. */
+interface CameraLink {
+    val state: StateFlow<PlayerLinkState>
+
+    suspend fun run(pin: String)
+
+    /** One Photo from the connected camera, or [CaptureFailed]. */
+    suspend fun capture(): ReceivedPhoto
+}
+
 /** Where to connect: what NSD resolved, or the debug build's address field. */
 class LinkTarget(
     val label: String,
@@ -146,9 +156,9 @@ class PlayerLink(
     private val debugTarget: StateFlow<InetSocketAddress?>,
     private val acceptsLoopback: Boolean,
     private val clock: () -> Long = SystemClock::elapsedRealtime,
-) {
+) : CameraLink {
     private val mutableState = MutableStateFlow(PlayerLinkState.LOOKING)
-    val state: StateFlow<PlayerLinkState> = mutableState.asStateFlow()
+    override val state: StateFlow<PlayerLinkState> = mutableState.asStateFlow()
 
     @Volatile private var session: LinkSession? = null
     private val pending = ConcurrentHashMap<Int, CompletableDeferred<Frame>>()
@@ -230,7 +240,7 @@ class PlayerLink(
     }
 
     /** Connected mode: keeps the link to the camera pinned as [pin] up until cancelled. */
-    suspend fun run(pin: String): Unit =
+    override suspend fun run(pin: String): Unit =
         exclusively {
             val me = identity()
             val advertised = finder.advertised().stateIn(this)
@@ -332,7 +342,7 @@ class PlayerLink(
     }
 
     /** One Photo from the connected camera, within 10 s (ADR-0009, decision 8). */
-    suspend fun capture(): ReceivedPhoto {
+    override suspend fun capture(): ReceivedPhoto {
         val current = session ?: throw CaptureFailed(CaptureFailure.NOT_CONNECTED)
         val id = requestIds.incrementAndGet()
         val reply = CompletableDeferred<Frame>()

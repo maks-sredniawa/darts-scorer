@@ -250,7 +250,7 @@ internal fun ShownDetails(
                 when (focus) {
                     is VisitFocus.Chip -> chips[focus.number]
                     VisitFocus.AddDart -> addDart.takeIf { Correction.canAdd(shown.darts) }
-                    VisitFocus.EnterScore -> null
+                    VisitFocus.EnterScore, VisitFocus.Reading -> null
                 }
             target?.requestFocus()
             onFocusPlaced()
