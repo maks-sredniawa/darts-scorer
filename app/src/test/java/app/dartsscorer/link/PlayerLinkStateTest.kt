@@ -2,8 +2,14 @@ package app.dartsscorer.link
 
 import app.dartsscorer.camera.PhoneRole
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketException
+import java.net.SocketTimeoutException
 
 /**
  * *Pair again* only from the paired camera's own word over a completed, pinned handshake; anything
@@ -57,5 +63,17 @@ class PlayerLinkStateTest {
     @Test
     fun `a link that came up and dropped looks again`() {
         assertEquals(PlayerLinkState.LOOKING, PlayerLinkState.CONNECTED.after(Answer.GREETED, 0))
+    }
+
+    @Test
+    fun `a socket a VPN will not bind, or a timeout, tries the default route`() {
+        assertTrue(anotherRouteMayWork(SocketException("Binding socket to network 154 failed: EPERM")))
+        assertTrue(anotherRouteMayWork(NoRouteToHostException("Host unreachable")))
+        assertTrue(anotherRouteMayWork(SocketTimeoutException("connect timed out")))
+    }
+
+    @Test
+    fun `a refused connection reached the camera's address and is not tried again`() {
+        assertFalse(anotherRouteMayWork(ConnectException("Connection refused")))
     }
 }

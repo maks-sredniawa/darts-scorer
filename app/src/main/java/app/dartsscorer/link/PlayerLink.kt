@@ -25,6 +25,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
+import java.net.ConnectException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -86,6 +87,9 @@ internal fun PlayerLinkState.after(
                 this
             }
     }
+
+/** A refused connection reached the camera's address, so no other route will do better; anything else might. */
+internal fun anotherRouteMayWork(failure: IOException): Boolean = failure !is ConnectException
 
 private class Attempt(
     val answer: Answer,
@@ -196,7 +200,7 @@ class PlayerLink(
             try {
                 open(target, tls, Frame.Hello(PhoneRole.PLAYER, appVersion, nonce = nonce))
             } catch (e: IOException) {
-                Log.i(LINK_TAG, "Camera ${target.label} did not answer pairing: $e")
+                Log.i(LINK_TAG, "Camera ${target.label} not reachable for pairing: $e")
                 return null
             }
         val camera = opened.session.peerFingerprint
@@ -379,9 +383,8 @@ class PlayerLink(
     ): Opened =
         withContext(Dispatchers.IO) {
             if (!allowed(target.address)) throw IOException("${target.address.hostAddress} is not a local address")
-            val plain = target.network?.socketFactory?.createSocket() ?: Socket()
+            val plain = connected(target)
             try {
-                plain.connect(InetSocketAddress(target.address, target.port), CONNECT_TIMEOUT_MILLIS)
                 plain.within(GREETING_MILLIS) {
                     val socket =
                         tls.socketFactory.createSocket(
@@ -401,6 +404,38 @@ class PlayerLink(
                 throw e
             }
         }
+
+    /**
+     * Through the network NSD found the camera on, else by whatever route the system picks: an app
+     * under a VPN it cannot bypass may not bind to Wi-Fi at all (`EPERM`), and a phone hosting the
+     * hotspot has no Wi-Fi network of its own to bind to. [allowed] still holds for either.
+     */
+    private fun connected(target: LinkTarget): Socket {
+        val address = InetSocketAddress(target.address, target.port)
+        target.network?.let { network ->
+            var bound: Socket? = null
+            try {
+                bound = network.socketFactory.createSocket()
+                bound.connect(address, CONNECT_TIMEOUT_MILLIS)
+                return bound
+            } catch (e: IOException) {
+                bound?.close()
+                if (!anotherRouteMayWork(e)) throw e
+                Log.i(
+                    LINK_TAG,
+                    "Camera ${target.label} not reachable through network $network, trying the default route: $e",
+                )
+            }
+        }
+        val plain = Socket()
+        try {
+            plain.connect(address, CONNECT_TIMEOUT_MILLIS)
+        } catch (e: IOException) {
+            plain.close()
+            throw e
+        }
+        return plain
+    }
 
     companion object {
         const val PING_MILLIS = 5_000L
