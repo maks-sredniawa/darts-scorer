@@ -14,6 +14,7 @@ from darts_ml.cli import main
 from darts_ml.evaluate import Share, evaluate, report
 from darts_ml.heldout import HeldOutError, HeldOutSet
 from darts_ml.labelme import label
+from darts_ml.marked_reading import marked_visits
 from darts_ml.mounted import MountedError, build_mounted
 from darts_ml.prefill import prefill
 from darts_ml.records import build
@@ -160,7 +161,7 @@ class MountedLoopTest(unittest.TestCase):
     def setUp(self):
         self.td = TemporaryData()
         self.data = self.td.data
-        captures = PhoneCaptures(self.td)
+        self.captures = captures = PhoneCaptures(self.td)
         for uuid, minutes, yaw in (("b", 1, 15.0), ("a", 0, -15.0), ("c", 2, 0.0)):
             captures.keep(uuid, minutes, yaw=yaw, found=uuid != "c")
         built = build_mounted(self.data, "s20", DAY, MOUNT, Light.DAY, "Redmi Note 8 Pro")
@@ -203,6 +204,18 @@ class MountedLoopTest(unittest.TestCase):
         sheet.write_text(sheet.read_text(encoding="utf-8").replace('set = "gate"', 'set = "held-out"'), encoding="utf-8")
         with self.assertRaisesRegex(HeldOutError, "s20 is held-out"):
             evaluate(self.data, "labels", sessions=("s20",))
+
+    def test_a_training_session_is_not_read_by_session(self):
+        sheet = self.data.sheet("s20")
+        sheet.write_text(sheet.read_text(encoding="utf-8").replace('set = "gate"', 'set = "training"'), encoding="utf-8")
+        with self.assertRaisesRegex(HeldOutError, "s20 is a training session"):
+            evaluate(self.data, "labels", sessions=("s20",))
+
+    def test_evaluate_marked_leaves_out_the_visits_built_into_a_session(self):
+        self.captures.keep("d", 3)
+        visits, skipped = marked_visits(self.data)
+        self.assertEqual([visit.name for visit in visits], ["d"])
+        self.assertEqual(skipped, [(f"{uuid}.json", "built into Capture session s20") for uuid in "abc"])
 
     def test_build_leaves_a_gate_session_out_of_the_training_records(self):
         built = build(self.data, HeldOutSet({}, {}))

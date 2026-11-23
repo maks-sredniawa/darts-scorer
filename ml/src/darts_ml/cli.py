@@ -254,7 +254,7 @@ def _read_on(parser: argparse.ArgumentParser, manifest_help: str) -> None:
     which = parser.add_mutually_exclusive_group()
     which.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
     which.add_argument("--session", dest="sessions", action="append", default=[], type=_capture_session, metavar="sNN",
-                       help="read this Capture session instead, one outside the Held-out set and clean in `check`; "
+                       help="read this Capture session instead, a gate one (set = \"gate\") clean in `check`; "
                             "repeat for more")
 
 
@@ -703,7 +703,7 @@ def _evaluate_marked(args) -> int:
     data = DataDir.from_environment()
     folder, config = run_config(data, args.run)
     captures = data.phone_captures()
-    visits, skipped = marked_visits(captures)
+    visits, skipped = marked_visits(data)
     for name, reason in skipped:
         print(f"skipped  {name}: {reason}")
     if not visits:

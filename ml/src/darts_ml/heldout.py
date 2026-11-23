@@ -132,6 +132,10 @@ def outside_held_out(data: DataDir, names) -> HeldOutSet:
     if held_out:
         raise HeldOutError(f"{', '.join(held_out)} is held-out: the Held-out set is read only through its frozen "
                            "manifest (--manifest)")
+    training = [s.capture_session for s in sheets if not s.gate]
+    if training:
+        raise HeldOutError(f"{', '.join(training)} is a training session: --session reads only a session whose "
+                           'sheet says set = "gate"')
     unclean = [s.capture_session for s in sheets if not check(data, s.capture_session).clean]
     if unclean:
         raise HeldOutError(f"`darts-ml check` is not clean on {', '.join(unclean)}; a session is read only clean")

@@ -59,8 +59,9 @@ never in a held-out Capture session). `ingest` appends an `[ingest]` table with 
 and capture time.
 
 `set = "gate"` is a session read for a gate before any verdict (phase-G.md §2): `build` leaves it
-out of the training records, and `freeze-held-out` leaves it out of the Held-out set. When the
-verdict makes it training data, change the line to `training`.
+out of the training records, and `freeze-held-out` leaves it out of the Held-out set. If the
+verdict is phase-G.md §2's verdict 2, its Photos would need a training session and a Validation one,
+per M2's rules; how they are split is decided after the verdict, not here.
 
 A Mounted camera's session carries a `[mount]` table, the position written down at the stand, and
 holds one Photo per Visit, `p1` only:
@@ -360,7 +361,9 @@ uv run --directory ml darts-ml phone-fixtures --run <run>           # phase 1's 
   and how far each Entry point lies from the owner's in Board mm through the run's own homography, split into the Darts the owner moved and those whose point the owner kept; a
   Dart whose Score was corrected without moving it gives no point. Beside it, the app's reading as
   kept on the phone, from the same records. A Visit whose Photo is not the record's width×height, or
-  carries an EXIF orientation other than 1, is skipped and named with the reason. It writes nothing. **Read once:** these Visits choose no
+  carries an EXIF orientation other than 1, is skipped and named with the reason, and so is one a
+  Capture session's sheet names in its `[ingest]` table (`mounted-session` built it into that
+  session). It writes nothing. **Read once:** these Visits choose no
   run, threshold or setting, or they stop measuring anything; the step says so as it reads them.
 - **`phone-fixtures`** writes what the app's JVM tests hold the Kotlin port to, into
   `app/src/test/resources/scoring/`: `scores.tsv` (every bed, 0.1 mm either side of every wire, and
@@ -425,7 +428,7 @@ uv run --directory ml darts-ml verify-held-out     # fails on any held-out file 
 uv run --directory ml darts-ml build               # build/records.jsonl, refusing every held-out Photo
 uv run --directory ml darts-ml evaluate --predictions labels           # R7: the harness reads perfect as perfect
 uv run --directory ml darts-ml evaluate --predictions predictions.json # a model's reading
-uv run --directory ml darts-ml predict --run <run> --session s20                   # a session outside the Held-out set
+uv run --directory ml darts-ml predict --run <run> --session s20                   # a gate session, outside the Held-out set
 uv run --directory ml darts-ml evaluate --predictions <file> --session s20        # read against the same bar
 ```
 
@@ -448,8 +451,9 @@ uv run --directory ml darts-ml evaluate --predictions <file> --session s20      
 - **`evaluate`** counts Photos and Visits from the manifest, never from the predictions: a Photo the
   predictions leave out is a Board not found. It exits 0 when the bar is met and 1 when it is not.
 - **`--session`**, on `predict` and `evaluate` in place of `--manifest`, reads named Capture sessions
-  outside the Held-out set, such as a Mounted camera's position: each only once `check` is clean on
-  it, and never a held-out one, which is read only through the frozen manifest. Photos are counted
+  whose sheet says `set = "gate"`, such as a Mounted camera's position: each only once `check` is
+  clean on it, never a training session the model may have learnt from, and never a held-out one,
+  which is read only through the frozen manifest. Photos are counted
   from the sheets; a one-Angle session reads B2 from p1 alone and leaves p2 and p3 at 0/0.
 
 ### The predictions file
