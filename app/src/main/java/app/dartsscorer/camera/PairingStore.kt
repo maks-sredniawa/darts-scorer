@@ -1,6 +1,5 @@
 package app.dartsscorer.camera
 
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -54,12 +53,10 @@ class PairingStore(
 
     suspend fun pinPlayer(payload: PairingPayload) {
         store.edit { it[Keys.PLAYER_PIN] = payload.fingerprint }
-        Log.i(TAG, "Pinned the Player's phone ${payload.fingerprint}")
     }
 
     suspend fun unpairPlayer() {
         store.edit { it.remove(Keys.PLAYER_PIN) }
-        Log.i(TAG, "Unpaired the Player's phone")
     }
 
     suspend fun markCameraAsked() {
