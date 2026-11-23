@@ -27,6 +27,10 @@ that carries it:
 
 > 4 permissions, all accounted for; none of the 5 forbidden ones present; 2 <uses-feature> declared; 0 of the 4 activities lock their orientation, every one of them expected
 
+From phase G's checkpoint C (2026-11-23), read off a local `bundleRelease` the same way:
+
+> 6 permissions, all accounted for; none of the 12 forbidden ones present; 2 <uses-feature> declared; 0 of the 4 activities lock their orientation, every one of them expected; no datatransport backend
+
 | Permission | Whose | What it is for | Console consequence |
 | --- | --- | --- | --- |
 | `CAMERA` | ours, the manifest (ADR-0009, decision 11) | the Mounted camera's CameraX captures; once declared, the handheld *Take a Photo*'s system camera intent needs it too, so that path asks first (`phase-G.md` D5) | none: not on Play's declaration list. The listing's *PERMISSIONS* block names it |
