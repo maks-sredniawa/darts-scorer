@@ -37,6 +37,8 @@ def build(data: DataDir, held: HeldOutSet) -> Built:
             reason = held.refusal(photo, sheet.held_out, photo_sha, label_sha)
             if reason:
                 built.refused.append((name, reason))
+            elif sheet.gate:
+                built.skipped.append((name, "its sheet says gate: not trained on before the gate's verdict"))
             elif photo_sha is None or label_sha is None:
                 built.skipped.append((name, "no Photo" if photo_sha is None else "no label"))
             elif not is_reviewed(manifest.get(name), label_file, sheet.held_out):

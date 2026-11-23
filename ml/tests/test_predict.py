@@ -68,6 +68,20 @@ class PredictTest(unittest.TestCase):
         self.assertEqual(set(written["photos"]), set(self.held.photos))
         self.assertTrue(evaluate(self.data, path, self.manifest).found.total)
 
+    def test_predict_reads_a_session_outside_the_held_out_set_when_named(self):
+        reviewed_session(self.td, "s05", VISITS)
+        folder = self.data.runs() / RUN
+        folder.mkdir(parents=True)
+        config = dataclasses.asdict(RunConfig("board", device="cpu", size=64, batch=4))
+        (folder / "config.json").write_text(json.dumps(config), encoding="utf-8")
+        torch.manual_seed(0)
+        torch.save({"model": KeypointNet().state_dict(), "epoch": 1}, folder / "best.pt")
+        path = predict(self.data, RUN, device="cpu", workers=0, sessions=("s05",))
+        self.assertTrue(path.name.startswith("predictions-s05-best-"))
+        written = json.loads(path.read_text())
+        self.assertEqual(set(written["photos"]), {f"s05-v{v:02d}-p{a}" for v in (1, 2, 3) for a in (1, 2, 3)})
+        self.assertEqual(evaluate(self.data, path, sessions=("s05",)).found.total, 9)
+
     def test_a_missing_run_is_named_not_a_traceback(self):
         for argv in (["predict", "--run", "nope"], ["deepdarts", "score", "--run", "nope"]):
             err = io.StringIO()

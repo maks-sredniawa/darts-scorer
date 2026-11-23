@@ -16,7 +16,8 @@ from .ingest import ingest, jpegtran_version
 from .kernel_search import explain_failed_search, seconds_asleep
 from .marked import PACKAGE
 from .overlay import overlay
-from .paths import DataDir, Round, public_set, render_set, repo_roots, run_config
+from .capture_sessions import Light, Mount
+from .paths import DataDir, Round, capture_session, public_set, render_set, repo_roots, run_config
 from .prefill import prefill
 from .records import RECORDS, build
 from .renders import LOOKS, MAX_RESIDUAL_PX
@@ -63,6 +64,16 @@ def _parser() -> argparse.ArgumentParser:
 
     step("paths", _paths, "print DARTS_DATA, refuse one inside the repo, and check for jpegtran", capture_session=False)
     step("ingest", _ingest, "inbox → named, losslessly rotated, metadata-stripped Photos")
+    mounted = step("mounted-session", _mounted_session, "a Mounted camera's position → a Capture session of one Photo "
+                   "per Visit, from the marked Visits under $DARTS_DATA/phone-captures/<day>/, in the order they were kept")
+    mounted.add_argument("--day", required=True, help="the folder under phone-captures/ pull-marked copied them into")
+    mounted.add_argument("--height-cm", type=_non_negative_float, required=True, help="the camera's height, as written down at the stand")
+    mounted.add_argument("--distance-cm", type=_positive_float, required=True, help="its distance out from the Board's face")
+    mounted.add_argument("--angle-deg", type=float, required=True, help="its angle to the Board, as written down at the stand")
+    mounted.add_argument("--light", type=Light, choices=list(Light), required=True, metavar="{day,evening,flash,harsh}")
+    mounted.add_argument("--phone", required=True, help="the Mounted camera's phone, such as \"Redmi Note 8 Pro\"")
+    mounted.add_argument("--kept-from", type=_instant, help="leave out Visits kept before this time, such as 2026-11-24T18:30")
+    mounted.add_argument("--kept-until", type=_instant, help="leave out Visits kept at or after this time")
     step("label", _label, f"pass 1: open each unlabelled Photo in labelme {labelme.PINNED}", round_=True)
     step("prefill", _prefill, "pass 2: Hand points → all 80 crossings; Entry points suggested across a Visit", round_=True)
     step("review", _review, "pass 3: confirm each Photo and record it in the review manifest", round_=True)
@@ -82,11 +93,11 @@ def _parser() -> argparse.ArgumentParser:
     verifier.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
     builder = step("build", _build, "write the training records, refusing every held-out Photo", capture_session=False)
     builder.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
-    evaluator = step("evaluate", _evaluate, "the bar for phase 1's model (phase-M1.md §7), read on the Held-out set",
-                     capture_session=False)
+    evaluator = step("evaluate", _evaluate, "the bar for phase 1's model (phase-M1.md §7), read on the Held-out set, "
+                     "or on --session", capture_session=False)
     evaluator.add_argument("--predictions", required=True, metavar="{labels,FILE}",
                            help=f"`{LABELS}` to read the labels as the predictions, or a predictions JSON file (ml/README.md)")
-    evaluator.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    _read_on(evaluator, manifest_help)
     trainer = step("train", _train, "train the keypoint model (phase-M2.md); --probe times 200 steps for the gate",
                    capture_session=False)
     trainer.add_argument("--probe", action="store_true",
@@ -134,8 +145,9 @@ def _parser() -> argparse.ArgumentParser:
     predictor.add_argument("--run", required=True, help="the run folder's name under $DARTS_DATA/runs/")
     predictor.add_argument("--weights", choices=WEIGHTS, default="best")
     predictor.add_argument("--device", choices=("auto", "gpu", "cpu"), default="auto")
-    predictor.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
-    predictor.add_argument("--out", type=Path, help="default: predictions-held-out-<weights>-<time>.json in the run folder")
+    _read_on(predictor, manifest_help)
+    predictor.add_argument("--out", type=Path, help="default: predictions-<held-out or the sessions>-<weights>-<time>.json "
+                           "in the run folder")
     predictor.add_argument("--workers", type=_non_negative, default=4)
     formats = {"type": Format, "choices": list(Format), "required": True, "dest": "format_"}
     exporter = step("export", _export, "a run's model in an on-device runtime's format, written into the run folder "
@@ -238,6 +250,29 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _read_on(parser: argparse.ArgumentParser, manifest_help: str) -> None:
+    which = parser.add_mutually_exclusive_group()
+    which.add_argument("--manifest", type=Path, default=MANIFEST, help=manifest_help)
+    which.add_argument("--session", dest="sessions", action="append", default=[], type=_capture_session, metavar="sNN",
+                       help="read this Capture session instead, one outside the Held-out set and clean in `check`; "
+                            "repeat for more")
+
+
+def _capture_session(text: str) -> str:
+    try:
+        return capture_session(text)
+    except DartsMlError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
+def _instant(text: str) -> dt.datetime:
+    try:
+        moment = dt.datetime.fromisoformat(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a time such as 2026-11-24T18:30") from error
+    return moment if moment.tzinfo else moment.astimezone()
+
+
 def _positive(text: str) -> int:
     value = int(text)
     if value < 1:
@@ -327,6 +362,21 @@ def _ingest(args) -> int:
     print(f"{len(names)} Photos ingested into {data.photos(args.capture_session)}")
     print(f"{data.inbox(args.capture_session)} still holds the phone's files, GPS included: "
           "delete them once you have looked at the Photos")
+    return 0
+
+
+def _mounted_session(args) -> int:
+    from .mounted import build_mounted
+
+    data = DataDir.from_environment()
+    built = build_mounted(data, args.capture_session, args.day, Mount(args.height_cm, args.distance_cm, args.angle_deg),
+                          args.light, args.phone, args.kept_from, args.kept_until)
+    for record, reason in built.left_out:
+        print(f"left out  {record}: {reason}")
+    print(f"{len(built.photos)} Photos, one per Visit, into {data.photos(args.capture_session)}; "
+          f"the sheet is {data.sheet(args.capture_session)}")
+    print(f"Next: label, prefill, review and check {args.capture_session}, then predict and evaluate with "
+          f"--session {args.capture_session}")
     return 0
 
 
@@ -435,7 +485,7 @@ def _build(args) -> int:
 
 
 def _evaluate(args) -> int:
-    result = evaluate(DataDir.from_environment(), args.predictions, args.manifest)
+    result = evaluate(DataDir.from_environment(), args.predictions, args.manifest, args.sessions)
     print("\n".join(report(result)))
     return 0 if result.met else 1
 
@@ -483,7 +533,7 @@ def _predict(args) -> int:
     from .predict import predict
 
     target = predict(DataDir.from_environment(), args.run, args.weights, args.device, args.manifest, args.out,
-                     args.workers)
+                     args.workers, sessions=args.sessions)
     print(f"written to {target}")
     print("Reading it with `darts-ml evaluate` is one of phase M2's three readings of the bar (D6)")
     return 0

@@ -12,6 +12,9 @@ from .board import Score
 from .paths import capture_session
 
 ANGLES = (1, 2, 3)
+MOUNTED_ANGLES = (1,)
+GATE = "gate"
+SETS = ("training", "held-out", GATE)
 _PHOTO = re.compile(r"(s\d{2,3})-v(\d{2})-p([123])")
 
 
@@ -101,6 +104,13 @@ class OpenMismatch:
 
 
 @dataclass(frozen=True)
+class Mount:
+    height_cm: float
+    distance_cm: float
+    angle_deg: float
+
+
+@dataclass(frozen=True)
 class Sheet:
     capture_session: str
     phone: str
@@ -110,9 +120,15 @@ class Sheet:
     visits: tuple[Visit, ...]
     mismatches: tuple[OpenMismatch, ...]
     ingested: bool
+    gate: bool = False
+    mount: Mount | None = None
+
+    @property
+    def angles(self) -> tuple[int, ...]:
+        return MOUNTED_ANGLES if self.mount else ANGLES
 
     def photo_names(self) -> list[PhotoName]:
-        return [PhotoName(self.capture_session, v.number, a) for v in self.visits for a in ANGLES]
+        return [PhotoName(self.capture_session, v.number, a) for v in self.visits for a in self.angles]
 
     def visit(self, number: int) -> Visit:
         return self.visits[number - 1]
@@ -137,8 +153,8 @@ def load_sheet(path: Path) -> Sheet:
 
 
 def _sheet(name: str, raw: dict) -> Sheet:
-    if raw["set"] not in ("training", "held-out"):
-        raise SheetError(f"set is training or held-out, not {raw['set']!r}")
+    if raw["set"] not in SETS:
+        raise SheetError(f"set is training, held-out or gate, not {raw['set']!r}")
     if not isinstance(raw["date"], dt.date):
         raise SheetError("date is a TOML date, such as 2026-11-14")
     visits = tuple(
@@ -160,4 +176,13 @@ def _sheet(name: str, raw: dict) -> Sheet:
         visits=visits,
         mismatches=mismatches,
         ingested="ingest" in raw,
+        gate=raw["set"] == GATE,
+        mount=_mount(raw["mount"]) if "mount" in raw else None,
     )
+
+
+def _mount(raw: dict) -> Mount:
+    mount = Mount(float(raw["height_cm"]), float(raw["distance_cm"]), float(raw["angle_deg"]))
+    if mount.height_cm < 0 or mount.distance_cm <= 0:
+        raise ValueError("a mount's height_cm is at least 0 and its distance_cm more than 0")
+    return mount

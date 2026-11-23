@@ -4,7 +4,7 @@ import datetime as dt
 import json
 from pathlib import Path
 
-from .heldout import MANIFEST, file_sha256, verified
+from .heldout import MANIFEST, file_sha256, outside_held_out, verified
 from .locate import Inference, Located, Speed, locate
 from .paths import DataDir, run_config
 from .train import load_weights, resolve_device, use_tuned_kernels
@@ -30,9 +30,9 @@ def write_predictions(path: Path, run: str, weights_sha256: str, located: dict[s
 
 
 def predict(data: DataDir, run: str, weights: str = "best", device: str = "auto", manifest: Path = MANIFEST,
-            out: Path | None = None, workers: int = 4, now: dt.datetime | None = None) -> Path:
+            out: Path | None = None, workers: int = 4, now: dt.datetime | None = None, sessions=()) -> Path:
     folder, config = run_config(data, run)
-    held = verified(data, manifest)
+    held = outside_held_out(data, sessions) if sessions else verified(data, manifest)
     names = held.photo_names()
     use_tuned_kernels(data)
     device, _ = resolve_device(device)
@@ -41,6 +41,7 @@ def predict(data: DataDir, run: str, weights: str = "best", device: str = "auto"
     model = load_weights(weights_path, device).to(memory_format=speed.memory)
     located = locate(Inference(model, device, config["size"], config["batch"], workers, speed),
                      [data.photo(n.capture_session, str(n)) for n in names])
-    target = out or folder / f"predictions-{HELD_OUT}-{weights}-{(now or dt.datetime.now()):%Y%m%d-%H%M%S}.json"
+    read_on = "-".join(held.capture_sessions) if sessions else HELD_OUT
+    target = out or folder / f"predictions-{read_on}-{weights}-{(now or dt.datetime.now()):%Y%m%d-%H%M%S}.json"
     write_predictions(target, run, file_sha256(weights_path), dict(zip(map(str, names), located, strict=True)))
     return target
