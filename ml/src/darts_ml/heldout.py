@@ -123,8 +123,24 @@ def freeze(data: DataDir) -> HeldOutSet:
     unclean = [s.capture_session for s in held_out if not check(data, s.capture_session).clean]
     if unclean:
         raise HeldOutError(f"`darts-ml check` is not clean on {', '.join(unclean)}; the Held-out set freezes only clean")
+    return _hashed(data, held_out)
+
+
+def outside_held_out(data: DataDir, names) -> HeldOutSet:
+    sheets = [load_sheet(data.sheet(name)) for name in dict.fromkeys(names)]
+    held_out = [s.capture_session for s in sheets if s.held_out]
+    if held_out:
+        raise HeldOutError(f"{', '.join(held_out)} is held-out: the Held-out set is read only through its frozen "
+                           "manifest (--manifest)")
+    unclean = [s.capture_session for s in sheets if not check(data, s.capture_session).clean]
+    if unclean:
+        raise HeldOutError(f"`darts-ml check` is not clean on {', '.join(unclean)}; a session is read only clean")
+    return _hashed(data, sheets)
+
+
+def _hashed(data: DataDir, sheets) -> HeldOutSet:
     sessions, photos = {}, {}
-    for sheet in held_out:
+    for sheet in sheets:
         labels = data.labels(sheet.capture_session)
         sessions[sheet.capture_session] = FrozenSession(
             file_sha256(data.sheet(sheet.capture_session)), file_sha256(labels / REVIEW_FILE)
