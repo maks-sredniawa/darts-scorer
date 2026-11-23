@@ -305,3 +305,12 @@ The bar is unchanged and is read again from the Mounted camera's own positions: 
 phase G's gate, its Darts half closes the phase (`phase-G.md` §2, R8). A Capture session from a
 Mounted camera is one camera at one position (`CONTEXT.md`), and is drawn into the Held-out set or
 training like any other.
+
+## Amendment — 2026-11-23: no Dart beyond 1.8 Board radii
+
+An Entry point more than 1.8 Board radii from the bull (the outer double ring's outer edge is 1.0),
+in Board mm through the homography, is dropped before the three most confident are kept, so the
+next one takes its place (`FARTHEST_RADII` in `decode.py` and `Decode.kt`). Of DeepDarts' 32,027
+labelled tips, 0.74% lie beyond 1.5 radii, 0.03% beyond 1.7 and none beyond 2.0 (the farthest at
+1.87); a Dart that far out is in the wall and scores a Miss anyway. A Mounted camera sees a wall full
+of holes and splinters around the Board, and one of those could otherwise take a Dart's place.

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import DartsMlError
-from .board import CALIBRATION_POINTS
+from .board import CALIBRATION_POINTS, OUTER_DOUBLE
 from .homography import _normaliser, fit, project
 from .model import BOARD_OFFSETS, BOARD_STRIDE, CALIBRATION_CHANNELS, ENTRY_HEAT, ENTRY_OFFSETS, Heads, entry_stride_of
 
@@ -14,11 +14,13 @@ THRESHOLD = 0.25
 ENTRY_THRESHOLD = 0.25
 ENTRIES_APART_MM = 0.0
 MOST_ENTRIES = 3
+FARTHEST_RADII = 1.8
 CONFIDENT = 0.5
 RANSAC_MM = 3.0
 MIN_INLIERS = 8
 RANSAC_ROUNDS = 500
 _BOARD = np.array([p.mm for p in CALIBRATION_POINTS])
+_FARTHEST_MM = FARTHEST_RADII * OUTER_DOUBLE.outer_mm
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,8 @@ def kept_entries(board_mm: np.ndarray, confidences: list[float], rule: EntryRule
     for i in sorted(range(len(confidences)), key=lambda i: -confidences[i]):
         if confidences[i] < rule.threshold or (rule.most is not None and len(kept) >= rule.most):
             break
+        if np.linalg.norm(board_mm[i]) > _FARTHEST_MM:
+            continue
         if all(np.linalg.norm(board_mm[i] - board_mm[k]) >= rule.apart_mm for k in kept):
             kept.append(i)
     return sorted(kept)

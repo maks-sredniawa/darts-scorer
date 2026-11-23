@@ -56,13 +56,14 @@ class PhotoReader(
             val calibration = decoded.calibration.toSortedMap().mapValues { (_, peak) -> back.project(peak.x, peak.y) }
             val (toBoard, inliers) = Decoding.ransac(calibration) ?: return Located(null)
             val entries = decoded.entries.map { back.project(it.x, it.y) }
-            val keep = Decoding.keptEntries(decoded.entries.map { it.confidence })
+            val boardMm = entries.map { toBoard.project(it) }
+            val keep = Decoding.keptEntries(boardMm, decoded.entries.map { it.confidence })
             return Located(
                 toBoard,
                 inliers.associate { Board.CALIBRATION_POINTS[it].name to calibration.getValue(it) },
                 keep.map { i ->
                     val at = entries[i]
-                    FoundDart(at.x, at.y, decoded.entries[i].confidence, Board.score(toBoard.project(at)))
+                    FoundDart(at.x, at.y, decoded.entries[i].confidence, Board.score(boardMm[i]))
                 },
             )
         }
