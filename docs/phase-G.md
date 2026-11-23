@@ -239,8 +239,8 @@ a 95th percentile of 1.0 mm: the Board half of `phase-M1.md` D1?
   `prefill`, `review` and `check` like every session, Hand points and all, so the Calibration points
   are labelled rather than guessed.
 - The Board figures are read with `predict` and `evaluate` for the shipped run, pointed at that
-  session by a manifest of its own (`--manifest`). If `evaluate` cannot read a session outside the
-  Held-out set, that option and its test go into the same `chore(ml):`.
+  session with `--session`, the option the same `chore(ml):` adds for a session outside the Held-out
+  set (`mounted-session` builds the session, `ml/README.md`).
 - These sessions are not trained or chosen on until the verdict is written.
 
 ### The verdicts, decided now rather than argued about later
@@ -620,7 +620,7 @@ only for readings that are not about the battery.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | Gate A: the Board half of the bar per mount position | `uv run --directory ml darts-ml predict --run <shipped run> --manifest <position manifest>` then `evaluate --predictions <file> --manifest <position manifest>` | |
+| R1 | Gate A: the Board half of the bar per mount position | `uv run --directory ml darts-ml predict --run <shipped run> --session <position's session>` then `evaluate --predictions <file> --session <position's session>` | |
 | R2 | Pairing on the real phones: QR scanned at arm's length in room light, in how many tries; and once by the shared text with TalkBack on both phones (D10). Then the Redmi as the camera with the debug switch skipping the `MulticastLock`, and again with it held: *Camera not found* with it off and found with it on, or, found both ways, the lock recorded as not needed on Android 11 | by hand, counted; the lock in `adb logcat` under the link's tag | |
 | R3 | Tap to scored result, on the home Wi-Fi: median and worst of 20 | the debug timing line on the Player's phone | |
 | R4 | The Photo: the Board's long axis in px, and a Dart's Entry point sharp at 100% | the stored Photo, `adb exec-out run-as <id> cat files/photos/<uuid>.jpg > r4.jpg`, opened at 100% | |

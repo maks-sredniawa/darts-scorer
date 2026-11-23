@@ -11,8 +11,8 @@ import numpy as np
 
 from . import DartsMlError
 from .board import CALIBRATION_BY_NAME, CALIBRATION_POINTS, DOUBLE_WIRES, TREBLE_WIRES, WIRE_MARGIN_MM, score, wire_distance_mm
-from .capture_sessions import ANGLES, PhotoName, Sheet, Visit, load_sheet
-from .heldout import MANIFEST, verified
+from .capture_sessions import PhotoName, Sheet, Visit, load_sheet
+from .heldout import MANIFEST, outside_held_out, verified
 from .homography import crossing_errors_mm, fit, project
 from .labelme import Label, label_path, read_label
 from .paths import DataDir
@@ -198,6 +198,7 @@ class Evaluation:
     wrong_flagged: Share
     flags: Counter = field(default_factory=Counter)
     ignored_predictions: int = 0
+    sessions: tuple[str, ...] = ()
 
     @property
     def board_met(self) -> bool:
@@ -212,8 +213,8 @@ class Evaluation:
         return self.board_met and self.visits_met
 
 
-def evaluate(data: DataDir, predictions: str | Path, manifest: Path = MANIFEST) -> Evaluation:
-    held = verified(data, manifest)
+def evaluate(data: DataDir, predictions: str | Path, manifest: Path = MANIFEST, sessions=()) -> Evaluation:
+    held = outside_held_out(data, sessions) if sessions else verified(data, manifest)
     photos = held.photo_names()
     sheets: dict[str, Sheet] = {name: load_sheet(data.sheet(name)) for name in held.capture_sessions}
     labels = {str(p): read_label(label_path(data.labels(p.capture_session), str(p))) for p in photos}
@@ -236,8 +237,8 @@ def evaluate(data: DataDir, predictions: str | Path, manifest: Path = MANIFEST) 
         sheet = sheets[session]
         visit = sheet.visit(number)
         recorded = Counter(visit.scores_in_board)
-        by_angle = {a: found[str(PhotoName(session, number, a))] for a in ANGLES}
-        right = {a: by_angle[a].found and by_angle[a].scores() == recorded for a in ANGLES}
+        by_angle = {a: found[str(PhotoName(session, number, a))] for a in sheet.angles}
+        right = {a: guess.found and guess.scores() == recorded for a, guess in by_angle.items()}
         merged_right = any(g.found for g in by_angle.values()) and merged_scores(list(by_angle.values())) == recorded
         p1 = by_angle[1]
         if hidden_in_p1(visit, labels[str(PhotoName(session, number, 1))]):
@@ -248,8 +249,10 @@ def evaluate(data: DataDir, predictions: str | Path, manifest: Path = MANIFEST) 
         tally["counted"] += 1
         tally["open p1"] += sheet.open_mismatch(PhotoName(session, number, 1)) is not None
         tally["p1"] += right[1]
-        tally["p2"] += right[2]
-        tally["p3"] += right[3]
+        for angle in (2, 3):
+            if angle in right:
+                tally[f"p{angle}"] += right[angle]
+                tally[f"p{angle} of"] += 1
         tally["merged"] += merged_right
         tally["darts"] += sum(recorded.values())
         tally["darts right"] += sum((p1.scores() & recorded).values())
@@ -267,8 +270,8 @@ def evaluate(data: DataDir, predictions: str | Path, manifest: Path = MANIFEST) 
         double=Spread.of(double),
         b2=Share(tally["p1"], counted),
         b2_open_p1_mismatches=tally["open p1"],
-        b2_p2=Share(tally["p2"], counted),
-        b2_p3=Share(tally["p3"], counted),
+        b2_p2=Share(tally["p2"], tally["p2 of"]),
+        b2_p3=Share(tally["p3"], tally["p3 of"]),
         b2_merged=Share(tally["merged"], counted),
         hidden=tally["hidden"],
         hidden_p1_short=Share(tally["hidden short"], tally["hidden"]),
@@ -277,6 +280,7 @@ def evaluate(data: DataDir, predictions: str | Path, manifest: Path = MANIFEST) 
         wrong_flagged=Share(tally["wrong flagged"], tally["wrong"]),
         flags=flags,
         ignored_predictions=len(set(given) - set(found)),
+        sessions=tuple(held.capture_sessions) if sessions else (),
     )
 
 
@@ -292,9 +296,11 @@ def report(result: Evaluation, bar: Bar = BAR) -> list[str]:
     board = board_met(result.found, result.treble, result.double, bar)
     visits = visits_met(result.b2, bar)
 
+    read_on = f"{', '.join(result.sessions)}, outside the Held-out set" if result.sessions else "Held-out set"
     lines = [
-        f"Held-out set: {result.capture_sessions} Capture sessions, {result.found.total} Photos, "
-        f"{result.b2.total + result.hidden} Visits, verified against the frozen manifest",
+        f"{read_on}: {result.capture_sessions} Capture sessions, {result.found.total} Photos, "
+        f"{result.b2.total + result.hidden} Visits, "
+        f"{'each clean in `check`' if result.sessions else 'verified against the frozen manifest'}",
         "",
         f"B1, the Board: {verdict(board)}  "
         f"(found ≥ {float(bar.board_found):.0%}; each wire row median ≤ {bar.wire_median_mm} mm, 95th ≤ {bar.wire_p95_mm} mm)",
@@ -317,6 +323,6 @@ def report(result: Evaluation, bar: Bar = BAR) -> list[str]:
         "  DeepDarts' D2 test set: not read here (checkpoint C)",
     ]
     if result.ignored_predictions:
-        lines.append(f"  {result.ignored_predictions} predicted Photos are not in the Held-out set and were ignored")
+        lines.append(f"  {result.ignored_predictions} predicted Photos are not in the {read_on} and were ignored")
     lines += ["", f"The bar for phase 1's model: {verdict(board and visits)}"]
     return lines

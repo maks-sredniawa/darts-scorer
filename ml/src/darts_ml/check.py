@@ -9,7 +9,7 @@ from PIL import Image
 
 from . import DartsMlError
 from .board import CALIBRATION_BY_NAME, Score, score
-from .capture_sessions import ANGLES, Mark, PhotoName, Sheet, Visit, load_sheet
+from .capture_sessions import Mark, PhotoName, Sheet, Visit, load_sheet
 from .homography import MIN_POINTS, fit, project, residuals_mm
 from .labelme import ENTRY, INFERRED, LABELS, Label, LabelError, label_path, read_label
 from .manifest import ReviewManifest
@@ -189,7 +189,7 @@ def _hidden_in_p1(sheet: Sheet, visit_number: int, fitted, report: Report) -> No
 
 
 def _across_angles(sheet: Sheet, visit_number: int, fitted, report: Report) -> None:
-    photos = [PhotoName(sheet.capture_session, visit_number, a) for a in ANGLES]
+    photos = [PhotoName(sheet.capture_session, visit_number, a) for a in sheet.angles]
     for first, second in itertools.combinations([p for p in photos if p in fitted], 2):
         for distance in _matched_distances(fitted[first].entry_mm(), fitted[second].entry_mm()):
             report.across_angles_mm.append(distance)

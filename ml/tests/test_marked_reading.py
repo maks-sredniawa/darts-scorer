@@ -64,7 +64,7 @@ class MarkedVisitsTest(unittest.TestCase):
         self.fixture.visit("a", [dart("T20", m, read="T20"), dart("S5", m, read="S1", moved=True, corrected=True),
                                  dart("25", m, read="S18", corrected=True), dart("miss", m, corrected=True, at=False)],
                            removed=["D12"])
-        [visit], skipped = marked_visits(self.td.data.phone_captures())
+        [visit], skipped = marked_visits(self.td.data)
         self.assertEqual(skipped, [])
         self.assertEqual(sorted(map(str, visit.truth)), ["25", "S5", "T20", "miss"])
         self.assertEqual(sorted(map(str, visit.app_read)), ["D12", "S1", "S18", "T20"])
@@ -73,7 +73,7 @@ class MarkedVisitsTest(unittest.TestCase):
     def test_a_record_without_its_photo_or_unreadable_is_skipped_by_name(self):
         self.fixture.visit("gone", [], photo=False)
         (self.fixture.day / "broken.json").write_text("{", encoding="utf-8")
-        visits, skipped = marked_visits(self.td.data.phone_captures())
+        visits, skipped = marked_visits(self.td.data)
         self.assertEqual(visits, [])
         self.assertEqual(sorted(name for name, _ in skipped), ["broken.json", "gone.json"])
 
@@ -83,7 +83,7 @@ class MarkedVisitsTest(unittest.TestCase):
         self.fixture.visit("garbled", [])
         (self.fixture.day / "garbled.jpg").write_bytes(b"not a jpeg")
         self.fixture.visit("kept", [], orientation=1)
-        visits, skipped = marked_visits(self.td.data.phone_captures())
+        visits, skipped = marked_visits(self.td.data)
         self.assertEqual([v.name for v in visits], ["kept"])
         reasons = dict(skipped)
         self.assertIn(f"is {SIZE[0]}×{SIZE[1]}, the record says {SIZE[0] * 2}×{SIZE[1] * 2}", reasons["resized.json"])
@@ -99,7 +99,7 @@ class ReadMarkedTest(unittest.TestCase):
         self.fixture.visit("1-right", [dart("T20", m, read="T20"), dart("S5", m, read="S1", moved=True, corrected=True)])
         self.fixture.visit("2-wrong", [dart("D16", m, read="D16"), dart("S3", m, read="S3")])
         self.fixture.visit("3-unfound", [dart("50", m, read="50")], found=False)
-        self.visits, _ = marked_visits(self.td.data.phone_captures())
+        self.visits, _ = marked_visits(self.td.data)
 
     def tearDown(self):
         self.td.cleanup()

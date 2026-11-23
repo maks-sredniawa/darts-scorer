@@ -111,6 +111,8 @@ uv run --directory ml darts-ml <step> s01       # ingest, label, prefill, review
 uv run --directory ml darts-ml train --name <name>   # a training run into $DARTS_DATA/runs/<date>-<name>/
 uv run --directory ml darts-ml predict --run <run>    # the predictions file `evaluate` reads, on the Held-out set
 uv run --directory ml darts-ml pull-marked --serial <serial>   # the debug build's marked Visits into $DARTS_DATA/phone-captures/
+uv run --directory ml darts-ml mounted-session s20 --day <date> --height-cm <h> --distance-cm <d> --angle-deg <a> --light day --phone <phone>   # one mount position's session, one Photo per Visit
+uv run --directory ml darts-ml evaluate --predictions <file> --session s20   # a gate session, outside the Held-out set (predict takes --session too)
 uv run --directory ml darts-ml evaluate-marked --run <run>      # a chosen run on those Visits, the real test set: never to choose a run
 uv run --directory ml darts-ml renders import <folder> --set <name> --renderer <clone> --look owner   # darts-render frames into $DARTS_DATA/renders/<name>/
 uv run --directory ml darts-ml train --name <name> --renders <set>[,<set>] --render-weight 0.5   # DeepDarts plus renders
