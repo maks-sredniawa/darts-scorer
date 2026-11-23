@@ -298,7 +298,11 @@ class CameraServer(
         /** Three of the Player's phone's 5 s pings missed, and a little more. */
         const val READ_TIMEOUT_MILLIS = 20_000
 
-        /** A few, so a stranger opening connections cannot hold every IO thread, and the real phone still gets in. */
+        /**
+         * A few, so a stranger opening connections cannot hold every IO thread. It does not stop a
+         * denial of service: a peer on the same Wi-Fi that keeps reopening them can still lock the
+         * real phone out.
+         */
         const val MAX_UNAUTHENTICATED = 4
     }
 }

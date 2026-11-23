@@ -88,7 +88,11 @@ internal fun PlayerLinkState.after(
             }
     }
 
-/** A refused connection reached the camera's address, so no other route will do better; anything else might. */
+/**
+ * Android throws [ConnectException] for every connect errno but a timeout, EHOSTUNREACH and
+ * EADDRNOTAVAIL: a refusal, and also ENETUNREACH or EPERM. Those are not retried on another route;
+ * a timeout, no route to the host, or a socket that could not be bound to the network is.
+ */
 internal fun anotherRouteMayWork(failure: IOException): Boolean = failure !is ConnectException
 
 private class Attempt(
@@ -372,7 +376,8 @@ class PlayerLink(
     private fun allowed(address: InetAddress) = isLocalPeer(address) || (acceptsLoopback && address.isLoopbackAddress)
 
     /**
-     * Through the Wi-Fi network the camera was found on, never the default route (phase-G.md §4).
+     * Through the Wi-Fi network the camera was found on, then through the default route when that
+     * fails in a way [anotherRouteMayWork] allows (phase-G.md §4).
      * The handshake and the camera's first frame share one deadline, and that frame is read under
      * [MAX_HELLO_BYTES], since nothing about the peer is known yet.
      */
