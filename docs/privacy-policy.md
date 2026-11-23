@@ -31,12 +31,11 @@ the mounted camera leaves out the part of the library that would send the log.
 - **The photos of the board you take or choose**, and, once you set one up, the photos your mounted
   camera takes. Finding the board and the darts in them runs on your phone, offline. The photos are
   never uploaded to a server or sent to anyone.
-- **The camera, from the version that adds the mounted camera.** On a phone you set up as a mounted
-  camera, to take the photo when you ask for it from your own phone. On your own phone, to open your
-  camera app when you tap *Take a Photo*: once an app can use the camera at all, Android requires the
-  permission for that too. The app asks the first time; if you say no, you can still choose a photo
-  already on your phone. Today's version has no camera permission and asks for none: it hands the
-  photo to your phone's own camera app, which needs no permission from this one.
+- **The camera.** On your own phone, to open your camera app when you tap *Take a Photo*: once an app
+  can use the camera at all, Android requires the permission for that too. The app asks the first
+  time; if you say no, you can still choose a photo already on your phone. On a phone you set up as a
+  mounted camera, to show what it is aimed at, read the pairing code from your own phone, and take
+  the photo when you ask for it from your own phone. Nothing the camera sees is stored on that phone.
 - **The local network, from the version that adds the mounted camera.** Only to find your mounted
   camera on your Wi-Fi and receive its photo, never to reach the internet.
 - **Google Play billing.** Lets the app ask the Google Play app for the price of a tip and open its
