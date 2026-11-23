@@ -57,6 +57,7 @@
     <string name="visit_camera_not_ready">The camera is not ready. Is its screen open?</string>
     <string name="visit_camera_no_permission">The camera phone does not allow the camera.</string>
     <string name="visit_camera_failed">The camera could not take the Photo.</string>
+    <string name="visit_camera_not_saved">The Photo could not be saved on this phone.</string>
     <string name="visit_score_label">Visit Score</string>
     <string name="visit_no_darts">No Darts found</string>
     <!-- Under the total, once per unsure Dart (below the model's confidence). %1$d is the Dart's number. -->
