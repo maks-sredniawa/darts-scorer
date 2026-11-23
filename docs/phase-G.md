@@ -461,6 +461,12 @@ and NSD is read on the newer images and on the real phones. What the table adds:
   default route, `NsdServiceInfo.network` on API 33 and later and the `TRANSPORT_WIFI` network from
   `ConnectivityManager` below, and retries on the next resolve; a real phone whose default network
   is mobile data has the same shape.
+- **Where binding is not allowed, the route table picks** (2026-11-23, the owner's Redmi). Under a
+  VPN the app cannot bypass (Tailscale), binding to the Wi-Fi `Network` fails `EPERM`; a phone that
+  hosts the hotspot has no Wi-Fi station network to bind to. A bound connect that fails for any
+  reason but a refusal is tried once more unbound, and the local-peer check still holds the address.
+  A split-tunnel VPN routes only its own prefixes, so a 192.168.x camera still goes out by Wi-Fi.
+  The hotspot-host case is unread on a device.
 
 **Acceptance (C):**
 
