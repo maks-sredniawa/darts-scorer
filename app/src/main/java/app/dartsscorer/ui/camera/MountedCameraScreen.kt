@@ -21,8 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.dartsscorer.R
 import app.dartsscorer.theme.Spacing
+import app.dartsscorer.ui.appViewModelExtras
 import app.dartsscorer.ui.common.DetailScaffold
 import app.dartsscorer.ui.common.EmptyState
 import app.dartsscorer.ui.common.LinkRow
@@ -37,12 +39,15 @@ fun MountedCameraScreen(
     onBack: () -> Unit,
     onAddCamera: () -> Unit,
     onUseAsCamera: () -> Unit,
+    viewModel: MountedCameraViewModel =
+        viewModel(factory = MountedCameraViewModel.Factory, extras = appViewModelExtras()),
 ) {
     val context = LocalContext.current
     var denied by rememberSaveable { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (context.hasCameraPermission()) denied = false }
     val askCamera =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            viewModel.cameraPermissionAnswered()
             denied = !granted
             if (granted) onUseAsCamera()
         }
