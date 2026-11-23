@@ -96,6 +96,7 @@ internal fun linkTlsContext(
 
             override fun getPrivateKey(alias: String?) = me.key
         }
+
     // Pinning to one self-signed certificate is the design (ADR-0009, decision 4): there is no CA.
     @SuppressLint("CustomX509TrustManager")
     val pinned =

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.InetAddress
 import kotlin.coroutines.resume
 import kotlin.random.Random
@@ -24,6 +25,7 @@ const val LINK_TAG = "MountedCameraLink"
 private const val SERVICE_TYPE = "_dartsscorer._tcp."
 private const val TXT_VERSION = "v"
 private const val TXT_FINGERPRINT = "fp"
+private const val RESOLVE_TIMEOUT_MILLIS = 5_000L
 
 /**
  * Below T extensions 7 the platform drops mDNS packets unless the app holds a `MulticastLock`
@@ -186,28 +188,39 @@ class CameraFinder(
             }
         }
 
-    /** One resolve at a time, as `resolveService` allows before API 34; null when it fails. */
+    /**
+     * One resolve at a time, as `resolveService` allows before API 34; null when it fails or takes
+     * longer than [RESOLVE_TIMEOUT_MILLIS], since a service that left the network may never answer.
+     */
     suspend fun resolve(service: NsdServiceInfo): FoundCamera? =
         resolving.withLock {
-            suspendCancellableCoroutine { continuation ->
-                @Suppress("DEPRECATION")
-                nsd.resolveService(
-                    service,
-                    object : NsdManager.ResolveListener {
-                        override fun onResolveFailed(
-                            info: NsdServiceInfo,
-                            errorCode: Int,
-                        ) {
-                            Log.w(LINK_TAG, "Resolving ${info.serviceName} failed: $errorCode")
-                            if (continuation.isActive) continuation.resume(null)
-                        }
+            var listener: NsdManager.ResolveListener? = null
+            val found =
+                withTimeoutOrNull(RESOLVE_TIMEOUT_MILLIS) {
+                    suspendCancellableCoroutine { continuation ->
+                        val resolve =
+                            object : NsdManager.ResolveListener {
+                                override fun onResolveFailed(
+                                    info: NsdServiceInfo,
+                                    errorCode: Int,
+                                ) {
+                                    Log.w(LINK_TAG, "Resolving ${info.serviceName} failed: $errorCode")
+                                    if (continuation.isActive) continuation.resume(null)
+                                }
 
-                        override fun onServiceResolved(info: NsdServiceInfo) {
-                            if (continuation.isActive) continuation.resume(info.toFound())
-                        }
-                    },
-                )
+                                override fun onServiceResolved(info: NsdServiceInfo) {
+                                    if (continuation.isActive) continuation.resume(info.toFound())
+                                }
+                            }
+                        listener = resolve
+                        @Suppress("DEPRECATION")
+                        nsd.resolveService(service, resolve)
+                    }
+                }
+            if (found == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                listener?.let { runCatching { nsd.stopServiceResolution(it) } }
             }
+            found
         }
 
     private fun NsdServiceInfo.toFound(): FoundCamera? {
