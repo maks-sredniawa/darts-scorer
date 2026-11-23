@@ -126,7 +126,10 @@ class CameraRoleViewModel(
         viewModelScope.launch { pin(payload, "a pasted code") }
     }
 
+    /** Also disarms dimming: the pairing screen it returns to is one the player is using. */
     fun unpair() {
+        timer = DimTimer()
+        dimming?.cancel()
         viewModelScope.launch {
             pairing.unpairPlayer()
             Log.i(PairingStore.TAG, "Unpaired the Player's phone")

@@ -61,8 +61,8 @@ class CameraRig(
         displayRotation: Int,
     ) {
         val provider = cameraProvider().also { provider = it }
-        val camera =
-            provider.availableCameraInfos.filter(::isBack).firstOrNull { !it.ultraWide() } ?: throw NoUsableCamera()
+        val backs = provider.availableCameraInfos.filter(::isBack)
+        val camera = chooseBackCamera(backs.map { it.fieldOfView() })?.let(backs::get) ?: throw NoUsableCamera()
         val corrects = camera.offersHighQualityDistortionCorrection()
         val capture =
             ImageCapture
@@ -165,8 +165,6 @@ private fun CameraInfo.fieldOfView(): Double? {
     if (focal == null || sensor == null) return null
     return horizontalFieldOfView(focal, maxOf(sensor.width, sensor.height))
 }
-
-private fun CameraInfo.ultraWide(): Boolean = (fieldOfView() ?: 0.0) > ULTRA_WIDE_DEGREES
 
 private fun CameraInfo.offersHighQualityDistortionCorrection(): Boolean =
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&

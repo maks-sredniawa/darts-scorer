@@ -1,7 +1,6 @@
 package app.dartsscorer.camera
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -59,12 +58,33 @@ class DimTimerTest {
 }
 
 class CameraLensTest {
+    private val main = horizontalFieldOfView(focalLengthMm = 4.7f, sensorWidthMm = 7.2f)
+    private val ultraWide = horizontalFieldOfView(focalLengthMm = 2.2f, sensorWidthMm = 7.6f)
+
     @Test
-    fun `a main lens is not an ultra-wide`() {
-        // About 75 degrees: a typical 1x camera, 4.7 mm over a 7.2 mm wide sensor.
-        assertFalse(isUltraWide(focalLengthMm = 4.7f, sensorWidthMm = 7.2f))
+    fun `field of view from focal length and sensor width`() {
+        assertEquals(75.0, main, 1.0)
+        assertEquals(120.0, ultraWide, 1.0)
     }
 
     @Test
-    fun `a 120 degree lens is an ultra-wide`() = assertTrue(isUltraWide(focalLengthMm = 2.2f, sensorWidthMm = 7.6f))
+    fun `an ultra-wide listed first is passed over for the main lens`() =
+        assertEquals(1, chooseBackCamera(listOf(ultraWide, main)))
+
+    @Test
+    fun `the main lens listed first is used`() = assertEquals(0, chooseBackCamera(listOf(main, ultraWide)))
+
+    @Test
+    fun `a phone's only back camera is used whatever it reports`() = assertEquals(0, chooseBackCamera(listOf(104.0)))
+
+    @Test
+    fun `several back cameras that are all ultra-wide are refused`() =
+        assertNull(chooseBackCamera(listOf(ultraWide, 110.0)))
+
+    @Test
+    fun `a camera that reports no field of view is not refused`() =
+        assertEquals(1, chooseBackCamera(listOf(ultraWide, null)))
+
+    @Test
+    fun `no back camera at all is refused`() = assertNull(chooseBackCamera(emptyList()))
 }
