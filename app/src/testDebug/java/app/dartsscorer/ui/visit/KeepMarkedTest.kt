@@ -46,6 +46,17 @@ class KeepMarkedTest {
     }
 
     @Test
+    fun `a Photo with no Board is kept once, and never over a record holding an entered Score`() {
+        keepMarkedNoBoardIn(marked, VisitPhase.NoBoard(photo, 800, 600), Instant.parse("2026-11-23T10:00:00Z"))
+        assertEquals(0, record("0b7c4e1a.json").getValue("total").jsonPrimitive.int)
+        keepMarkedIn(marked, entered(Score(Ring.TREBLE, 20)), emptyList(), Instant.parse("2026-11-23T10:05:00Z"))
+        keepMarkedNoBoardIn(marked, VisitPhase.NoBoard(photo, 800, 600), Instant.parse("2026-11-23T10:10:00Z"))
+        val record = record("0b7c4e1a.json")
+        assertEquals(60, record.getValue("total").jsonPrimitive.int)
+        assertEquals("2026-11-23T10:05:00Z", record.getValue("keptAt").jsonPrimitive.content)
+    }
+
+    @Test
     fun `a Visit whose Photo is gone keeps nothing and leaves no part behind`() {
         val visit = entered(Score(Ring.TREBLE, 20))
         photo.delete()

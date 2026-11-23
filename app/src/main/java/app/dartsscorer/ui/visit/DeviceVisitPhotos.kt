@@ -16,6 +16,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.UUID
 
 class DeviceVisitPhotos(
@@ -35,6 +36,19 @@ class DeviceVisitPhotos(
         cameraDir.mkdirs()
         return uriOf(File(cameraDir, "${UUID.randomUUID()}.jpg"))
     }
+
+    override suspend fun receive(jpeg: ByteArray): String =
+        withContext(Dispatchers.IO) {
+            cameraDir.mkdirs()
+            val file = File(cameraDir, "${UUID.randomUUID()}.jpg")
+            try {
+                file.writeBytes(jpeg)
+            } catch (e: IOException) {
+                file.delete()
+                throw e
+            }
+            uriOf(file)
+        }
 
     override fun cameraTargets(): List<String> = cameraDir.listFiles()?.map(::uriOf).orEmpty()
 
@@ -70,6 +84,8 @@ class DeviceVisitPhotos(
         visit: VisitPhase.Shown,
         removed: List<ShownDart>,
     ) = keepMarked(appContext, visit, removed)
+
+    override fun keepNoBoard(visit: VisitPhase.NoBoard) = keepMarkedNoBoard(appContext, visit)
 
     /** A new interpreter only when the count changed, which only the debug build's Settings can do. */
     private fun readerAt(threads: Int): PhotoReader {

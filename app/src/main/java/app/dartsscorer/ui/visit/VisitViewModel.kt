@@ -11,6 +11,11 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import app.dartsscorer.MainApplication
 import app.dartsscorer.camera.PairingStore
 import app.dartsscorer.data.AppPreferences
+import app.dartsscorer.link.CameraLink
+import app.dartsscorer.link.CaptureError
+import app.dartsscorer.link.CaptureFailed
+import app.dartsscorer.link.CaptureFailure
+import app.dartsscorer.link.PlayerLinkState
 import app.dartsscorer.scoring.Point
 import app.dartsscorer.scoring.Ring
 import app.dartsscorer.tip.TipJar
@@ -22,14 +27,40 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.time.Instant
+
+/** Why *Take with the mounted camera* brought no Photo (ADR-0009, decision 8), said until the next try. */
+enum class CameraFailure { NoReply, Lost, NotFound, PairAgain, Outdated, Busy, NotReady, NoPermission, Failed }
+
+/** The Mounted camera on the Visit screen; absent while none is paired. */
+data class MountedCameraUi(
+    val link: PlayerLinkState = PlayerLinkState.LOOKING,
+    val capturing: Boolean = false,
+    val failure: CameraFailure? = null,
+)
+
+/**
+ * A failure read from the link's state ([readFrom]) lasts only while the link stays there: once the
+ * chip moves on it says the newer state, so *Pair again* never lingers under *Camera not found*.
+ */
+private data class Capture(
+    val capturing: Boolean = false,
+    val failure: CameraFailure? = null,
+    val readFrom: PlayerLinkState? = null,
+)
+
+private val FROM_LINK = setOf(CameraFailure.NotFound, CameraFailure.PairAgain, CameraFailure.Outdated)
 
 /** Something that went wrong outside the Visit's own result, said in a banner until the next Photo. */
 enum class VisitNotice { NoCamera, CameraDenied, Unreadable }
@@ -46,6 +77,7 @@ data class VisitUiState(
     val removed: ShownDart? = null,
     /** Where focus goes next, once the sheet has closed; cleared by [VisitViewModel.focusPlaced]. */
     val focus: VisitFocus? = null,
+    val camera: MountedCameraUi? = null,
 )
 
 class VisitViewModel(
@@ -55,10 +87,26 @@ class VisitViewModel(
     installedAt: Instant,
     private val photos: VisitPhotos,
     private val saved: SavedStateHandle,
+    private val link: CameraLink,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
     private val visit =
         MutableStateFlow(VisitUiState(phase = if (saved.contains(PHOTO)) VisitPhase.Reading else VisitPhase.Empty))
+
+    private val capture = MutableStateFlow(Capture())
+
+    private val camera =
+        combine(pairing.cameraPins, link.state, capture) { pins, link, capture ->
+            if (pins.isEmpty()) {
+                null
+            } else {
+                MountedCameraUi(
+                    link,
+                    capture.capturing,
+                    capture.failure.takeIf { capture.readFrom in setOf(null, link) },
+                )
+            }
+        }
 
     val state: StateFlow<VisitUiState> =
         combine(visit, preferences.tipAsked, preferences.visitsScored, tipJar.offers) { visit, asked, visits, offers ->
@@ -68,7 +116,8 @@ class VisitViewModel(
                         offers.isNotEmpty() &&
                         tipAskDue(asked, visits, installedAt, Instant.now()),
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), visit.value)
+        }.combine(camera) { visit, camera -> visit.copy(camera = camera) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), visit.value)
 
     // phase-1.md §4, The start-up sweep. The handle is read here, on the main thread, because
     // cameraReturned may clear CAMERA before the sweep runs.
@@ -76,6 +125,7 @@ class VisitViewModel(
         sweep(keep = saved.get<String>(PHOTO), pending = saved.get<String>(CAMERA))
 
     private var arriving: Job? = null
+    private var linking: Job? = null
 
     /** The Darts as the model read them on the Photo on screen, to tell which the player removed. */
     private var readDarts: List<ShownDart> = emptyList()
@@ -136,15 +186,88 @@ class VisitViewModel(
         if (source != null) arrive(source, cameraTarget = null)
     }
 
+    /** The link is held only while the Visit screen is in front: nothing runs in the background. */
+    fun startLink() {
+        if (linking?.isActive == true) return
+        linking =
+            viewModelScope.launch {
+                pairing.cameraPins
+                    .map { it.firstOrNull() }
+                    .distinctUntilChanged()
+                    .collectLatest { pin -> if (pin != null) link.run(pin) }
+            }
+    }
+
+    fun stopLink() {
+        linking?.cancel()
+        linking = null
+    }
+
+    fun takeWithMountedCamera() {
+        if (capture.value.capturing) return
+        capture.value = Capture(capturing = true)
+        viewModelScope.launch {
+            var readFrom: PlayerLinkState? = null
+            val failure =
+                try {
+                    val connected = withTimeoutOrNull(CONNECT_WAIT_MILLIS) { link.state.first { it.settled() } }
+                    if (connected != PlayerLinkState.CONNECTED) throw CaptureFailed(CaptureFailure.NOT_CONNECTED)
+                    val received = link.capture()
+                    val target = photos.receive(received.jpeg)
+                    arrive(target, cameraTarget = target, linked = true)
+                    null
+                } catch (e: CaptureFailed) {
+                    val seen = link.state.value
+                    failureOf(e, seen).also { if (it in FROM_LINK) readFrom = seen }
+                } catch (e: IOException) {
+                    CameraFailure.Failed
+                }
+            capture.value = Capture(failure = failure, readFrom = readFrom)
+        }
+    }
+
+    private fun PlayerLinkState.settled() = this != PlayerLinkState.LOOKING
+
+    private fun failureOf(
+        e: CaptureFailed,
+        seen: PlayerLinkState,
+    ): CameraFailure =
+        when (e.failure) {
+            CaptureFailure.TIMED_OUT -> CameraFailure.NoReply
+            CaptureFailure.LINK_LOST -> CameraFailure.Lost
+            CaptureFailure.NOT_CONNECTED ->
+                when (seen) {
+                    PlayerLinkState.PAIR_AGAIN -> CameraFailure.PairAgain
+                    PlayerLinkState.OUTDATED -> CameraFailure.Outdated
+                    PlayerLinkState.CONNECTED -> CameraFailure.Lost
+                    else -> CameraFailure.NotFound
+                }
+            CaptureFailure.CAMERA_ERROR ->
+                when (e.code) {
+                    CaptureError.BUSY -> CameraFailure.Busy
+                    CaptureError.NOT_READY -> CameraFailure.NotReady
+                    CaptureError.PERMISSION -> CameraFailure.NoPermission
+                    else -> CameraFailure.Failed
+                }
+        }
+
     private fun arrive(
         source: String,
         cameraTarget: String?,
+        linked: Boolean = false,
     ) {
         arriving?.cancel()
+        if (!linked) capture.update { it.copy(failure = null) }
         val before = visit.value.phase.takeUnless { it == VisitPhase.Reading } ?: VisitPhase.Empty
         val ended = marked(before)
         visit.update {
-            it.copy(phase = VisitPhase.Reading, notice = null, keypad = null, removed = null, focus = null)
+            it.copy(
+                phase = VisitPhase.Reading,
+                notice = null,
+                keypad = null,
+                removed = null,
+                focus = if (linked) VisitFocus.Reading else null,
+            )
         }
         arriving =
             viewModelScope.launch {
@@ -159,7 +282,7 @@ class VisitViewModel(
                     }
                 withContext(io) { cameraTarget?.let(photos::discardCameraTarget) }
                 if (photo == null) {
-                    visit.update { it.copy(phase = before, notice = VisitNotice.Unreadable) }
+                    visit.update { it.copy(phase = before, notice = VisitNotice.Unreadable, focus = null) }
                     return@launch
                 }
                 val previous = saved.get<String>(PHOTO)
@@ -170,7 +293,7 @@ class VisitViewModel(
                         photos.delete(old)
                     }
                 }
-                show(photo)
+                show(photo, keepNoBoard = linked)
             }
     }
 
@@ -316,16 +439,23 @@ class VisitViewModel(
 
     fun focusPlaced() = visit.update { it.copy(focus = null) }
 
-    private suspend fun show(photo: String) {
+    /** [keepNoBoard] never on a restore: the record kept on arrival may hold a Score entered since. */
+    private suspend fun show(
+        photo: String,
+        keepNoBoard: Boolean = false,
+    ) {
         val reading = readOrNull(photo)
         if (reading == null) {
             forget(photo)
-            visit.update { it.copy(phase = VisitPhase.Empty, notice = VisitNotice.Unreadable) }
+            visit.update { it.copy(phase = VisitPhase.Empty, notice = VisitNotice.Unreadable, focus = null) }
             return
         }
         val phase = phaseOf(photos.resolve(photo), reading)
         readDarts = (phase as? VisitPhase.Scored)?.darts.orEmpty()
-        visit.update { it.copy(phase = phase) }
+        visit.update { it.copy(phase = phase, focus = null) }
+        if (phase is VisitPhase.NoBoard && keepNoBoard) {
+            withContext(io) { photos.keepNoBoard(phase) }
+        }
         if (phase is VisitPhase.Scored) preferences.incrementVisitsScored(photo)
     }
 
@@ -366,6 +496,9 @@ class VisitViewModel(
         internal const val PHOTO = "photo"
         internal const val CAMERA = "camera"
 
+        /** How long a tap waits for the link to come up before saying why it did not (ADR-0009, decision 8). */
+        internal const val CONNECT_WAIT_MILLIS = 5_000L
+
         val Factory: ViewModelProvider.Factory =
             viewModelFactory {
                 initializer {
@@ -377,6 +510,7 @@ class VisitViewModel(
                         app.container.installedAt,
                         app.container.visitPhotos,
                         createSavedStateHandle(),
+                        app.container.playerLink,
                     )
                 }
             }

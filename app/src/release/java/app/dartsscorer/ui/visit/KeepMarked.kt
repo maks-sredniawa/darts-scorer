@@ -8,3 +8,9 @@ fun keepMarked(
     visit: VisitPhase.Shown,
     removed: List<ShownDart>,
 ) = Unit
+
+@Suppress("UNUSED_PARAMETER")
+fun keepMarkedNoBoard(
+    context: Context,
+    visit: VisitPhase.NoBoard,
+) = Unit
