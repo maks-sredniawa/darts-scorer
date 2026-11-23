@@ -48,6 +48,7 @@ fun MountedCameraScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (context.hasCameraPermission()) denied = false }
     val askCamera =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            viewModel.cameraPermissionAnswered()
             denied = !granted
             if (granted) onUseAsCamera()
         }

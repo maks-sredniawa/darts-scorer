@@ -40,6 +40,20 @@ class CaptureRefused(
     val code: CaptureError,
 ) : Exception(code.name)
 
+/** The Mounted camera's end of the link, as its screen sees it. */
+interface CameraListener {
+    val state: StateFlow<CameraLinkState>
+
+    /** The camera scanned or was pasted [payload]; its pin is stored by the caller. */
+    fun expectPairing(payload: PairingPayload)
+
+    /** Unpaired here: the token goes, and so does every open connection. */
+    fun forget()
+
+    /** Listens until cancelled; [capture] runs on the main thread. */
+    suspend fun serve(capture: suspend () -> EncodedPhoto)
+}
+
 /**
  * The Mounted camera's end of the link (ADR-0009, decisions 2 to 4): listens on a port the system
  * picks, advertises it by NSD, and answers only the pinned Player's phone over mutual TLS.
@@ -51,12 +65,12 @@ class CameraServer(
     private val appVersion: String,
     private val acceptsLoopback: Boolean,
     skipLock: () -> Boolean,
-) {
+) : CameraListener {
     private val advertiser = CameraAdvertiser(context, MulticastHold(context, skipLock))
     private val sessions = ConcurrentHashMap.newKeySet<LinkSession>()
     private val capturing = AtomicBoolean(false)
     private val mutableState = MutableStateFlow(CameraLinkState.WAITING)
-    val state: StateFlow<CameraLinkState> = mutableState.asStateFlow()
+    override val state: StateFlow<CameraLinkState> = mutableState.asStateFlow()
 
     @Volatile private var pin: String? = null
 
@@ -69,21 +83,18 @@ class CameraServer(
     /** Connections still before their `HELLO`, from a peer not yet known; past this many, refused. */
     private val strangers = Semaphore(MAX_UNAUTHENTICATED)
 
-    /** The camera scanned or was pasted [payload]; its pin is stored by the caller. */
-    fun expectPairing(payload: PairingPayload) {
+    override fun expectPairing(payload: PairingPayload) {
         token = payload.token
         mutableState.value = CameraLinkState.WAITING
     }
 
-    /** Unpaired here: the token goes, and so does every open connection. */
-    fun forget() {
+    override fun forget() {
         token = null
         pin = null
         sessions.forEach { it.close() }
     }
 
-    /** Listens until cancelled; [capture] runs on the main thread. */
-    suspend fun serve(capture: suspend () -> EncodedPhoto): Unit =
+    override suspend fun serve(capture: suspend () -> EncodedPhoto): Unit =
         coroutineScope {
             val me = identity()
             pin = pairing.playerPin.first()
