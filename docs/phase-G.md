@@ -296,7 +296,12 @@ block becomes *Fit the whole Board inside the ring*, *Keep this phone on a charg
 **Unpair** button with a confirmation; in B, with no link yet, Unpair clears the stored pin. The pairing
 text is `DARTSSCORER:1:<fingerprint>:<token>`, the fingerprint and the token in uppercase hex (64 and
 32 digits), so the QR fits ZXing's alphanumeric mode; the parser drops whitespace and line breaks
-anywhere, since a share target may wrap the line.
+anywhere, since a share target may wrap the line. *Refusing an ultra-wide* reads each back camera's
+horizontal field of view from Camera2's focal length and sensor width: with several back cameras, one
+wider than 90° is passed over for the first that is not; a phone's only back camera is its main one
+and is always used (the emulator's virtual scene reports 104°). A camera smaller than 2048 px is
+never upscaled, so the emulators' virtual scene sends 1280 px on the long edge (960×1280 on
+`urgent-api26` and `pixel-api36`), and `pixel-api36`'s emulated camera 1856 px.
 
 **The handheld path (D5).** The first *Take a Photo* on any phone asks for `CAMERA` with a
 line of rationale; granted, `TakePicture` runs as today; denied, a *Camera not allowed* banner says so
