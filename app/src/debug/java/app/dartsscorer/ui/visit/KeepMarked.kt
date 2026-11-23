@@ -23,6 +23,26 @@ fun keepMarked(
     }
 }
 
+/**
+ * A Photo the link delivered with no Board found, kept anyway for gate A (`phase-G.md` §5); entering
+ * its Score later replaces this record, since both are named after the Photo.
+ */
+fun keepMarkedNoBoard(
+    context: Context,
+    visit: VisitPhase.NoBoard,
+) {
+    try {
+        keepMarkedIn(
+            markedDir(context),
+            VisitPhase.Entered(visit.photo, visit.width, visit.height, emptyList()),
+            emptyList(),
+            Instant.now(),
+        )
+    } catch (e: Exception) {
+        Log.w("KeepMarked", "the Photo was not kept", e)
+    }
+}
+
 /** Named after the Photo, so keeping the same Visit again replaces its record rather than adding one. */
 internal fun keepMarkedIn(
     dir: File,
