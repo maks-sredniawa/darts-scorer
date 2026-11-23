@@ -14,9 +14,9 @@ very little.
 ## The app collects nothing
 
 Darts Scorer has no account, no sign-in, and no server. **It never connects to a server**, and
-nothing you give it is sent to the developer or to anyone else. The only connection it will ever
-make is the one described under *The mounted camera* below: between your own two phones, on your
-own network, and only if you set one up.
+nothing you give it is sent to the developer or to anyone else. The only connection it makes is
+the one described under *The mounted camera* below: between your own two phones, on your own
+network, and only if you set one up.
 
 Everything it keeps is stored **only in the app's private storage on your own phone**, and is
 readable only by the app.
