@@ -13,6 +13,9 @@ const val LINK_VERSION = 1
 /** A declared length over this is refused before anything is allocated (ADR-0009, decision 3). */
 const val MAX_FRAME_BYTES = 16 * 1024 * 1024
 
+/** The first frame each side reads is a `HELLO`, read before the peer is known, so it is held far tighter. */
+const val MAX_HELLO_BYTES = 512
+
 class FrameException(
     message: String,
 ) : IOException(message)
@@ -65,6 +68,9 @@ sealed interface Frame {
         val requestId: Int,
         val code: CaptureError,
     ) : Frame
+
+    /** The Mounted camera's answer to a phone it is not paired with, sent over the completed handshake. */
+    data object NotPaired : Frame
 }
 
 private const val HELLO = 1
@@ -73,11 +79,12 @@ private const val PONG = 3
 private const val CAPTURE = 4
 private const val PHOTO = 5
 private const val ERROR = 6
+private const val NOT_PAIRED = 7
 
-/** Reads one frame. A truncated frame throws `EOFException`; an oversized or unknown one [FrameException]. */
-fun DataInputStream.readFrame(): Frame {
+/** Reads one frame. A truncated frame throws `EOFException`; one over [limit] or unknown, [FrameException]. */
+fun DataInputStream.readFrame(limit: Int = MAX_FRAME_BYTES): Frame {
     val length = readInt()
-    if (length < 0 || length > MAX_FRAME_BYTES) throw FrameException("Frame of $length bytes refused")
+    if (length < 0 || length > limit) throw FrameException("Frame of $length bytes refused")
     val type = readUnsignedByte()
     val body = ByteArray(length).also { readFully(it) }
     val input = DataInputStream(ByteArrayInputStream(body))
@@ -98,6 +105,7 @@ fun DataInputStream.readFrame(): Frame {
             val name = input.readUTF()
             Frame.Error(requestId, CaptureError.entries.firstOrNull { it.name == name } ?: CaptureError.UNKNOWN)
         }
+        NOT_PAIRED -> Frame.NotPaired
         else -> throw FrameException("Unknown frame type $type")
     }
 }
@@ -135,6 +143,7 @@ fun DataOutputStream.writeFrame(frame: Frame) {
                     out.writeUTF(frame.code.name)
                     ERROR
                 }
+                Frame.NotPaired -> NOT_PAIRED
             }
         }
     writeInt(body.size())

@@ -100,7 +100,7 @@ class AddMountedCameraViewModel(
             viewModelFactory {
                 initializer {
                     val container = (this[APPLICATION_KEY] as MainApplication).container
-                    AddMountedCameraViewModel(container.pairing, container.playerLink(), container::linkIdentity)
+                    AddMountedCameraViewModel(container.pairing, container.playerLink, container::linkIdentity)
                 }
             }
     }

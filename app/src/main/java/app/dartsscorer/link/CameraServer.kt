@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.ServerSocket
@@ -59,8 +60,14 @@ class CameraServer(
 
     @Volatile private var pin: String? = null
 
-    /** Held in memory only, until the Player's phone asks for its proof once. */
+    /**
+     * Held in memory only, until the pinned Player's phone connects without a nonce: that is its word
+     * that the proof arrived, so a proof lost on the way can be asked for again.
+     */
     @Volatile private var token: String? = null
+
+    /** Connections still before their `HELLO`, from a peer not yet known; past this many, refused. */
+    private val strangers = Semaphore(MAX_UNAUTHENTICATED)
 
     /** The camera scanned or was pasted [payload]; its pin is stored by the caller. */
     fun expectPairing(payload: PairingPayload) {
@@ -87,13 +94,25 @@ class CameraServer(
                 try {
                     while (true) {
                         val socket = server.accept()
+                        if (!strangers.tryAcquire()) {
+                            Log.w(
+                                LINK_TAG,
+                                "Refused ${socket.inetAddress.hostAddress}: $MAX_UNAUTHENTICATED still greeting",
+                            )
+                            socket.close()
+                            continue
+                        }
                         launch {
+                            val vouched = AtomicBoolean(false)
+                            val vouch = { if (vouched.compareAndSet(false, true)) strangers.release() }
                             try {
-                                answer(me, socket, capture)
+                                answer(me, socket, capture, vouch)
                             } catch (e: CancellationException) {
                                 throw e
                             } catch (e: Exception) {
                                 Log.w(LINK_TAG, "A connection failed: $e")
+                            } finally {
+                                vouch()
                             }
                         }
                     }
@@ -103,10 +122,17 @@ class CameraServer(
             }
         }
 
+    /**
+     * The handshake takes any client certificate and the pin is checked straight after it, so a
+     * phone this camera dropped hears [Frame.NotPaired] over a channel that proves who sent it,
+     * rather than a TLS failure a reset looks the same as. Nothing past that answer is reachable
+     * without the pin.
+     */
     private suspend fun answer(
         me: LinkIdentity,
         plain: Socket,
         capture: suspend () -> EncodedPhoto,
+        vouch: () -> Unit,
     ) {
         val address = plain.inetAddress
         if (!isLocalPeer(address) && !(acceptsLoopback && address.isLoopbackAddress)) {
@@ -114,25 +140,38 @@ class CameraServer(
             plain.close()
             return
         }
-        val tls = linkTlsContext(me, trusts = { it == pin })
-        val socket = tls.socketFactory.createSocket(plain, address.hostAddress, plain.port, true) as SSLSocket
-        socket.useClientMode = false
-        socket.needClientAuth = true
-        socket.soTimeout = READ_TIMEOUT_MILLIS
-        socket.useCancellably {
-            try {
-                socket.startHandshake()
-            } catch (e: IOException) {
-                Log.w(LINK_TAG, "Refused ${address.hostAddress}: the handshake failed, not the pinned phone ($e)")
-                return@useCancellably
-            }
-            val session = LinkSession(socket)
+        val tls = linkTlsContext(me, trusts = { true })
+        plain.useCancellably {
+            val (session, hello) =
+                try {
+                    plain.within(GREETING_MILLIS) {
+                        val socket =
+                            tls.socketFactory.createSocket(plain, address.hostAddress, plain.port, true) as SSLSocket
+                        socket.useClientMode = false
+                        socket.needClientAuth = true
+                        socket.soTimeout = READ_TIMEOUT_MILLIS
+                        socket.startHandshake()
+                        val session = LinkSession(socket)
+                        session to session.read(MAX_HELLO_BYTES)
+                    }
+                } catch (e: IOException) {
+                    Log.w(LINK_TAG, "Refused ${address.hostAddress}: no handshake and HELLO in time ($e)")
+                    return@useCancellably
+                }
             val peer = session.peerFingerprint
-            Log.i(LINK_TAG, "Handshake with $peer at ${session.peerAddress}, ${session.protocol}")
             try {
-                if (greet(me, session, peer)) serveFrames(session, capture)
+                if (peer != pin) {
+                    session.send(Frame.NotPaired)
+                    Log.i(LINK_TAG, "Refused $peer at ${session.peerAddress}: not the paired phone")
+                    return@useCancellably
+                }
+                vouch()
+                Log.i(LINK_TAG, "Handshake with $peer at ${session.peerAddress}, ${session.protocol}")
+                if (greet(me, session, peer, hello)) serveFrames(session, capture)
             } catch (e: IOException) {
                 Log.i(LINK_TAG, "The Player's phone dropped: $e")
+            } finally {
+                session.close()
             }
         }
     }
@@ -142,9 +181,10 @@ class CameraServer(
         me: LinkIdentity,
         session: LinkSession,
         peer: String,
+        hello: Frame,
     ): Boolean {
         val ours = Frame.Hello(PhoneRole.MOUNTED_CAMERA, appVersion)
-        when (val hello = session.read()) {
+        when (hello) {
             is Frame.ForeignHello -> {
                 session.send(ours)
                 Log.w(LINK_TAG, "The Player's phone speaks link version ${hello.version}, this one $LINK_VERSION")
@@ -154,6 +194,7 @@ class CameraServer(
             is Frame.Hello -> {
                 val nonce =
                     hello.nonce ?: run {
+                        token = null
                         session.send(ours)
                         return true
                     }
@@ -166,7 +207,6 @@ class CameraServer(
                             proof = pairingProof(pending, nonce, me.fingerprint, peer),
                         ),
                     )
-                    token = null
                     Log.i(LINK_TAG, "Sent the pairing proof to $peer, pinned as the Player's phone")
                 } else {
                     pairing.unpairPlayer()
@@ -246,6 +286,9 @@ class CameraServer(
     companion object {
         /** Three of the Player's phone's 5 s pings missed, and a little more. */
         const val READ_TIMEOUT_MILLIS = 20_000
+
+        /** A few, so a stranger opening connections cannot hold every IO thread, and the real phone still gets in. */
+        const val MAX_UNAUTHENTICATED = 4
     }
 }
 

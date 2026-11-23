@@ -50,6 +50,7 @@ class FramesTest {
                     Frame.Capture(42),
                     Frame.Photo(42, 1_700_000_000_000, 2048, 1536, jpeg),
                     Frame.Error(43, CaptureError.BUSY),
+                    Frame.NotPaired,
                 ),
             )
         val hello = input.readFrame() as Frame.Hello
@@ -66,6 +67,26 @@ class FramesTest {
         assertEquals(2048 to 1536, photo.width to photo.height)
         assertArrayEquals(jpeg, photo.jpeg)
         assertEquals(Frame.Error(43, CaptureError.BUSY), input.readFrame())
+        assertEquals(Frame.NotPaired, input.readFrame())
+    }
+
+    @Test
+    fun `a first frame over the HELLO bound is refused before anything is allocated`() {
+        val claimsLots = raw(MAX_FRAME_BYTES, 1)
+        assertThrows(FrameException::class.java) { reader(claimsLots).readFrame(MAX_HELLO_BYTES) }
+        assertThrows(FrameException::class.java) { reader(raw(MAX_HELLO_BYTES + 1, 1)).readFrame(MAX_HELLO_BYTES) }
+    }
+
+    @Test
+    fun `the largest HELLO either phone sends fits the HELLO bound`() {
+        val hello =
+            Frame.Hello(
+                PhoneRole.MOUNTED_CAMERA,
+                "999.999.999-debug+long.build.suffix",
+                nonce = ByteArray(NONCE_BYTES),
+                proof = ByteArray(32),
+            )
+        assertTrue(reader(bytesOf(hello)).readFrame(MAX_HELLO_BYTES) is Frame.Hello)
     }
 
     @Test
