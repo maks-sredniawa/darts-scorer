@@ -23,10 +23,7 @@ fun keepMarked(
     }
 }
 
-/**
- * A Photo the link delivered with no Board found, kept anyway for gate A (`phase-G.md` §5); entering
- * its Score later replaces this record, since both are named after the Photo.
- */
+/** A Photo the link delivered with no Board found, kept anyway for gate A (`phase-G.md` §5). */
 fun keepMarkedNoBoard(
     context: Context,
     visit: VisitPhase.NoBoard,

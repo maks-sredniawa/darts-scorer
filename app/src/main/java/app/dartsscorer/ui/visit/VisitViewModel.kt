@@ -439,7 +439,7 @@ class VisitViewModel(
 
     fun focusPlaced() = visit.update { it.copy(focus = null) }
 
-    /** [keepNoBoard] never on a restore: the record kept on arrival may hold a Score entered since. */
+    /** When [keepNoBoard] applies: `phase-G.md` §5. */
     private suspend fun show(
         photo: String,
         keepNoBoard: Boolean = false,
