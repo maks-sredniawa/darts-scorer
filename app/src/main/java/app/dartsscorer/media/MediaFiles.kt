@@ -11,6 +11,7 @@ import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -184,6 +185,45 @@ class MediaFiles(
             PersistedMedia(path = relativePath, capturedAt = tags.capturedAt)
         }
 
+    /**
+     * A Mounted camera's Photo, encoded as the [MediaKind.Photo] kind into bytes and never to a file
+     * (ADR-0009, decision 6): [rotationDegrees] baked in, 2048 px on the long edge, no metadata, at
+     * [SENT_PHOTO_QUALITY] because the Player's phone re-encodes it.
+     */
+    suspend fun encodeForSending(
+        jpeg: ByteArray,
+        rotationDegrees: Int,
+    ): EncodedPhoto =
+        withContext(io) {
+            val spec = MediaKind.Photo.spec
+            val bounds =
+                BitmapFactory.Options().apply { inJustDecodeBounds = true }.also {
+                    BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, it)
+                }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw IOException("The capture is not a decodable image")
+            val options =
+                BitmapFactory.Options().apply {
+                    inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight, spec)
+                    inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
+                }
+            val decoded =
+                BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, options)
+                    ?: throw IOException("Could not decode the capture")
+            val upright = decoded.rotated(rotationDegrees)
+            if (upright !== decoded) decoded.recycle()
+            val reduced = spec.reduce(upright)
+            if (reduced !== upright) upright.recycle()
+            try {
+                val out = ByteArrayOutputStream()
+                if (!reduced.compress(Bitmap.CompressFormat.JPEG, SENT_PHOTO_QUALITY, out)) {
+                    throw IOException("Could not encode the capture as JPEG")
+                }
+                EncodedPhoto(out.toByteArray(), reduced.width, reduced.height)
+            } finally {
+                reduced.recycle()
+            }
+        }
+
     /** Absolute location of a stored relative path. The file may legitimately be missing. */
     fun resolve(relativePath: String): File = File(root, relativePath)
 
@@ -249,6 +289,21 @@ class MediaFiles(
     private fun openStream(uri: Uri): InputStream =
         appContext.contentResolver.openInputStream(uri)
             ?: throw IOException("Cannot open $uri")
+}
+
+const val SENT_PHOTO_QUALITY = 90
+
+/** A JPEG held in memory, with the dimensions it was encoded at. */
+class EncodedPhoto(
+    val bytes: ByteArray,
+    val width: Int,
+    val height: Int,
+)
+
+private fun Bitmap.rotated(degrees: Int): Bitmap {
+    if (degrees % 360 == 0) return this
+    val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
+    return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
 }
 
 /** What one EXIF read yields: the rotation the pixels need, and the date the row wants. */

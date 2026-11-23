@@ -12,10 +12,13 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -25,6 +28,10 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import app.dartsscorer.camera.PhoneRole
+import app.dartsscorer.ui.camera.AddMountedCameraScreen
+import app.dartsscorer.ui.camera.CameraRoleScreen
+import app.dartsscorer.ui.camera.MountedCameraScreen
 import app.dartsscorer.ui.common.isShortWindow
 import app.dartsscorer.ui.settings.SettingsScreen
 import app.dartsscorer.ui.support.LicenceTextScreen
@@ -32,6 +39,7 @@ import app.dartsscorer.ui.support.LicencesScreen
 import app.dartsscorer.ui.support.SupportScreen
 import app.dartsscorer.ui.support.TipSection
 import app.dartsscorer.ui.visit.VisitScreen
+import kotlinx.coroutines.flow.first
 
 /**
  * What every back-stack entry is wrapped in — above all, **one `ViewModelStore` per entry**.
@@ -71,10 +79,20 @@ fun MainNavigation(modifier: Modifier = Modifier) {
     val showTabs = !onDetailScreen
     val rail = isShortWindow()
     val onSelect = { destination: TopLevelDestination -> backStack.showTopLevel(destination) }
+    val pairing = (LocalContext.current.applicationContext as MainApplication).container.pairing
+    // A phone left in the camera role opens straight into the camera screen (ADR-0009, decision 9).
+    LaunchedEffect(Unit) {
+        if (pairing.role.first() == PhoneRole.MOUNTED_CAMERA && backStack.lastOrNull() != CameraRole) {
+            backStack.add(CameraRole)
+        }
+    }
+    val cameraScreen = backStack.lastOrNull() == CameraRole
 
     Scaffold(
         modifier = modifier,
         bottomBar = { if (showTabs && !rail) AppNavigationBar(current, onSelect) },
+        // The camera screen draws edge to edge and pads its own panes.
+        contentWindowInsets = if (cameraScreen) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
     ) { insets ->
         // The NavDisplay keeps this one parent, so neither a window resized across 480 dp without a relaunch
         // (split screen, freeform) nor the rail coming or going off a detail screen loses the screens' state.
@@ -111,7 +129,21 @@ fun MainNavigation(modifier: Modifier = Modifier) {
                             SettingsScreen(
                                 onOpenLicences = { backStack.add(Licences) },
                                 onOpenSupport = { backStack.add(Support) },
+                                onOpenMountedCamera = { backStack.add(MountedCamera) },
                             )
+                        }
+                        entry<MountedCamera> {
+                            MountedCameraScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onAddCamera = { backStack.add(AddMountedCamera) },
+                                onUseAsCamera = { backStack.add(CameraRole) },
+                            )
+                        }
+                        entry<AddMountedCamera> {
+                            AddMountedCameraScreen(onBack = { backStack.removeLastOrNull() })
+                        }
+                        entry<CameraRole> {
+                            CameraRoleScreen(onStop = { backStack.removeLastOrNull() })
                         }
                         entry<Support> {
                             SupportScreen(

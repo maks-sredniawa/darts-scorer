@@ -26,6 +26,8 @@
     <!-- Common actions -->
     <string name="action_back">Back</string>
     <string name="action_cancel">Cancel</string>
+    <!-- Opens this app's page in the system settings, where a denied permission is allowed. -->
+    <string name="action_open_settings">Open settings</string>
 
     <!-- Visit. The tip's one ask (ADR-0007): asked once, and the answer follows the user to a new phone -->
     <string name="visit_tip_ask_title">This app is free, and stays free</string>
@@ -59,6 +61,13 @@
     <string name="visit_no_board_hint">Take the Photo with the whole Board in the frame, in more light.</string>
     <string name="visit_no_camera_title">No camera app</string>
     <string name="visit_no_camera_body">This phone has no camera app to take a Photo with. A Photo already on the phone can still be scored.</string>
+    <!-- The handheld Take a Photo asks for the camera permission (docs/phase-G.md D5): one line before
+         the system asks, and a banner when it is denied. "Take a Photo" is visit_take_photo's label. -->
+    <string name="visit_camera_rationale">Allow the camera so Take a Photo can open it. The Photo stays on this phone.</string>
+    <string name="visit_camera_continue">Continue</string>
+    <string name="visit_camera_not_now">Not now</string>
+    <string name="camera_denied_title">Camera not allowed</string>
+    <string name="visit_camera_denied_body">Allow the camera in the system settings to take a Photo. A Photo already on the phone can still be scored.</string>
     <string name="visit_unreadable_title">The Photo could not be opened</string>
     <string name="visit_unreadable_body">Try taking or choosing another Photo.</string>
     <!-- Correcting a result (docs/phase-1.md §3, D6). "Enter the Score yourself" is offered when no
@@ -142,6 +151,37 @@
     <string name="settings_language_system">System</string>
     <string name="settings_language_english" translatable="false">English</string>
     <string name="settings_language_polish" translatable="false">Polski</string>
+    <!-- The Mounted camera (ADR-0009): a spare phone on a stand beside the Board that takes the Photo
+         when the player taps on the phone they hold, which the copy calls "your phone". -->
+    <string name="settings_camera">Camera</string>
+    <string name="settings_mounted_camera">Mounted camera</string>
+    <string name="settings_mounted_camera_off">Not set up</string>
+    <string name="settings_mounted_camera_role">This phone is the camera</string>
+    <string name="mounted_camera_intro">A spare phone on a stand takes the Photo when you tap on your phone. Both phones need the same Wi-Fi.</string>
+    <string name="mounted_camera_add">Add a mounted camera</string>
+    <string name="mounted_camera_add_hint">This is the phone you hold</string>
+    <string name="mounted_camera_use">Use this phone as the mounted camera</string>
+    <string name="mounted_camera_use_hint">This phone goes on the stand</string>
+    <string name="mounted_camera_denied_body">A mounted camera needs the camera. Allow it in the system settings.</string>
+    <string name="mounted_camera_add_later">Pairing with a mounted camera comes in a later version of the app.</string>
+    <!-- The camera screen, on the spare phone. The ring is drawn over the preview for aiming. -->
+    <string name="camera_role_scan_area">Scan area. Hold the QR on your phone in front of this camera</string>
+    <string name="camera_role_waiting">Waiting for your phone</string>
+    <string name="camera_role_scan_title">Scan the QR on your phone</string>
+    <string name="camera_role_scan_hint">On your phone: Settings, Mounted camera, Add a mounted camera.</string>
+    <string name="camera_role_paste_label">Paste a pairing code</string>
+    <string name="camera_role_paste">Paste</string>
+    <string name="camera_role_pair">Pair</string>
+    <string name="camera_role_not_a_code">That is not a pairing code</string>
+    <string name="camera_role_fit">Fit the whole Board inside the ring</string>
+    <string name="camera_role_charger">Keep this phone on a charger.</string>
+    <string name="camera_role_unpair">Unpair</string>
+    <string name="camera_role_unpair_title">Unpair this camera?</string>
+    <string name="camera_role_unpair_body">It will stop answering your phone. To use it again, pair again.</string>
+    <string name="camera_role_stop">Stop being a camera</string>
+    <!-- The action TalkBack names on the dimmed screen: a touch brings the preview back. -->
+    <string name="camera_role_show_preview">Show the preview</string>
+    <string name="camera_role_unavailable">The camera could not be opened.</string>
     <string name="settings_data">Data</string>
     <!-- Settings → Data: every setting, the app language included, back to how the app came, after a confirmation. -->
     <string name="settings_restore">Restore default settings</string>

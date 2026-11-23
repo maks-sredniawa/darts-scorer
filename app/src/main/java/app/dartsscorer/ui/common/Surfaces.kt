@@ -13,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,9 +30,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import app.dartsscorer.R
 import app.dartsscorer.theme.Spacing
@@ -147,6 +153,49 @@ fun WarningBanner(
                 Text(actionLabel)
             }
         }
+    }
+}
+
+/**
+ * A banner for what came back wrong: a shape and a title as well as its colour. An [action] sits
+ * under the body as its own control, so TalkBack still reaches it inside the merged banner.
+ */
+@Composable
+fun NoticeBanner(
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+    ) {
+        Row(modifier = Modifier.padding(Spacing.base), horizontalArrangement = Arrangement.spacedBy(Spacing.snug)) {
+            Icon(Icons.Filled.Warning, contentDescription = null)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.hair)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Text(text = body, style = MaterialTheme.typography.bodyMedium)
+                action?.invoke()
+            }
+        }
+    }
+}
+
+/** The *Open settings* action of a banner about a permission this app holds. */
+@Composable
+fun OpenAppSettingsButton() {
+    val context = LocalContext.current
+    TextButton(
+        onClick = { context.openAppSettings() },
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
+    ) {
+        Text(stringResource(R.string.action_open_settings))
     }
 }
 

@@ -60,6 +60,43 @@ fun AppTheme(
 }
 
 /**
+ * The app's dark scheme whatever the setting, for a screen that sits beside a Board all evening. The
+ * bar icons go light while it is shown and back to what they were when it leaves, which nesting
+ * [AppTheme] would not do: its effect only re-runs when its own key changes.
+ */
+@Composable
+fun DarkAppTheme(
+    dynamicColor: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val colorScheme =
+        if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            dynamicDarkColorScheme(LocalContext.current)
+        } else {
+            DarkColors
+        }
+    LightBarIconsWhileShown()
+    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+}
+
+@Composable
+private fun LightBarIconsWhileShown() {
+    val activity = LocalActivity.current ?: return
+    val view = LocalView.current
+    DisposableEffect(activity, view) {
+        val controller = WindowCompat.getInsetsController(activity.window, view)
+        val status = controller.isAppearanceLightStatusBars
+        val navigation = controller.isAppearanceLightNavigationBars
+        controller.isAppearanceLightStatusBars = false
+        controller.isAppearanceLightNavigationBars = false
+        onDispose {
+            controller.isAppearanceLightStatusBars = status
+            controller.isAppearanceLightNavigationBars = navigation
+        }
+    }
+}
+
+/**
  * Dark icons on the status and navigation bars under a light scheme, light icons under a dark one.
  *
  * **This is the runtime half of the edge-to-edge window**, and it lives here rather than in

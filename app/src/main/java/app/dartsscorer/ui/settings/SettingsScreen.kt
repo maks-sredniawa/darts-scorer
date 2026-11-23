@@ -39,6 +39,7 @@ import app.dartsscorer.ui.support.LanguageReportRow
 fun SettingsScreen(
     onOpenLicences: () -> Unit,
     onOpenSupport: () -> Unit,
+    onOpenMountedCamera: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel =
         viewModel(factory = SettingsViewModel.Factory, extras = appViewModelExtras()),
@@ -73,6 +74,21 @@ fun SettingsScreen(
             SectionHeader(stringResource(R.string.settings_language))
             LanguageRow()
             LanguageReportRow()
+
+            SectionHeader(stringResource(R.string.settings_camera))
+            LinkRow(
+                title = stringResource(R.string.settings_mounted_camera),
+                subtitle =
+                    stringResource(
+                        if (state.cameraRole) {
+                            R.string.settings_mounted_camera_role
+                        } else {
+                            R.string.settings_mounted_camera_off
+                        },
+                    ),
+                target = LinkTarget.Inside,
+                onClick = onOpenMountedCamera,
+            )
 
             SectionHeader(stringResource(R.string.settings_data))
             RestoreDefaultsRow(onRestore = viewModel::restoreDefaults)

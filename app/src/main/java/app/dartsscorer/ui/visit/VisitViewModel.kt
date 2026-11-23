@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.dartsscorer.MainApplication
+import app.dartsscorer.camera.PairingStore
 import app.dartsscorer.data.AppPreferences
 import app.dartsscorer.scoring.Point
 import app.dartsscorer.scoring.Ring
@@ -31,11 +32,13 @@ import java.io.IOException
 import java.time.Instant
 
 /** Something that went wrong outside the Visit's own result, said in a banner until the next Photo. */
-enum class VisitNotice { NoCamera, Unreadable }
+enum class VisitNotice { NoCamera, CameraDenied, Unreadable }
 
 data class VisitUiState(
     val phase: VisitPhase = VisitPhase.Empty,
     val notice: VisitNotice? = null,
+    /** The line saying why *Take a Photo* needs the camera, before the system asks (`phase-G.md` D5). */
+    val cameraRationale: Boolean = false,
     /** False wherever Play will not sell a tip: nothing is asked for that cannot be bought. */
     val showTipAsk: Boolean = false,
     val keypad: Keypad? = null,
@@ -47,6 +50,7 @@ data class VisitUiState(
 
 class VisitViewModel(
     private val preferences: AppPreferences,
+    private val pairing: PairingStore,
     tipJar: TipJar,
     installedAt: Instant,
     private val photos: VisitPhotos,
@@ -98,6 +102,26 @@ class VisitViewModel(
         saved.remove<String>(CAMERA)
         visit.update { it.copy(notice = VisitNotice.NoCamera) }
     }
+
+    /**
+     * *Take a Photo* without `CAMERA`: the rationale while the system would still ask, which is before
+     * the first ask or after a denial it will ask again for, and otherwise the banner.
+     */
+    fun cameraNotAllowed(systemWouldExplain: Boolean) {
+        viewModelScope.launch {
+            val ask = systemWouldExplain || !pairing.cameraAsked.first()
+            visit.update { if (ask) it.copy(cameraRationale = true) else it.copy(notice = VisitNotice.CameraDenied) }
+        }
+    }
+
+    fun cameraRationaleClosed() = visit.update { it.copy(cameraRationale = false) }
+
+    fun cameraPermissionAnswered(granted: Boolean) {
+        viewModelScope.launch { pairing.markCameraAsked() }
+        if (!granted) visit.update { it.copy(notice = VisitNotice.CameraDenied) }
+    }
+
+    fun cameraAllowed() = visit.update { if (it.notice == VisitNotice.CameraDenied) it.copy(notice = null) else it }
 
     fun cameraReturned(taken: Boolean) {
         val target = saved.remove<String>(CAMERA) ?: return
@@ -348,6 +372,7 @@ class VisitViewModel(
                     val app = this[APPLICATION_KEY] as MainApplication
                     VisitViewModel(
                         app.container.preferences,
+                        app.container.pairing,
                         app.container.tipJar,
                         app.container.installedAt,
                         app.container.visitPhotos,

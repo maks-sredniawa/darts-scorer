@@ -13,6 +13,7 @@
 
     <string name="action_back">Wstecz</string>
     <string name="action_cancel">Anuluj</string>
+    <string name="action_open_settings">Otwórz ustawienia</string>
 
     <string name="visit_tip_ask_title">Ta aplikacja jest darmowa i taka zostanie</string>
     <string name="visit_tip_ask_body">Jeśli ci się przydaje, możesz zostawić twórcy napiwek. Niczego nie odblokowuje, a na tym telefonie aplikacja więcej o to nie zapyta.</string>
@@ -37,6 +38,11 @@
     <string name="visit_no_board_hint">Zrób zdjęcie z całą tarczą w kadrze, przy lepszym świetle.</string>
     <string name="visit_no_camera_title">Brak aplikacji aparatu</string>
     <string name="visit_no_camera_body">Na tym telefonie nie ma aplikacji aparatu, którą można zrobić zdjęcie. Zdjęcie zapisane już w telefonie nadal można policzyć.</string>
+    <string name="visit_camera_rationale">Zezwól na dostęp do aparatu, aby „Zrób zdjęcie” mogło go otworzyć. Zdjęcie zostaje na tym telefonie.</string>
+    <string name="visit_camera_continue">Dalej</string>
+    <string name="visit_camera_not_now">Nie teraz</string>
+    <string name="camera_denied_title">Brak dostępu do aparatu</string>
+    <string name="visit_camera_denied_body">Aby zrobić zdjęcie, zezwól na dostęp do aparatu w ustawieniach systemu. Zdjęcie zapisane już w telefonie nadal można policzyć.</string>
     <string name="visit_unreadable_title">Nie udało się otworzyć zdjęcia</string>
     <string name="visit_unreadable_body">Zrób albo wybierz inne zdjęcie.</string>
     <string name="visit_enter_score">Wpisz wynik samodzielnie</string>
@@ -102,6 +108,33 @@
     <string name="settings_material_you_hint">Android 12 i nowsze. Domyślnie wyłączone, aby aplikacja zachowała własną paletę.</string>
     <string name="settings_language">Język</string>
     <string name="settings_language_system">Systemowy</string>
+    <string name="settings_camera">Aparat</string>
+    <string name="settings_mounted_camera">Aparat przy tarczy</string>
+    <string name="settings_mounted_camera_off">Nie skonfigurowano</string>
+    <string name="settings_mounted_camera_role">Ten telefon jest aparatem</string>
+    <string name="mounted_camera_intro">Zapasowy telefon na statywie robi zdjęcie, gdy stukniesz w swoim telefonie. Oba telefony muszą być w tej samej sieci Wi-Fi.</string>
+    <string name="mounted_camera_add">Dodaj aparat przy tarczy</string>
+    <string name="mounted_camera_add_hint">To telefon, który trzymasz w ręku</string>
+    <string name="mounted_camera_use">Użyj tego telefonu jako aparatu przy tarczy</string>
+    <string name="mounted_camera_use_hint">Ten telefon stanie na statywie</string>
+    <string name="mounted_camera_denied_body">Aparat przy tarczy potrzebuje dostępu do aparatu. Zezwól na niego w ustawieniach systemu.</string>
+    <string name="mounted_camera_add_later">Parowanie z aparatem przy tarczy pojawi się w jednej z kolejnych wersji aplikacji.</string>
+    <string name="camera_role_scan_area">Obszar skanowania. Przytrzymaj kod QR ze swojego telefonu przed tym aparatem</string>
+    <string name="camera_role_waiting">Czekam na twój telefon</string>
+    <string name="camera_role_scan_title">Zeskanuj kod QR ze swojego telefonu</string>
+    <string name="camera_role_scan_hint">Na swoim telefonie: Ustawienia, Aparat przy tarczy, Dodaj aparat przy tarczy.</string>
+    <string name="camera_role_paste_label">Wklej kod parowania</string>
+    <string name="camera_role_paste">Wklej</string>
+    <string name="camera_role_pair">Sparuj</string>
+    <string name="camera_role_not_a_code">To nie jest kod parowania</string>
+    <string name="camera_role_fit">Zmieść całą tarczę w okręgu</string>
+    <string name="camera_role_charger">Trzymaj ten telefon na ładowarce.</string>
+    <string name="camera_role_unpair">Usuń parowanie</string>
+    <string name="camera_role_unpair_title">Usunąć parowanie tego aparatu?</string>
+    <string name="camera_role_unpair_body">Przestanie odpowiadać twojemu telefonowi. Aby znów go używać, sparuj go ponownie.</string>
+    <string name="camera_role_stop">Zakończ tryb aparatu</string>
+    <string name="camera_role_show_preview">Pokaż podgląd</string>
+    <string name="camera_role_unavailable">Nie udało się otworzyć aparatu.</string>
     <string name="settings_data">Dane</string>
     <string name="settings_restore">Przywróć ustawienia domyślne</string>
     <string name="settings_restore_hint">Motyw, kolory i język</string>

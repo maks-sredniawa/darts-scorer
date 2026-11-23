@@ -34,6 +34,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object Licences : NavKey
 
+/** Settings' *Mounted camera*, its Player's-phone side, and the camera screen (ADR-0009, decision 9). */
+@Serializable data object MountedCamera : NavKey
+
+@Serializable data object AddMountedCamera : NavKey
+
+@Serializable data object CameraRole : NavKey
+
 @Serializable
 data class LicenceText(
     val spdxId: String,
