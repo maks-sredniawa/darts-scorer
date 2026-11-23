@@ -52,7 +52,7 @@ The line that appears under the name in search results, and the most-read text i
 Take a photo of the board after a visit, and it finds your darts and scores them
 ```
 
-### Full description — 2630/4000
+### Full description — 2577/4000
 
 **No health or safety claims**, here or on any page the listing links to — Play's enforcement reads a
 linked page as part of the listing. Say what the app cannot do instead.
@@ -95,8 +95,8 @@ COMING: A MOUNTED CAMERA
 A later version will let a spare Android phone, mounted beside the board and running this app, take the photo for you. Tap on your phone after a visit; the mounted camera takes the photo and sends it to your phone, which scores it. The photo goes only between your two phones, encrypted, over your Wi-Fi or your phone's hotspot, never to a server. You pair the phones once by scanning a QR code or pasting its code. It will need both phones on the same network, the camera permission on the spare phone, and access to your local network. The version you install today does not do this yet.
 
 PERMISSIONS
-• Today, none to ask for. Photos come from your camera app or the system photo picker, and neither needs a permission.
-• With the mounted camera: the camera, asked the first time you tap Take a Photo, since Android then requires it to open your camera app; say no and you can still choose a photo. And the local network, used only between your own two phones.
+• The camera, asked the first time you tap Take a Photo, since Android requires it before the app can open your camera app; say no and you can still choose a photo already on your phone.
+• With the mounted camera: the camera on the spare phone, and the local network, used only between your own two phones.
 • In-app purchases: an optional tip for the developer. It unlocks nothing.
 
 The source code is public: github.com/maks-sredniawa/darts-scorer
@@ -116,7 +116,7 @@ Darts Scorer
 Zrób zdjęcie tarczy po podejściu, a aplikacja znajdzie rzutki i policzy wynik
 ```
 
-### Full description — 2928/4000
+### Full description — 2848/4000
 
 ```
 Darts Scorer odczytuje wynik podejścia ze zdjęcia tarczy. Po rzutach zrób zdjęcie, a aplikacja znajdzie każdą rzutkę, zaznaczy ją na tarczy i zsumuje podejście, offline, na Twoim telefonie.
@@ -141,8 +141,8 @@ W PRZYGOTOWANIU: APARAT PRZY TARCZY
 W jednej z kolejnych wersji zapasowy telefon z Androidem, zamocowany przy tarczy i z tą aplikacją, zrobi zdjęcie za Ciebie. Po podejściu dotknij przycisku na swoim telefonie; aparat przy tarczy zrobi zdjęcie i wyśle je na Twój telefon, który policzy wynik. Zdjęcie jest przesyłane tylko między Twoimi dwoma telefonami, zaszyfrowane, przez Twoje Wi-Fi albo hotspot Twojego telefonu, nigdy na serwer. Telefony parujesz raz, skanując kod QR albo wklejając jego kod. Oba telefony będą musiały być w tej samej sieci, zapasowy telefon będzie potrzebował uprawnienia do aparatu, a aplikacja dostępu do sieci lokalnej. Wersja, którą instalujesz dziś, jeszcze tego nie robi.
 
 UPRAWNIENIA
-• Dziś żadnych do udzielenia. Zdjęcia pochodzą z aplikacji aparatu albo z systemowego wyboru zdjęć i żadne z nich nie wymaga uprawnienia.
-• Z aparatem przy tarczy: aparat, o który aplikacja zapyta przy pierwszym dotknięciu Zrób zdjęcie, bo Android wymaga go wtedy do otwarcia aplikacji aparatu; po odmowie nadal możesz wybrać zdjęcie. Do tego sieć lokalna, używana tylko między Twoimi dwoma telefonami.
+• Aparat, o który aplikacja zapyta przy pierwszym dotknięciu Zrób zdjęcie, bo Android wymaga go, zanim aplikacja otworzy aplikację aparatu; po odmowie nadal możesz wybrać zdjęcie zapisane już w telefonie.
+• Z aparatem przy tarczy: aparat na zapasowym telefonie i sieć lokalna, używana tylko między Twoimi dwoma telefonami.
 • Zakupy w aplikacji: opcjonalny napiwek dla twórcy. Niczego nie odblokowuje.
 
 Kod źródłowy jest publiczny: github.com/maks-sredniawa/darts-scorer
