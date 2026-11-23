@@ -190,11 +190,15 @@ The first release.
 Pierwsze wydanie.
 ```
 
-### 0.3.0 — the Mounted camera
+### 0.3.1 — the Mounted camera
 
 Phase G's checkpoints B to D: the handheld *Take a Photo* asks for `CAMERA`, and a spare phone set up
 in Settings' *Mounted camera* pairs with the Player's phone and takes the Visit's Photo when the
 player taps. Rewritten in D, where the camera first takes a Photo for anyone.
+
+0.3.1 keeps 0.3.0's notes: 0.3.0 went no further than the internal track, so nobody outside has
+read them, and 0.3.1's one change, dropping Dart candidates far off the Board, is a reading fix a
+player would not name.
 
 **English** — 329/500:
 
