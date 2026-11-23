@@ -135,7 +135,7 @@ a cached fit with a drift check against the new Photo is a decision of its own, 
 | --- | --- | --- | --- |
 | **0** | **The ADR and this plan**: ADR-0009, the amendments to ADR-0007 and ADR-0008, `CONTEXT.md`'s terms, `PLAN.md`'s paragraph | `docs:` | — |
 | **E** | **The paperwork**: the privacy policy, `play-app-content.md`'s Data safety reasoning, the store listing in every language, written for the app as it will be once B to D ship | `docs:` | 0 |
-| **A** | **The gate**: is the Board found from the stand's positions (D8, D11), within the Board half of M1's bar? Read on the finished app, after D | a `docs:` with the verdict; a `feat:` or `fix:` for the app when a verdict changes it: verdict 1's recommended position in the copy, translated, or verdict 3's row behind the debug seam; a `chore(ml):` only if `evaluate` needs an option to read a session outside the Held-out set | D |
+| **A** | **The gate**: is the Board found from the stand's positions (D8, D11), within the Board half of M1's bar? Read on the finished app, after D | a `docs:` with the verdict; a `feat:` or `fix:` for the app when a verdict changes it: verdict 1's recommended position in the copy, translated, or verdict 3's row behind the debug seam; a `chore(ml):` that builds each position's session from `phone-captures/`, one Photo per Visit in the order of each marked Visit's `keptAt` (§2), with `evaluate`'s option to read a session outside the Held-out set if it needs one | D |
 | **B** | **The camera role**: Settings' *Mounted camera* row, the camera screen, CameraX capture into memory, the screen kept on and dimmed, QR scanning and the paste field (D10); the handheld path's `CAMERA` ask (D5) | `feat:` | E |
 | **C** | **The link and pairing**: Keystore keys, NSD, the TLS socket and its frames, the QR with its content description and its text to copy or share (D10), the pairing proof, unpairing, the store outside the backup; `INTERNET` declared, the billing backend excluded | `feat:` | B |
 | **D** | **The capture-and-score flow**: *Take with the mounted camera* on the Visit screen, the camera's state, the timeouts and failure paths, the Photo into phase 1's path | `feat:` | C |
@@ -226,16 +226,21 @@ a 95th percentile of 1.0 mm: the Board half of `phase-M1.md` D1?
   A Visit is kept only with a result, so D's debug half also keeps a Photo the link delivers on
   which no Board is found: those are the Photos the gate most needs. After each position,
   `uv run --directory ml darts-ml pull-marked --serial <serial> --delete-after` copies them into
-  `$DARTS_DATA/phone-captures/<date>/`, and that position's Photos go into `inbox/<session>/` for
-  `ingest`.
+  `$DARTS_DATA/phone-captures/<date>/`.
+- `ingest` cannot read those Photos. A marked Photo is a byte copy of the `photos` file `MediaFiles`
+  wrote, which carries no EXIF `DateTimeOriginal`, and `read_shot` refuses any file without one; and
+  `ingest` expects three Angles per Visit, where the gate has one Photo of an empty Board. So A adds a
+  `chore(ml):` that builds each position's session from `phone-captures/`: one Photo per Visit,
+  ordered by the `keptAt` in each marked Visit's `.json`, with a sheet `label`, `prefill`, `review`
+  and `check` can read.
 - Each position is a **Capture session** in `CONTEXT.md`'s widened sense: one Mounted camera at one
   position, one kind of light, one day. Its height, distance and angle are written down at the
-  stand and repeated in the verdict. It goes through `darts-ml ingest`, `label`, `prefill`, `review`
-  and `check` like every session, Hand points and all, so the Calibration points are labelled rather
-  than guessed.
+  stand and repeated in the verdict. Once that chore has built it, it goes through `label`,
+  `prefill`, `review` and `check` like every session, Hand points and all, so the Calibration points
+  are labelled rather than guessed.
 - The Board figures are read with `predict` and `evaluate` for the shipped run, pointed at that
   session by a manifest of its own (`--manifest`). If `evaluate` cannot read a session outside the
-  Held-out set, A adds that option and its test as a `chore(ml):`.
+  Held-out set, that option and its test go into the same `chore(ml):`.
 - These sessions are not trained or chosen on until the verdict is written.
 
 ### The verdicts, decided now rather than argued about later
@@ -457,6 +462,11 @@ arrives; then the Photo goes through `MediaFiles` and phase 1's two passes, unch
 failures as ADR-0009, decision 8. *Next Visit* with a Mounted camera paired does not open the system
 camera: the player taps the button they want.
 
+**The debug half keeps every Photo the link delivers**, for gate A (§2). Phase 1 keeps a marked Visit
+only with a result; with a Photo that came over the link, the debug build keeps it in `files/marked/`
+even when no Board is found, since those are the Photos the gate most needs. It goes through
+`ui/visit/KeepMarked.kt`'s seam, so a release build still keeps nothing.
+
 **Announced, not only shown** (WCAG 2.2, 4.1.3 Status Messages). The state chip (*Looking for the
 camera*, *Connected*, *Camera not found*) and *Taking the Photo…* are polite live regions
 (`LiveRegionMode.Polite`); the failure line is assertive (`LiveRegionMode.Assertive`). While a
@@ -484,6 +494,8 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
   the camera*, *Connected*, *Camera not found* and *Taking the Photo…* politely, the failure line
   assertively, on the Player's phone; *Waiting for your phone* and *Connected* on the camera screen.
   Focus stays on *Take with the mounted camera* through a capture, and it reads *Taking the Photo…*.
+- On the debug build, a paired capture of a scene with no Board leaves a marked Visit in
+  `files/marked/` whose `.json` reads `"boardFound": false`; a release build leaves nothing there.
 - On the two real phones: R2 to R6.
 
 ---
