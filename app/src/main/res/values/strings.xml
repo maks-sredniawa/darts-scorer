@@ -176,7 +176,7 @@
     <string name="add_camera_waiting">Waiting for the camera</string>
     <string name="add_camera_paired_header">Paired camera</string>
     <string name="add_camera_just_paired">Camera paired</string>
-    <string name="mounted_camera_unpair_body">It will stop answering this phone. To use it again, pair again.</string>
+    <string name="mounted_camera_unpair_body">This phone will forget the camera and stop asking it for Photos. To use it again, pair again.</string>
     <string name="link_looking">Looking for the camera</string>
     <string name="link_connected">Connected</string>
     <string name="link_not_found">Camera not found</string>

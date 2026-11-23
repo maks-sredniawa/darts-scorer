@@ -130,7 +130,7 @@
     <string name="add_camera_waiting">Czekam na aparat</string>
     <string name="add_camera_paired_header">Sparowany aparat</string>
     <string name="add_camera_just_paired">Aparat sparowany</string>
-    <string name="mounted_camera_unpair_body">Przestanie odpowiadać temu telefonowi. Aby znów go używać, sparuj go ponownie.</string>
+    <string name="mounted_camera_unpair_body">Ten telefon zapomni ten aparat i przestanie prosić go o zdjęcia. Aby znów go używać, sparuj go ponownie.</string>
     <string name="link_looking">Szukam aparatu</string>
     <string name="link_connected">Połączono</string>
     <string name="link_not_found">Nie znaleziono aparatu</string>
