@@ -340,7 +340,7 @@ as replaced by it once B ships.
 **Shape.** ADR-0009, decisions 2 to 4: an EC P-256 Keystore key per phone; the Mounted camera
 registers `_dartsscorer._tcp` and listens on TLS; the Player's phone shows the QR, the camera scans
 it or the player pastes its text (D10), the Player's phone connects in pairing mode, checks the MAC
-and pins; from then on, mutual TLS pinned both ways, the five frame types, `PING` every 5 s. When
+and pins; from then on, mutual TLS pinned both ways, the frame types with `NOT_PAIRED`, `PING` every 5 s. When
 `SDK_INT < 30` or `SdkExtensions.getExtensionVersion(TIRAMISU) < 7`, each side holds a
 `MulticastLock` while NSD runs (ADR-0009, decision 2). Each Keystore key allows `DIGEST_NONE` as
 well as `DIGEST_SHA256`, or no handshake completes, and the Player's phone connects through the
