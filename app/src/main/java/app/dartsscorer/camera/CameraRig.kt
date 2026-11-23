@@ -81,7 +81,7 @@ class CameraRig(
                 .Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
-                .also { it.setAnalyzer(frames, QrReader { text -> onQrText?.invoke(text) }) }
+                .also { it.setAnalyzer(frames, QrReader { onQrText }) }
         preview.targetRotation = displayRotation
         provider.unbindAll()
         provider.bindToLifecycle(owner, camera.cameraSelector, preview, capture, analysis)
@@ -178,14 +178,19 @@ private fun ImageProxy.jpegBytes(): ByteArray {
     return ByteArray(buffer.remaining()).also { buffer.get(it) }
 }
 
-/** Reads a QR from each frame's luminance plane; frames without one are dropped. */
+/** Reads a QR from each frame's luminance plane while someone listens; other frames are dropped unread. */
 private class QrReader(
-    private val found: (String) -> Unit,
+    private val listener: () -> ((String) -> Unit)?,
 ) : ImageAnalysis.Analyzer {
     private val reader = QRCodeReader()
     private val hints = mapOf(DecodeHintType.TRY_HARDER to true)
 
     override fun analyze(image: ImageProxy) {
+        val found = listener()
+        if (found == null) {
+            image.close()
+            return
+        }
         val text =
             image.use {
                 val plane = it.planes[0]
