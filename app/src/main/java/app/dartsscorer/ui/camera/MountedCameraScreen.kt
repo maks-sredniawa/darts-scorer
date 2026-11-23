@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -21,10 +22,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.dartsscorer.MainApplication
 import app.dartsscorer.R
 import app.dartsscorer.theme.Spacing
 import app.dartsscorer.ui.common.DetailScaffold
-import app.dartsscorer.ui.common.EmptyState
 import app.dartsscorer.ui.common.LinkRow
 import app.dartsscorer.ui.common.LinkTarget
 import app.dartsscorer.ui.common.NoticeBanner
@@ -39,6 +41,8 @@ fun MountedCameraScreen(
     onUseAsCamera: () -> Unit,
 ) {
     val context = LocalContext.current
+    val pairing = remember(context) { (context.applicationContext as MainApplication).container.pairing }
+    val paired by pairing.cameraPins.collectAsStateWithLifecycle(emptySet())
     var denied by rememberSaveable { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (context.hasCameraPermission()) denied = false }
     val askCamera =
@@ -66,7 +70,10 @@ fun MountedCameraScreen(
             Spacer(Modifier.height(Spacing.section))
             LinkRow(
                 title = stringResource(R.string.mounted_camera_add),
-                subtitle = stringResource(R.string.mounted_camera_add_hint),
+                subtitle =
+                    stringResource(
+                        if (paired.isEmpty()) R.string.mounted_camera_add_hint else R.string.mounted_camera_add_paired,
+                    ),
                 target = LinkTarget.Inside,
                 onClick = onAddCamera,
             )
@@ -79,13 +86,5 @@ fun MountedCameraScreen(
                 },
             )
         }
-    }
-}
-
-/** *Add a mounted camera*: the QR and its text arrive with the link, in checkpoint C. */
-@Composable
-fun AddMountedCameraScreen(onBack: () -> Unit) {
-    DetailScaffold(title = stringResource(R.string.mounted_camera_add), onBack = onBack) { modifier ->
-        EmptyState(stringResource(R.string.mounted_camera_add_later), modifier)
     }
 }

@@ -22,6 +22,7 @@ data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val materialYou: Boolean = false,
     val cameraRole: Boolean = false,
+    val cameraPaired: Boolean = false,
 )
 
 class SettingsViewModel(
@@ -33,8 +34,9 @@ class SettingsViewModel(
             preferences.themeMode,
             preferences.materialYou,
             pairing.role,
-        ) { theme, materialYou, role ->
-            SettingsUiState(theme, materialYou, role == PhoneRole.MOUNTED_CAMERA)
+            pairing.cameraPins,
+        ) { theme, materialYou, role, cameras ->
+            SettingsUiState(theme, materialYou, role == PhoneRole.MOUNTED_CAMERA, cameras.isNotEmpty())
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     /**
