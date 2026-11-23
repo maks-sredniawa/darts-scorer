@@ -50,6 +50,18 @@ data class MountedCameraUi(
     val failure: CameraFailure? = null,
 )
 
+/**
+ * A failure read from the link's state ([readFrom]) lasts only while the link stays there: once the
+ * chip moves on it says the newer state, so *Pair again* never lingers under *Camera not found*.
+ */
+private data class Capture(
+    val capturing: Boolean = false,
+    val failure: CameraFailure? = null,
+    val readFrom: PlayerLinkState? = null,
+)
+
+private val FROM_LINK = setOf(CameraFailure.NotFound, CameraFailure.PairAgain, CameraFailure.Outdated)
+
 /** Something that went wrong outside the Visit's own result, said in a banner until the next Photo. */
 enum class VisitNotice { NoCamera, CameraDenied, Unreadable }
 
@@ -81,11 +93,19 @@ class VisitViewModel(
     private val visit =
         MutableStateFlow(VisitUiState(phase = if (saved.contains(PHOTO)) VisitPhase.Reading else VisitPhase.Empty))
 
-    private val capture = MutableStateFlow(MountedCameraUi())
+    private val capture = MutableStateFlow(Capture())
 
     private val camera =
         combine(pairing.cameraPins, link.state, capture) { pins, link, capture ->
-            if (pins.isEmpty()) null else capture.copy(link = link)
+            if (pins.isEmpty()) {
+                null
+            } else {
+                MountedCameraUi(
+                    link,
+                    capture.capturing,
+                    capture.failure.takeIf { capture.readFrom in setOf(null, link) },
+                )
+            }
         }
 
     val state: StateFlow<VisitUiState> =
@@ -185,8 +205,9 @@ class VisitViewModel(
 
     fun takeWithMountedCamera() {
         if (capture.value.capturing) return
-        capture.value = MountedCameraUi(capturing = true)
+        capture.value = Capture(capturing = true)
         viewModelScope.launch {
+            var readFrom: PlayerLinkState? = null
             val failure =
                 try {
                     val connected = withTimeoutOrNull(CONNECT_WAIT_MILLIS) { link.state.first { it.settled() } }
@@ -196,22 +217,26 @@ class VisitViewModel(
                     arrive(target, cameraTarget = target, linked = true)
                     null
                 } catch (e: CaptureFailed) {
-                    failureOf(e)
+                    val seen = link.state.value
+                    failureOf(e, seen).also { if (it in FROM_LINK) readFrom = seen }
                 } catch (e: IOException) {
                     CameraFailure.Failed
                 }
-            capture.value = MountedCameraUi(failure = failure)
+            capture.value = Capture(failure = failure, readFrom = readFrom)
         }
     }
 
     private fun PlayerLinkState.settled() = this != PlayerLinkState.LOOKING
 
-    private fun failureOf(e: CaptureFailed): CameraFailure =
+    private fun failureOf(
+        e: CaptureFailed,
+        seen: PlayerLinkState,
+    ): CameraFailure =
         when (e.failure) {
             CaptureFailure.TIMED_OUT -> CameraFailure.NoReply
             CaptureFailure.LINK_LOST -> CameraFailure.Lost
             CaptureFailure.NOT_CONNECTED ->
-                when (link.state.value) {
+                when (seen) {
                     PlayerLinkState.PAIR_AGAIN -> CameraFailure.PairAgain
                     PlayerLinkState.OUTDATED -> CameraFailure.Outdated
                     PlayerLinkState.CONNECTED -> CameraFailure.Lost

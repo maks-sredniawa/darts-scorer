@@ -671,6 +671,38 @@ class VisitViewModelTest {
     }
 
     @Test
+    fun `a failure read from the link is dropped once the link moves on`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        link.state.value = PlayerLinkState.PAIR_AGAIN
+        val visit = viewModel()
+        visit.takeWithMountedCamera()
+        visit.stateWhen { it.camera?.failure == CameraFailure.PairAgain }
+        link.state.value = PlayerLinkState.NOT_FOUND
+        assertNull(visit.stateWhen { it.camera?.link == PlayerLinkState.NOT_FOUND }.camera!!.failure)
+        link.state.value = PlayerLinkState.LOOKING
+        visit.takeWithMountedCamera()
+        dispatcher.scheduler.advanceTimeBy(VisitViewModel.CONNECT_WAIT_MILLIS + 1)
+        visit.stateWhen { it.camera?.failure == CameraFailure.NotFound }
+        link.state.value = PlayerLinkState.CONNECTED
+        assertNull(visit.stateWhen { it.camera?.link == PlayerLinkState.CONNECTED }.camera!!.failure)
+    }
+
+    @Test
+    fun `a failure the camera gave stays when the link moves on`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        link.state.value = PlayerLinkState.CONNECTED
+        link.failure = CaptureFailed(CaptureFailure.TIMED_OUT)
+        val visit = viewModel()
+        visit.takeWithMountedCamera()
+        visit.stateWhen { it.camera?.failure == CameraFailure.NoReply }
+        link.state.value = PlayerLinkState.LOOKING
+        assertEquals(
+            CameraFailure.NoReply,
+            visit.stateWhen { it.camera?.link == PlayerLinkState.LOOKING }.camera!!.failure,
+        )
+    }
+
+    @Test
     fun `the link runs to the paired camera from start to stop, once`() {
         val visit = viewModel()
         visit.startLink()

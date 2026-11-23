@@ -546,7 +546,8 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
   at each tap" of ADR-0009's decision 8, and then fails as *Camera not found*. A camera already *not
   found*, *Pair again* or on another version fails the tap at once, without asking it. The failure
   line shows only what the chip and its hint do not already say, so that tap adds no repeated line
-  and no assertive announcement of the chip's own words.
+  and no assertive announcement of the chip's own words; a failure read from the link's state goes
+  when the chip moves on, so a *Pair again* turned *Camera not found* after 10 s leaves no stale line.
 - **The Photo arrives as a camera target** in `cacheDir/camera/` and takes the handheld path from
   there, so the start-up sweep removes one the process died holding.
 - **A linked Photo with no Board is kept as soon as it is read**, as a marked Visit with no Darts;
