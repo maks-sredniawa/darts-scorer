@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/maks-sredniawa/darts-scorer/compare/v0.3.0...v0.3.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* drop Dart candidates more than 1.8 Board radii from the bull before keeping three ([f52edee](https://github.com/maks-sredniawa/darts-scorer/commit/f52edee00b0b59093ea35f18183683f0ffe100cf))
+
 ## [0.3.0](https://github.com/maks-sredniawa/darts-scorer/compare/v0.2.1...v0.3.0) (2026-11-23)
 
 
