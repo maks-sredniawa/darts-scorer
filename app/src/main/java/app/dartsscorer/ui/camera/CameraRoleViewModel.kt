@@ -33,7 +33,6 @@ import kotlin.random.Random
 
 data class CameraRoleUiState(
     val paired: Boolean = false,
-    val code: String = "",
     val codeRejected: Boolean = false,
     val dimmed: Boolean = false,
     val slot: DimSlot = DimSlot.Start,
@@ -110,20 +109,20 @@ class CameraRoleViewModel(
         return photo
     }
 
-    fun codeChanged(code: String) {
-        local.update { it.copy(code = code, codeRejected = false) }
+    /** The text itself stays in the field's own state: a round trip through [state] lags a frame and reorders fast input. */
+    fun codeChanged() {
+        local.update { it.copy(codeRejected = false) }
         timer = timer.touched(clock())
         scheduleDim()
     }
 
-    fun pairWithCode() {
-        val payload = PairingPayload.parse(local.value.code)
-        if (payload == null) {
-            local.update { it.copy(codeRejected = true) }
-            return
-        }
-        local.update { it.copy(code = "", codeRejected = false) }
+    /** True when [code] is a pairing code, which is then pinned. */
+    fun pairWithCode(code: String): Boolean {
+        val payload = PairingPayload.parse(code)
+        local.update { it.copy(codeRejected = payload == null) }
+        if (payload == null) return false
         viewModelScope.launch { pin(payload, "a pasted code") }
+        return true
     }
 
     /** Also disarms dimming: the pairing screen it returns to is one the player is using. */

@@ -353,6 +353,12 @@ private fun PairingBlock(
     // Pairing removes this block with the field still focused, so the screen must not stay held awake.
     DisposableEffect(Unit) { onDispose { viewModel.inputActive(false) } }
     val rejected = stringResource(R.string.camera_role_not_a_code)
+    var code by rememberSaveable { mutableStateOf("") }
+    val edit = { text: String ->
+        code = text
+        viewModel.codeChanged()
+    }
+    val pair = { if (viewModel.pairWithCode(code)) code = "" }
 
     Text(
         stringResource(R.string.camera_role_scan_title),
@@ -371,8 +377,8 @@ private fun PairingBlock(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedTextField(
-            value = state.code,
-            onValueChange = viewModel::codeChanged,
+            value = code,
+            onValueChange = edit,
             modifier =
                 Modifier
                     .weight(1f)
@@ -394,14 +400,14 @@ private fun PairingBlock(
                     keyboardType = KeyboardType.Ascii,
                     imeAction = ImeAction.Done,
                 ),
-            keyboardActions = KeyboardActions(onDone = { viewModel.pairWithCode() }),
+            keyboardActions = KeyboardActions(onDone = { pair() }),
             trailingIcon = {
                 IconButton(
                     onClick = {
                         scope.launch {
                             val clip = clipboard.getClipEntry()?.clipData
                             val text = clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
-                            if (text != null) viewModel.codeChanged(text.toString())
+                            if (text != null) edit(text.toString())
                         }
                     },
                 ) {
@@ -412,7 +418,7 @@ private fun PairingBlock(
                 }
             },
         )
-        Button(onClick = viewModel::pairWithCode) { Text(stringResource(R.string.camera_role_pair)) }
+        Button(onClick = pair) { Text(stringResource(R.string.camera_role_pair)) }
     }
 }
 
