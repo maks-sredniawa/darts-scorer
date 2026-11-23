@@ -123,11 +123,22 @@ class CameraRoleViewModel(
             return
         }
         local.update { it.copy(code = "", codeRejected = false) }
-        viewModelScope.launch { pairing.pinPlayer(payload) }
+        viewModelScope.launch { pin(payload, "a pasted code") }
     }
 
     fun unpair() {
-        viewModelScope.launch { pairing.unpairPlayer() }
+        viewModelScope.launch {
+            pairing.unpairPlayer()
+            Log.i(PairingStore.TAG, "Unpaired the Player's phone")
+        }
+    }
+
+    private suspend fun pin(
+        payload: PairingPayload,
+        route: String,
+    ) {
+        pairing.pinPlayer(payload)
+        Log.i(PairingStore.TAG, "Pinned the Player's phone ${payload.fingerprint} from $route")
     }
 
     /** Suspends until the role is written, so the screen leaving cannot cancel it. */
@@ -153,7 +164,7 @@ class CameraRoleViewModel(
     private fun scanned(text: String) {
         val payload = PairingPayload.parse(text) ?: return
         rig.onQrText = null
-        viewModelScope.launch { if (!paired) pairing.pinPlayer(payload) }
+        viewModelScope.launch { if (!paired) pin(payload, "a scanned QR") }
     }
 
     private fun scheduleDim() {

@@ -215,6 +215,8 @@ licensee {
     // Exactly one artifact: androidx's repackaging of protobuf-javalite, pulled in behind DataStore.
     // Nobody knows this is in the build until the plugin is run — which is the argument for it.
     allow("BSD-3-Clause")
+    // Exactly one artifact: checker-qual's annotations, pulled in behind CameraX (the Mounted camera, ADR-0009).
+    allow("MIT")
     // Google Play services, behind the Play Billing Library (the tip, ADR-0007). Vendor terms rather
     // than an open licence, so the Licences screen links them instead of shipping their text.
     allowUrl("https://developer.android.com/studio/terms.html")
