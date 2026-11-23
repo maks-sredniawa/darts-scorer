@@ -46,7 +46,7 @@ let us do otherwise".">
 | No database | DataStore preferences only; Room and the schema gate return with the first table — ADR-0001's 2026-11-12 amendment |
 | Manual DI via `AppContainer`, **not Hilt** | Constructor injection is clearer at this size and easy to migrate later |
 | Nothing scheduled, nothing posted | No WorkManager, alarms or notifications — ADR-0003's 2026-11-12 amendment |
-| Photo Picker + `TakePicture` intent, **not CameraX** | Far less code; the system camera is fine here |
+| Photo Picker + `TakePicture` for the handheld path; **CameraX for the Mounted camera** only | `CAMERA` is declared, so the handheld path asks for it first — ADR-0009, `phase-G.md` D5 |
 | Coil 3 images | Compose-native, local files only |
 | Play Billing (`tip/`), for the tip only | Unlocks nothing; adds `BILLING`, and its merged `INTERNET` is removed — ADR-0007 |
 | On-device storage only | No backend. Auto Backup, include-only: the preferences, never a photo — ADR-0005 |
@@ -127,6 +127,8 @@ app/src/main/java/<namespace>/
   media/       MediaFiles.kt — the single path for persisting images, kind-aware
   theme/       generated palette, type scale, spacing, the night-mode window half
   scoring/     a Photo in, the Board and its Darts out: the port of ml/'s locate(), on LiteRT
+  camera/      the Mounted camera (ADR-0009): CameraX, the pairing payload, the no-backup pairing
+               store with the role, and the dim rules; its screens are in ui/camera/
   tip/         the tip through Play Billing, held by AppContainer so a purchase finishes after its
                screen is gone, and the rule for its one ask on the home screen (ADR-0007)
   ui/          Compose screens + ViewModels, one package per area; ui/visit/ is the home tab
@@ -136,7 +138,7 @@ app/src/main/java/<namespace>/
 
 app/src/debug/    the developer-only build: Settings' debug section (R2's thread count, the marked
                   Visits kept), the timing line, each marked Visit kept for `darts-ml pull-marked`,
-                  and the debug app name
+                  the camera screen's capture button, and the debug app name
 app/src/release/  only the no-op half of each seam, so main/ can call it unconditionally
 scripts/          the Python toolchain. project.py is the one place the app's identity lives
 ml/               the data tools for ADR-0008's model, a uv project with its own lockfile; code

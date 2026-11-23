@@ -240,6 +240,10 @@ rectilinear, and most phones already correct what is left in their still pipelin
 - CameraX stays bound while the screen is open, so a capture does not wait for the camera to open
   and its exposure to settle. The copy recommends a charger; the drain without one is a reading
   (`phase-G.md`), and the verdict is written before it is taken.
+- *Amended 2026-11-23 (`phase-G.md` §3), under the owner's delegation:* the 30 s starts only after
+  the first capture taken while paired since the camera screen opened, so the screen stays lit while
+  the stand is aimed; typing in the paste field restarts it, and it is paused while the field has
+  focus or the keyboard shows.
 
 ### 11. Permissions, by API level
 

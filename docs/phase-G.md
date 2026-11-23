@@ -287,9 +287,21 @@ your phone*, *Connected*) is a polite live region (`LiveRegionMode.Polite`), so 
 each change without a touch, dimmed or not. No lock on orientation: the
 Photo's rotation is baked in from the display's, so a phone mounted sideways sends an upright Photo.
 
+*Amended 2026-11-23, deciding the screen design's open points under the owner's delegation:* **no
+dimming before the first capture.** The 30 s countdown starts only after the first capture taken while
+paired since the camera screen opened; before it the screen stays lit, because aiming a stand 3 m away
+takes longer than 30 s without a touch. Every change to the paste field restarts the countdown, and it
+is paused while the field has focus or the keyboard shows. Once paired, the camera screen's pairing
+block becomes *Fit the whole Board inside the ring*, *Keep this phone on a charger.* and an
+**Unpair** button with a confirmation; in B, with no link yet, Unpair clears the stored pin. The pairing
+text is `DARTSSCORER:1:<fingerprint>:<token>`, the fingerprint and the token in uppercase hex (64 and
+32 digits), so the QR fits ZXing's alphanumeric mode; the parser drops whitespace and line breaks
+anywhere, since a share target may wrap the line.
+
 **The handheld path (D5).** The first *Take a Photo* on any phone asks for `CAMERA` with a
-line of rationale; granted, `TakePicture` runs as today; denied, phase 1's *No camera app* banner
-becomes *Camera not allowed* with a way to the system settings, and the Picker stays. `PLAN.md`'s
+line of rationale; granted, `TakePicture` runs as today; denied, a *Camera not allowed* banner says so
+with a way to the system settings, and the Picker stays. Phase 1's *No camera app* banner stays beside
+it, for a phone with no camera app at all (corrected 2026-11-23: both notices exist). `PLAN.md`'s
 *Asks* table carries this row from checkpoint 0, with phase 1's *no `CAMERA` permission* row marked
 as replaced by it once B ships.
 
@@ -547,6 +559,8 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
 - **The Darts half of the bar from the mount** waits for the owner to throw again (R8); until then the
   phase can build B to E but not close.
 - **The lens beyond the phone's own correction.** Only if R1 asks for it.
+- **The preview is on the far side from the player.** Aiming means walking to the Mounted camera; a
+  preview on the Player's phone is outside this phase (accepted 2026-11-23).
 
 ## Readings
 
