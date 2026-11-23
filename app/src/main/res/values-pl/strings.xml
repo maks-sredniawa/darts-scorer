@@ -135,6 +135,8 @@
     <string name="camera_role_stop">Zakończ tryb aparatu</string>
     <string name="camera_role_show_preview">Pokaż podgląd</string>
     <string name="camera_role_unavailable">Nie udało się otworzyć aparatu.</string>
+    <string name="camera_role_paired">Sparowano</string>
+    <string name="camera_role_unpaired">Parowanie usunięte</string>
     <string name="settings_data">Dane</string>
     <string name="settings_restore">Przywróć ustawienia domyślne</string>
     <string name="settings_restore_hint">Motyw, kolory i język</string>

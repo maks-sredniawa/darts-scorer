@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.os.Build
 import android.util.Log
+import android.view.Surface
 import androidx.annotation.OptIn
 import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.Camera2Interop
@@ -36,6 +37,28 @@ import kotlin.coroutines.resumeWithException
 /** No back camera this phone has is one a Mounted camera may use. */
 class NoUsableCamera : Exception("No back camera that is not an ultra-wide")
 
+/** What the camera screen needs of the camera, so its rules can be tested without one. */
+interface Rig {
+    var onQrText: ((String) -> Unit)?
+
+    suspend fun bind(
+        owner: LifecycleOwner,
+        displayRotation: Int,
+    )
+
+    fun unbind()
+
+    fun rotate(displayRotation: Int)
+
+    fun showPreviewOn(surface: Preview.SurfaceProvider?)
+
+    fun previewAspect(): Float?
+
+    suspend fun capture(): EncodedPhoto
+
+    fun close()
+}
+
 /**
  * The Mounted camera's CameraX half (ADR-0009, decisions 6 and 7): the main back camera bound with a
  * preview for aiming, an [ImageCapture] taken into memory, and a frame reader for the pairing QR.
@@ -46,20 +69,23 @@ class NoUsableCamera : Exception("No back camera that is not an ultra-wide")
 class CameraRig(
     context: Context,
     private val media: MediaFiles,
-) {
+) : Rig {
     private val appContext = context.applicationContext
     private val frames: ExecutorService = Executors.newSingleThreadExecutor()
     private val preview = Preview.Builder().build()
     private var capture: ImageCapture? = null
+    private var analysis: ImageAnalysis? = null
     private var provider: ProcessCameraProvider? = null
+    private var rotation = Surface.ROTATION_0
 
     /** Called on the frame thread with each QR's text while set. */
-    @Volatile var onQrText: ((String) -> Unit)? = null
+    @Volatile override var onQrText: ((String) -> Unit)? = null
 
-    suspend fun bind(
+    override suspend fun bind(
         owner: LifecycleOwner,
         displayRotation: Int,
     ) {
+        rotation = displayRotation
         val provider = cameraProvider().also { provider = it }
         val backs = provider.availableCameraInfos.filter(::isBack)
         val camera = chooseBackCamera(backs.map { it.fieldOfView() })?.let(backs::get) ?: throw NoUsableCamera()
@@ -67,7 +93,7 @@ class CameraRig(
         val capture =
             ImageCapture
                 .Builder()
-                .setTargetRotation(displayRotation)
+                .setTargetRotation(rotation)
                 .apply {
                     if (corrects) {
                         Camera2Interop.Extender(this).setCaptureRequestOption(
@@ -80,12 +106,14 @@ class CameraRig(
             ImageAnalysis
                 .Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setTargetRotation(rotation)
                 .build()
                 .also { it.setAnalyzer(frames, QrReader { onQrText }) }
-        preview.targetRotation = displayRotation
+        preview.targetRotation = rotation
         provider.unbindAll()
         provider.bindToLifecycle(owner, camera.cameraSelector, preview, capture, analysis)
         this.capture = capture
+        this.analysis = analysis
         Log.i(
             PairingStore.TAG,
             "Bound camera ${Camera2CameraInfo.from(camera).cameraId}, " +
@@ -94,15 +122,28 @@ class CameraRig(
         )
     }
 
-    fun unbind() {
+    override fun unbind() {
         provider?.unbindAll()
         capture = null
+        analysis = null
     }
 
-    fun showPreviewOn(surface: Preview.SurfaceProvider?) = preview.setSurfaceProvider(surface)
+    /**
+     * Follows the display, which a 180° turn moves without recreating the activity, so a phone
+     * mounted the other way up still sends an upright Photo.
+     */
+    override fun rotate(displayRotation: Int) {
+        if (displayRotation == rotation) return
+        rotation = displayRotation
+        preview.targetRotation = displayRotation
+        capture?.targetRotation = displayRotation
+        analysis?.targetRotation = displayRotation
+    }
+
+    override fun showPreviewOn(surface: Preview.SurfaceProvider?) = preview.setSurfaceProvider(surface)
 
     /** The displayed preview's width over its height, once the camera has chosen a resolution. */
-    fun previewAspect(): Float? =
+    override fun previewAspect(): Float? =
         preview.resolutionInfo?.let { info ->
             val width = info.resolution.width.toFloat()
             val height = info.resolution.height.toFloat()
@@ -110,9 +151,9 @@ class CameraRig(
         }
 
     /** One Photo, into memory and out as [MediaFiles.encodeForSending]'s JPEG; nothing is written to disk. */
-    suspend fun capture(): EncodedPhoto {
+    override suspend fun capture(): EncodedPhoto {
         val capture = capture ?: throw IllegalStateException("The camera is not bound")
-        val (jpeg, rotation) =
+        val (jpeg, degrees) =
             suspendCancellableCoroutine { continuation ->
                 capture.takePicture(
                     ContextCompat.getMainExecutor(appContext),
@@ -128,10 +169,10 @@ class CameraRig(
                     },
                 )
             }
-        return media.encodeForSending(jpeg, rotation)
+        return media.encodeForSending(jpeg, degrees)
     }
 
-    fun close() {
+    override fun close() {
         unbind()
         frames.shutdown()
     }

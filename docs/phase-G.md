@@ -285,15 +285,19 @@ preview hides and the window's brightness drops to its lowest, leaving a status 
 position every minute; a touch restores both (ADR-0009, decision 10). That status line (*Waiting for
 your phone*, *Connected*) is a polite live region (`LiveRegionMode.Polite`), so TalkBack announces
 each change without a touch, dimmed or not. No lock on orientation: the
-Photo's rotation is baked in from the display's, so a phone mounted sideways sends an upright Photo.
+Photo's rotation is baked in from the display's, followed while the screen is open (a 180° turn
+included, which recreates nothing), so a phone mounted sideways sends an upright Photo.
 
 *Amended 2026-11-23, deciding the screen design's open points under the owner's delegation:* **no
 dimming before the first capture.** The 30 s countdown starts only after the first capture taken while
 paired since the camera screen opened; before it the screen stays lit, because aiming a stand 3 m away
 takes longer than 30 s without a touch. Every change to the paste field restarts the countdown, and it
-is paused while the field has focus or the keyboard shows. Once paired, the camera screen's pairing
+is paused while the field has focus, the keyboard shows or the Unpair confirmation is open; TalkBack's,
+switch access's and a keyboard's activity counts as a touch. Once paired, the camera screen's pairing
 block becomes *Fit the whole Board inside the ring*, *Keep this phone on a charger.* and an
-**Unpair** button with a confirmation; in B, with no link yet, Unpair clears the stored pin. The pairing
+**Unpair** button with a confirmation; in B, with no link yet, Unpair clears the stored pin. Each swap
+between the two blocks is announced (*Paired*, *Unpaired*) and moves focus to the new block's heading.
+*Stop being a camera* keeps the stored pin on purpose, so taking the role up again needs no new pairing. The pairing
 text is `DARTSSCORER:1:<fingerprint>:<token>`, the fingerprint and the token in uppercase hex (64 and
 32 digits), so the QR fits ZXing's alphanumeric mode; the parser drops whitespace and line breaks
 anywhere, since a share target may wrap the line. *Refusing an ultra-wide* reads each back camera's
