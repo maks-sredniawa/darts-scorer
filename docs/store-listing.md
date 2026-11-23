@@ -189,3 +189,21 @@ The first release.
 ```
 Pierwsze wydanie.
 ```
+
+### 0.3.0 — the camera ask and the camera role
+
+Phase G's checkpoint B: the handheld *Take a Photo* asks for `CAMERA`, and Settings gains the
+Mounted camera row and the camera screen. Pairing with the Player's phone arrives with C, so the note
+says so rather than promise a camera that cannot yet take a Photo for anyone.
+
+**English** — 250/500:
+
+```
+Take a Photo now asks for the camera permission the first time; say no and you can still choose a photo. Settings gains Mounted camera, where a spare phone can be set up as a camera beside the board. Linking it to your phone comes in a later version.
+```
+
+**Polish** — 292/500:
+
+```
+Zrób zdjęcie przy pierwszym użyciu prosi teraz o dostęp do aparatu; po odmowie nadal możesz wybrać zdjęcie. W Ustawieniach pojawia się Aparat przy tarczy, gdzie zapasowy telefon można przygotować jako aparat przy tarczy. Połączenie go z Twoim telefonem pojawi się w jednej z kolejnych wersji.
+```
