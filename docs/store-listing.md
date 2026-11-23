@@ -52,7 +52,7 @@ The line that appears under the name in search results, and the most-read text i
 Take a photo of the board after a visit, and it finds your darts and scores them
 ```
 
-### Full description — 2610/4000
+### Full description — 2630/4000
 
 **No health or safety claims**, here or on any page the listing links to — Play's enforcement reads a
 linked page as part of the listing. Say what the app cannot do instead.
@@ -116,7 +116,7 @@ Darts Scorer
 Zrób zdjęcie tarczy po podejściu, a aplikacja znajdzie rzutki i policzy wynik
 ```
 
-### Full description — 2904/4000
+### Full description — 2928/4000
 
 ```
 Darts Scorer odczytuje wynik podejścia ze zdjęcia tarczy. Po rzutach zrób zdjęcie, a aplikacja znajdzie każdą rzutkę, zaznaczy ją na tarczy i zsumuje podejście, offline, na Twoim telefonie.

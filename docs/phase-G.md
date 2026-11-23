@@ -196,6 +196,10 @@ a player who sets none up meets none of it.
   player's own phones*, with the Mounted camera named beside phase S (ADR-0008's amendment). The
   home page is live at `maksforge.com/darts-scorer/`, so its text stays as it is until C.
 - **The manifest's comment** on `INTERNET`, rewritten for the local link, in C.
+- **The policy's and the listing's *today* lines**, each in the checkpoint that makes it false: B
+  rewrites `privacy-policy.md`'s *Today's version has no camera permission* and `store-listing.md`'s
+  *Today, none to ask for* (EN and PL); C rewrites the policy's *no permission to use the network at
+  all*.
 
 **Acceptance (E):** the policy and the listing read against ADR-0009's decisions 11 to 13 and
 `play-app-content.md`, in one pull request; `python3 scripts/translation-gate.py origin/main` passes;
