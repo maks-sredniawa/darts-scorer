@@ -346,7 +346,7 @@ private fun EmptyVisit(
 }
 
 @Composable
-private fun ReadingPhoto(
+internal fun ReadingPhoto(
     focusRequested: Boolean,
     onFocusPlaced: () -> Unit,
 ) {
@@ -361,7 +361,10 @@ private fun ReadingPhoto(
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier =
-                Modifier.semantics { liveRegion = LiveRegionMode.Polite }.takesFocusWhen(focusRequested, onFocusPlaced),
+                Modifier
+                    .semantics { liveRegion = LiveRegionMode.Polite }
+                    .takesFocusWhen(focusRequested, onFocusPlaced)
+                    .focusableWithRing(),
         )
     }
 }
@@ -390,7 +393,8 @@ private fun Actions(
         enterScore?.let {
             OutlinedButton(
                 onClick = it.onClick,
-                modifier = Modifier.fillMaxWidth().takesFocusWhen(it.focusRequested, it.onFocusPlaced),
+                modifier =
+                    Modifier.fillMaxWidth().takesFocusWhen(it.focusRequested, it.onFocusPlaced).focusableInTouchMode(),
             ) {
                 Text(stringResource(R.string.visit_enter_score))
             }
