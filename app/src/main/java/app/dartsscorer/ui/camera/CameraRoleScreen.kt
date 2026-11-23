@@ -350,6 +350,8 @@ private fun PairingBlock(
     var focused by remember { mutableStateOf(false) }
     val keyboard = WindowInsets.isImeVisible
     LaunchedEffect(focused || keyboard) { viewModel.inputActive(focused || keyboard) }
+    // Pairing removes this block with the field still focused, so the screen must not stay held awake.
+    DisposableEffect(Unit) { onDispose { viewModel.inputActive(false) } }
     val rejected = stringResource(R.string.camera_role_not_a_code)
 
     Text(

@@ -81,6 +81,8 @@ fun DarkAppTheme(
 
 @Composable
 private fun LightBarIconsWhileShown() {
+    // Below 29 the bars keep the theme's light scrim (values/colors.xml), and light icons on it vanish.
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
     val activity = LocalActivity.current ?: return
     val view = LocalView.current
     DisposableEffect(activity, view) {
