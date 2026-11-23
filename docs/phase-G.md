@@ -40,6 +40,10 @@ same pull request as this file:**
 
 ## Decisions for the owner
 
+On 2026-11-23 the owner delegated the day's phase G decisions to the agent ("you making all decisions
+now for today's work"), so the decisions this document marks as taken *under the owner's delegation*
+were taken under it.
+
 ### Decided 2026-11-22, by the owner
 
 | # | Decision | Decided |
@@ -526,11 +530,17 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
   so focus stays on it.
 - **A tap waits up to 5 s for the link** when it is still *Looking for the camera*, the "looks again
   at each tap" of ADR-0009's decision 8, and then fails as *Camera not found*. A camera already *not
-  found*, *Pair again* or on another version fails the tap at once, without asking it.
+  found*, *Pair again* or on another version fails the tap at once, without asking it. The failure
+  line shows only what the chip and its hint do not already say, so that tap adds no repeated line
+  and no assertive announcement of the chip's own words.
 - **The Photo arrives as a camera target** in `cacheDir/camera/` and takes the handheld path from
   there, so the start-up sweep removes one the process died holding.
 - **A linked Photo with no Board is kept as soon as it is read**, as a marked Visit with no Darts;
-  entering its Score later replaces that record, since both are named after the Photo.
+  entering its Score later replaces that record, since both are named after the Photo. It is kept
+  on the Photo's arrival only, never when a restore reads it again, and never over a record already
+  there, which may hold a Score entered since.
+- **A Photo from the Mounted camera moves focus to *Reading the Photo…***, since the button just
+  tapped leaves the screen with the phase (WCAG 2.2, 2.4.3 Focus Order).
 - *Camera not found* and *Pair again* carry their one-line hints under the state chip, the latter
   pointing at Settings' *Mounted camera*.
 
@@ -545,7 +555,8 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
 - TalkBack, on both phones, announces each state as it appears without moving focus: *Looking for
   the camera*, *Connected*, *Camera not found* and *Taking the Photo…* politely, the failure line
   assertively, on the Player's phone; *Waiting for your phone* and *Connected* on the camera screen.
-  Focus stays on *Take with the mounted camera* through a capture, and it reads *Taking the Photo…*.
+  Focus stays on *Take with the mounted camera* through a capture, and it reads *Taking the Photo…*;
+  once the Photo arrives, focus is on *Reading the Photo…*.
 - On the debug build, a paired capture of a scene with no Board leaves a marked Visit in
   `files/marked/` whose `.json` reads `"boardFound": false`; a release build leaves nothing there.
 - On the two real phones: R2 to R6.
