@@ -190,20 +190,20 @@ The first release.
 Pierwsze wydanie.
 ```
 
-### 0.3.0 — the camera ask and the camera role
+### 0.3.0 — the Mounted camera
 
-Phase G's checkpoint B: the handheld *Take a Photo* asks for `CAMERA`, and Settings gains the
-Mounted camera row and the camera screen. Pairing with the Player's phone arrives with C, so the note
-says so rather than promise a camera that cannot yet take a Photo for anyone.
+Phase G's checkpoints B to D: the handheld *Take a Photo* asks for `CAMERA`, and a spare phone set up
+in Settings' *Mounted camera* pairs with the Player's phone and takes the Visit's Photo when the
+player taps. Rewritten in D, where the camera first takes a Photo for anyone.
 
-**English** — 250/500:
-
-```
-Take a Photo now asks for the camera permission the first time; say no and you can still choose a photo. Settings gains Mounted camera, where a spare phone can be set up as a camera beside the board. Linking it to your phone comes in a later version.
-```
-
-**Polish** — 292/500:
+**English** — 329/500:
 
 ```
-Zrób zdjęcie przy pierwszym użyciu prosi teraz o dostęp do aparatu; po odmowie nadal możesz wybrać zdjęcie. W Ustawieniach pojawia się Aparat przy tarczy, gdzie zapasowy telefon można przygotować jako aparat przy tarczy. Połączenie go z Twoim telefonem pojawi się w jednej z kolejnych wersji.
+Take a Photo now asks for the camera permission the first time; say no and you can still choose a photo. New in Settings: Mounted camera. Set up a spare phone on a stand by the board, pair it with your phone once, then tap Take with the mounted camera after a visit. The photo goes only to your phone, encrypted, over your Wi-Fi.
+```
+
+**Polish** — 370/500:
+
+```
+Zrób zdjęcie przy pierwszym użyciu prosi teraz o dostęp do aparatu; po odmowie nadal możesz wybrać zdjęcie. Nowość w Ustawieniach: Aparat przy tarczy. Postaw zapasowy telefon na statywie przy tarczy, sparuj go raz ze swoim telefonem i po podejściu stuknij Zrób zdjęcie aparatem przy tarczy. Zdjęcie trafia tylko do twojego telefonu, zaszyfrowane, przez twoją sieć Wi-Fi.
 ```

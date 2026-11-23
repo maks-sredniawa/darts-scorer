@@ -518,6 +518,22 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
 | *Camera not found* | *Is the camera on the same Wi-Fi, with its screen open? Guest networks can keep phones apart; your phone's hotspot works instead* |
 | Protocol versions differ | *Update Darts Scorer on both phones* |
 
+*Amended 2026-11-23, deciding D's open points under the owner's delegation:*
+
+- **With a camera paired, *Take with the mounted camera* is the screen's main button** and the
+  handheld one becomes an outlined *Take a Photo* in every phase, *Next Visit* included, so nothing
+  labelled *Next Visit* opens the system camera. After a failure the same button reads *Try again*,
+  so focus stays on it.
+- **A tap waits up to 5 s for the link** when it is still *Looking for the camera*, the "looks again
+  at each tap" of ADR-0009's decision 8, and then fails as *Camera not found*. A camera already *not
+  found*, *Pair again* or on another version fails the tap at once, without asking it.
+- **The Photo arrives as a camera target** in `cacheDir/camera/` and takes the handheld path from
+  there, so the start-up sweep removes one the process died holding.
+- **A linked Photo with no Board is kept as soon as it is read**, as a marked Visit with no Darts;
+  entering its Score later replaces that record, since both are named after the Photo.
+- *Camera not found* and *Pair again* carry their one-line hints under the state chip, the latter
+  pointing at Settings' *Mounted camera*.
+
 **Acceptance (D):**
 
 - On two emulators: a paired capture scores a Visit; the Visit count the tip reads goes up once
