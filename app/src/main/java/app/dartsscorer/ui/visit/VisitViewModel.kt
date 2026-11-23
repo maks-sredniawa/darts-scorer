@@ -46,7 +46,6 @@ enum class CameraFailure { NoReply, Lost, NotFound, PairAgain, Outdated, Busy, N
 /** The Mounted camera on the Visit screen; absent while none is paired. */
 data class MountedCameraUi(
     val link: PlayerLinkState = PlayerLinkState.LOOKING,
-    /** A capture is in flight: the button stays focusable and ignores taps until it ends. */
     val capturing: Boolean = false,
     val failure: CameraFailure? = null,
 )
@@ -184,7 +183,6 @@ class VisitViewModel(
         linking = null
     }
 
-    /** *Take with the mounted camera*; a tap while one is in flight is ignored (`phase-G.md` §5). */
     fun takeWithMountedCamera() {
         if (capture.value.capturing) return
         capture.value = MountedCameraUi(capturing = true)
@@ -238,7 +236,13 @@ class VisitViewModel(
         val before = visit.value.phase.takeUnless { it == VisitPhase.Reading } ?: VisitPhase.Empty
         val ended = marked(before)
         visit.update {
-            it.copy(phase = VisitPhase.Reading, notice = null, keypad = null, removed = null, focus = null)
+            it.copy(
+                phase = VisitPhase.Reading,
+                notice = null,
+                keypad = null,
+                removed = null,
+                focus = if (linked) VisitFocus.Reading else null,
+            )
         }
         arriving =
             viewModelScope.launch {
@@ -253,19 +257,18 @@ class VisitViewModel(
                     }
                 withContext(io) { cameraTarget?.let(photos::discardCameraTarget) }
                 if (photo == null) {
-                    visit.update { it.copy(phase = before, notice = VisitNotice.Unreadable) }
+                    visit.update { it.copy(phase = before, notice = VisitNotice.Unreadable, focus = null) }
                     return@launch
                 }
                 val previous = saved.get<String>(PHOTO)
                 saved[PHOTO] = photo
-                saved[LINKED] = linked
                 previous?.let { old ->
                     withContext(io) {
                         ended?.let { (shown, removed) -> photos.keep(shown, removed) }
                         photos.delete(old)
                     }
                 }
-                show(photo)
+                show(photo, keepNoBoard = linked)
             }
     }
 
@@ -411,17 +414,21 @@ class VisitViewModel(
 
     fun focusPlaced() = visit.update { it.copy(focus = null) }
 
-    private suspend fun show(photo: String) {
+    /** [keepNoBoard] never on a restore: the record kept on arrival may hold a Score entered since. */
+    private suspend fun show(
+        photo: String,
+        keepNoBoard: Boolean = false,
+    ) {
         val reading = readOrNull(photo)
         if (reading == null) {
             forget(photo)
-            visit.update { it.copy(phase = VisitPhase.Empty, notice = VisitNotice.Unreadable) }
+            visit.update { it.copy(phase = VisitPhase.Empty, notice = VisitNotice.Unreadable, focus = null) }
             return
         }
         val phase = phaseOf(photos.resolve(photo), reading)
         readDarts = (phase as? VisitPhase.Scored)?.darts.orEmpty()
-        visit.update { it.copy(phase = phase) }
-        if (phase is VisitPhase.NoBoard && saved.get<Boolean>(LINKED) == true) {
+        visit.update { it.copy(phase = phase, focus = null) }
+        if (phase is VisitPhase.NoBoard && keepNoBoard) {
             withContext(io) { photos.keepNoBoard(phase) }
         }
         if (phase is VisitPhase.Scored) preferences.incrementVisitsScored(photo)
@@ -463,7 +470,6 @@ class VisitViewModel(
     companion object {
         internal const val PHOTO = "photo"
         internal const val CAMERA = "camera"
-        internal const val LINKED = "linked"
 
         /** How long a tap waits for the link to come up before saying why it did not (ADR-0009, decision 8). */
         internal const val CONNECT_WAIT_MILLIS = 5_000L

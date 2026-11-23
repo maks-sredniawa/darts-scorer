@@ -550,7 +550,7 @@ class VisitViewModelTest {
 
     @Test
     fun `a Photo from the mounted camera takes the handheld path and is counted once`() {
-        runBlocking { pairing.pinCamera("AB".repeat(32)) }
+        runBlocking { pairing.pinCamera(PIN) }
         link.state.value = PlayerLinkState.CONNECTED
         photos.next = board()
         val visit = viewModel()
@@ -566,7 +566,7 @@ class VisitViewModelTest {
 
     @Test
     fun `a second tap while a capture is in flight is ignored`() {
-        runBlocking { pairing.pinCamera("AB".repeat(32)) }
+        runBlocking { pairing.pinCamera(PIN) }
         link.state.value = PlayerLinkState.CONNECTED
         link.hold = CompletableDeferred()
         val visit = viewModel()
@@ -579,7 +579,7 @@ class VisitViewModelTest {
 
     @Test
     fun `a capture that fails says why and leaves the Visit as it was`() {
-        runBlocking { pairing.pinCamera("AB".repeat(32)) }
+        runBlocking { pairing.pinCamera(PIN) }
         link.state.value = PlayerLinkState.CONNECTED
         link.failure = CaptureFailed(CaptureFailure.TIMED_OUT)
         val visit = viewModel()
@@ -594,7 +594,7 @@ class VisitViewModelTest {
 
     @Test
     fun `a camera not found fails the tap without asking it`() {
-        runBlocking { pairing.pinCamera("AB".repeat(32)) }
+        runBlocking { pairing.pinCamera(PIN) }
         link.state.value = PlayerLinkState.NOT_FOUND
         val visit = viewModel()
         visit.takeWithMountedCamera()
@@ -604,7 +604,7 @@ class VisitViewModelTest {
 
     @Test
     fun `a linked Photo with no Board is kept for the gate, and a handheld one is not`() {
-        runBlocking { pairing.pinCamera("AB".repeat(32)) }
+        runBlocking { pairing.pinCamera(PIN) }
         link.state.value = PlayerLinkState.CONNECTED
         photos.next = PhotoReading(800, 600, Located(null))
         val visit = viewModel()
@@ -614,6 +614,90 @@ class VisitViewModelTest {
         visit.photoChosen("content://picked/1")
         visit.stateWhen { it.phase is VisitPhase.NoBoard }
         assertEquals(1, photos.keptNoBoard.size)
+    }
+
+    @Test
+    fun `a linked Photo with no Board restored after process death is not kept again`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        link.state.value = PlayerLinkState.CONNECTED
+        photos.next = PhotoReading(800, 600, Located(null))
+        val saved = SavedStateHandle()
+        viewModel(saved).apply {
+            takeWithMountedCamera()
+            stateWhen { it.phase is VisitPhase.NoBoard }
+        }
+        viewModel(SavedStateHandle(saved.keys().associateWith { saved.get<Any>(it) }))
+            .stateWhen { it.phase is VisitPhase.NoBoard }
+        assertEquals(1, photos.keptNoBoard.size)
+    }
+
+    @Test
+    fun `a tap on a link still looking waits for it and takes the Photo once it connects`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        photos.next = board()
+        val visit = viewModel()
+        visit.takeWithMountedCamera()
+        dispatcher.scheduler.advanceTimeBy(VisitViewModel.CONNECT_WAIT_MILLIS - 1)
+        assertEquals(0, link.captures)
+        link.state.value = PlayerLinkState.CONNECTED
+        visit.scored()
+        assertEquals(1, link.captures)
+        assertNull(visit.stateWhen { it.camera?.capturing == false }.camera!!.failure)
+    }
+
+    @Test
+    fun `a link still looking after the wait fails the tap as not found without asking the camera`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        val visit = viewModel()
+        visit.takeWithMountedCamera()
+        dispatcher.scheduler.advanceTimeBy(VisitViewModel.CONNECT_WAIT_MILLIS + 1)
+        assertEquals(CameraFailure.NotFound, visit.stateWhen { it.camera?.failure != null }.camera!!.failure)
+        assertEquals(0, link.captures)
+    }
+
+    @Test
+    fun `a link that wants pairing again or is outdated fails the tap with that reason`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        val visit = viewModel()
+        mapOf(
+            PlayerLinkState.PAIR_AGAIN to CameraFailure.PairAgain,
+            PlayerLinkState.OUTDATED to CameraFailure.Outdated,
+        ).forEach { (state, failure) ->
+            link.state.value = state
+            visit.takeWithMountedCamera()
+            assertEquals(failure, visit.stateWhen { it.camera?.failure == failure }.camera!!.failure)
+        }
+        assertEquals(0, link.captures)
+    }
+
+    @Test
+    fun `the link runs to the paired camera from start to stop, once`() {
+        val visit = viewModel()
+        visit.startLink()
+        assertTrue(link.runs.isEmpty())
+        runBlocking { pairing.pinCamera(PIN) }
+        visit.startLink()
+        assertEquals(listOf(PIN), link.runs)
+        assertEquals(1, link.running)
+        visit.stopLink()
+        assertEquals(0, link.running)
+    }
+
+    @Test
+    fun `a Photo from the mounted camera asks for focus on the reading, and a handheld one does not`() {
+        runBlocking { pairing.pinCamera(PIN) }
+        link.state.value = PlayerLinkState.CONNECTED
+        photos.next = board()
+        val io = StandardTestDispatcher()
+        val visit = VisitViewModel(preferences, pairing, tipJar, Instant.EPOCH, photos, SavedStateHandle(), link, io)
+        io.scheduler.advanceUntilIdle()
+        visit.takeWithMountedCamera()
+        assertEquals(VisitFocus.Reading, visit.stateWhen { it.phase == VisitPhase.Reading }.focus)
+        io.scheduler.advanceUntilIdle()
+        assertNull(visit.stateWhen { it.phase is VisitPhase.Scored }.focus)
+        visit.photoChosen("content://picked/1")
+        assertNull(visit.stateWhen { it.phase == VisitPhase.Reading }.focus)
+        io.scheduler.advanceUntilIdle()
     }
 
     private fun board(vararg darts: FoundDart) = PhotoReading(800, 800, Located(BOARD, darts = darts.toList()))
@@ -681,8 +765,18 @@ class VisitViewModelTest {
         var captures = 0
         var failure: CaptureFailed? = null
         var hold: CompletableDeferred<Unit>? = null
+        val runs = mutableListOf<String>()
+        var running = 0
 
-        override suspend fun run(pin: String) = awaitCancellation()
+        override suspend fun run(pin: String) {
+            runs += pin
+            running++
+            try {
+                awaitCancellation()
+            } finally {
+                running--
+            }
+        }
 
         override suspend fun capture(): ReceivedPhoto {
             captures++
@@ -708,6 +802,8 @@ class VisitViewModelTest {
     }
 
     private companion object {
+        val PIN = "AB".repeat(32)
+
         /** Photo pixels to Board millimetres: the bull at (400, 400), 2 px a millimetre, y flipped. */
         val BOARD = Homography(doubleArrayOf(0.5, 0.0, -200.0, 0.0, -0.5, 200.0, 0.0, 0.0, 1.0))
     }

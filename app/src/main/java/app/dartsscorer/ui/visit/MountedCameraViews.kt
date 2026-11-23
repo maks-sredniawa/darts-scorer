@@ -26,11 +26,6 @@ import app.dartsscorer.R
 import app.dartsscorer.link.PlayerLinkState
 import app.dartsscorer.theme.Spacing
 
-/**
- * The Mounted camera's half of the Visit screen's actions (`phase-G.md` §5): its state, the failure
- * of the last try, and *Take with the mounted camera*, which stays enabled through a capture so
- * TalkBack's focus never sits on a control that has just been disabled.
- */
 @Composable
 fun MountedCameraActions(
     camera: MountedCameraUi,
@@ -43,7 +38,7 @@ fun MountedCameraActions(
             PlayerLinkState.PAIR_AGAIN -> Hint(R.string.visit_camera_pair_again_hint)
             else -> Unit
         }
-        camera.failure?.let { failure ->
+        camera.failure?.takeUnless { it.saidBy(camera.link) }?.let { failure ->
             Text(
                 stringResource(failure.message()),
                 style = MaterialTheme.typography.bodyMedium,
@@ -52,6 +47,7 @@ fun MountedCameraActions(
             )
         }
         val taking = stringResource(R.string.visit_taking_photo)
+        // Left enabled while capturing, so TalkBack's focus never sits on a control just disabled.
         Button(
             onClick = onTake,
             modifier =
@@ -118,6 +114,14 @@ private fun PlayerLinkState.label(): Int =
         PlayerLinkState.NOT_FOUND -> R.string.link_not_found
         PlayerLinkState.PAIR_AGAIN -> R.string.link_pair_again
         PlayerLinkState.OUTDATED -> R.string.link_outdated
+    }
+
+private fun CameraFailure.saidBy(link: PlayerLinkState): Boolean =
+    when (this) {
+        CameraFailure.NotFound -> link == PlayerLinkState.NOT_FOUND
+        CameraFailure.PairAgain -> link == PlayerLinkState.PAIR_AGAIN
+        CameraFailure.Outdated -> link == PlayerLinkState.OUTDATED
+        else -> false
     }
 
 @StringRes

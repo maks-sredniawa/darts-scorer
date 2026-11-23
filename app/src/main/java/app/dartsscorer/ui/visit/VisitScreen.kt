@@ -185,7 +185,7 @@ fun VisitScreen(
         val details: @Composable ColumnScope.() -> Unit = {
             when (phase) {
                 VisitPhase.Empty -> EmptyVisit(state.showTipAsk, viewModel::answerTipAsk, onOpenSupport)
-                VisitPhase.Reading -> ReadingPhoto()
+                VisitPhase.Reading -> ReadingPhoto(state.focus == VisitFocus.Reading, viewModel::focusPlaced)
                 is VisitPhase.NoBoard -> NoBoardBanner(phase)
                 is VisitPhase.Shown ->
                     ShownDetails(
@@ -346,7 +346,10 @@ private fun EmptyVisit(
 }
 
 @Composable
-private fun ReadingPhoto() {
+private fun ReadingPhoto(
+    focusRequested: Boolean,
+    onFocusPlaced: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = Spacing.block),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -357,7 +360,8 @@ private fun ReadingPhoto() {
             text = stringResource(R.string.visit_reading),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            modifier =
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite }.takesFocusWhen(focusRequested, onFocusPlaced),
         )
     }
 }

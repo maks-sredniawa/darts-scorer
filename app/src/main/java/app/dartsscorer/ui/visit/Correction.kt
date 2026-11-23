@@ -204,4 +204,6 @@ sealed interface VisitFocus {
     data object AddDart : VisitFocus
 
     data object EnterScore : VisitFocus
+
+    data object Reading : VisitFocus
 }

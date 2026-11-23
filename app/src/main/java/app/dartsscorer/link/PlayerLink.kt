@@ -62,7 +62,6 @@ class CaptureFailed(
 interface CameraLink {
     val state: StateFlow<PlayerLinkState>
 
-    /** Keeps the link to the camera pinned as [pin] up until cancelled. */
     suspend fun run(pin: String)
 
     /** One Photo from the connected camera, or [CaptureFailed]. */
