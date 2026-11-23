@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.0](https://github.com/maks-sredniawa/darts-scorer/compare/v0.2.1...v0.3.0) (2026-11-23)
+
+
+### Features
+
+* add the Mounted camera's camera role and the handheld camera ask ([0107d05](https://github.com/maks-sredniawa/darts-scorer/commit/0107d05e4b226ada0455e836b7db3f28782367fc))
+* expect CAMERA and the optional camera features in the bundle, and test the pairing payload, store and dim timer ([4776e71](https://github.com/maks-sredniawa/darts-scorer/commit/4776e71262dc2108fe20e2da55935e7a550055f3))
+* leave the camera's frames unread once paired ([1d431a1](https://github.com/maks-sredniawa/darts-scorer/commit/1d431a1786403303abe7511f0b933fb919f22e9d))
+* pair the two phones and link them over pinned TLS (phase G, C) ([4a55abe](https://github.com/maks-sredniawa/darts-scorer/commit/4a55abee1359fb0b265b8c74b4fa66608110d4c2))
+* take the Photo with the mounted camera and score it like a handheld one (phase G, D) ([9f54638](https://github.com/maks-sredniawa/darts-scorer/commit/9f546381321b7f318a03f6e33847416fd08658ae))
+* take the Visit's Photo with the mounted camera and score it as a handheld one ([9f54638](https://github.com/maks-sredniawa/darts-scorer/commit/9f546381321b7f318a03f6e33847416fd08658ae))
+
+
+### Bug Fixes
+
+* dim after pairing from a focused field, disarm on unpair, use a phone's only back camera, and keep bar icons readable below Android 10 ([3c253a9](https://github.com/maks-sredniawa/darts-scorer/commit/3c253a9208177432e1f0165d1ce376055eec1d00))
+* drop a failure read from the link's state once the chip moves on, so a stale Pair again leaves no line under Camera not found ([9f54638](https://github.com/maks-sredniawa/darts-scorer/commit/9f546381321b7f318a03f6e33847416fd08658ae))
+* follow a 180° turn in the camera's rotation, count TalkBack and keyboard use and the Unpair dialog as activity, and announce pairing changes with focus on the new heading ([081154e](https://github.com/maks-sredniawa/darts-scorer/commit/081154eaa56ec6644e37e1de5abec840fc558de0))
+* keep a linked no-Board Photo only on arrival, say a failure only when the chip does not, and move focus to the reading after a mounted capture ([9f54638](https://github.com/maks-sredniawa/darts-scorer/commit/9f546381321b7f318a03f6e33847416fd08658ae))
+* keep the pairing code's text in the field's own state, so fast input is not reordered ([ab7082a](https://github.com/maks-sredniawa/darts-scorer/commit/ab7082aa5c38a31ff202122d211d2f02877a624a))
+* make the Reading a focus target with a ring, so focus lands on it after a mounted capture ([3114576](https://github.com/maks-sredniawa/darts-scorer/commit/3114576949cc7a5d2d66ce87187a23f9a8875824))
+* **ml:** leave a gate session's Visits out of evaluate-marked, and read only gate sessions through --session ([ff3fc16](https://github.com/maks-sredniawa/darts-scorer/commit/ff3fc16200c3fbca3d382beddd5b626832986e16))
+* record the camera-role CAMERA ask, so a permanent denial there sends Take a Photo straight to the banner ([0926a94](https://github.com/maks-sredniawa/darts-scorer/commit/0926a944fb7f445e4eee2ccf63edd66d922909a8))
+* say the Photo could not be saved on this phone when writing it fails, and match the Polish capture line to the reading one ([fbbc9ef](https://github.com/maks-sredniawa/darts-scorer/commit/fbbc9ef86bfe26c8d6b337a7186fd5b44cd62342))
+* state the no-Board keep rule once, at its guard, and point to phase-G §5 elsewhere ([283e3db](https://github.com/maks-sredniawa/darts-scorer/commit/283e3db4292c81d0397a8ec3def912ea92af9d61))
+
 ## [0.2.1](https://github.com/maks-sredniawa/darts-scorer/compare/v0.2.0...v0.2.1) (2026-11-22)
 
 
