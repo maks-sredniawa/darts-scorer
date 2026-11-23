@@ -10,6 +10,7 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.annotation.StringRes
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -40,6 +41,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -75,6 +79,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -105,11 +110,13 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.dartsscorer.R
 import app.dartsscorer.camera.DimSlot
+import app.dartsscorer.link.CameraLinkState
 import app.dartsscorer.theme.DarkAppTheme
 import app.dartsscorer.theme.Spacing
 import app.dartsscorer.ui.appViewModelExtras
@@ -144,6 +151,10 @@ fun CameraRoleScreen(
     val scope = rememberCoroutineScope()
 
     BackHandler { activity?.finish() }
+    LifecycleStartEffect(viewModel) {
+        viewModel.startLink()
+        onStopOrDispose { viewModel.stopLink() }
+    }
     KeepScreenOn()
     DimmedWindow(state.dimmed)
 
@@ -186,7 +197,7 @@ fun CameraRoleScreen(
                     },
         ) {
             if (state.dimmed) {
-                Dimmed(state.slot, viewModel::wake)
+                Dimmed(state.link, state.slot, viewModel::wake)
             } else {
                 val controls: @Composable (Modifier) -> Unit = { modifier ->
                     ControlPane(state, granted, viewModel, stop, modifier)
@@ -340,7 +351,7 @@ private fun ControlPane(
 
     Surface(color = MaterialTheme.colorScheme.surface, modifier = modifier) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(Spacing.base)) {
-            Status(state.paired.takeIf { state.pairingSwaps > 0 })
+            Status(state.link, state.paired.takeIf { state.pairingSwaps > 0 })
             if (!granted) {
                 NoticeBanner(
                     stringResource(R.string.camera_denied_title),
@@ -369,13 +380,17 @@ private fun ControlPane(
                 Text(stringResource(R.string.camera_role_stop))
             }
             DebugCapture(viewModel::capture)
+            DebugCameraLink()
         }
     }
 }
 
 /** [pairedChange] is set once pairing has changed on this screen, so the live region speaks it. */
 @Composable
-private fun Status(pairedChange: Boolean?) {
+private fun Status(
+    link: CameraLinkState,
+    pairedChange: Boolean?,
+) {
     val change =
         when (pairedChange) {
             true -> stringResource(R.string.camera_role_paired)
@@ -391,10 +406,25 @@ private fun Status(pairedChange: Boolean?) {
                 if (change != null) stateDescription = change
             },
     ) {
-        Icon(painterResource(R.drawable.ic_hourglass_empty), contentDescription = null)
-        Text(stringResource(R.string.camera_role_waiting), style = MaterialTheme.typography.titleMedium)
+        val icon =
+            when (link) {
+                CameraLinkState.WAITING -> painterResource(R.drawable.ic_hourglass_empty)
+                CameraLinkState.CONNECTED -> rememberVectorPainter(Icons.Filled.CheckCircle)
+                CameraLinkState.PAIR_AGAIN, CameraLinkState.OUTDATED -> rememberVectorPainter(Icons.Filled.Warning)
+            }
+        Icon(icon, contentDescription = null)
+        Text(stringResource(link.label()), style = MaterialTheme.typography.titleMedium)
     }
 }
+
+@StringRes
+private fun CameraLinkState.label(): Int =
+    when (this) {
+        CameraLinkState.WAITING -> R.string.camera_role_waiting
+        CameraLinkState.CONNECTED -> R.string.link_connected
+        CameraLinkState.PAIR_AGAIN -> R.string.link_pair_again
+        CameraLinkState.OUTDATED -> R.string.link_outdated
+    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -536,6 +566,7 @@ private fun PairedBlock(
 /** Only the status line, moving between slots so an OLED panel does not burn in; a touch wakes it. */
 @Composable
 private fun Dimmed(
+    link: CameraLinkState,
     slot: DimSlot,
     onWake: () -> Unit,
 ) {
@@ -558,7 +589,7 @@ private fun Dimmed(
                 .padding(Spacing.base),
     ) {
         Text(
-            stringResource(R.string.camera_role_waiting),
+            stringResource(link.label()),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier =

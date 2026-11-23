@@ -6,8 +6,10 @@ is unsure of is marked *Check* for you to correct. Combining photos taken from s
 for another only when a dart is hidden or unclear, is phase 2 of [`docs/PLAN.md`](docs/PLAN.md) and
 not built yet.
 
-The photos never leave the phone unless the player chooses to share one, from version 1.0
-(`docs/PLAN.md`, phase S): finding the board and the darts runs on the device, offline. Free, no
+The photos never leave the player's own phones: a Mounted camera, a spare phone on a stand that
+takes the photo, sends it only to the player's phone, over the home Wi-Fi and encrypted. The one
+exception is a photo the player chooses to share, from version 1.0 (`docs/PLAN.md`, phase S).
+Finding the board and the darts runs on the device, offline. Free, no
 ads, no account.
 
 ## Status

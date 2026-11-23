@@ -27,24 +27,36 @@ that carries it:
 
 > 4 permissions, all accounted for; none of the 5 forbidden ones present; 2 <uses-feature> declared; 0 of the 4 activities lock their orientation, every one of them expected
 
+From phase G's checkpoint C (2026-11-23), read off a local `bundleRelease` the same way:
+
+> 6 permissions, all accounted for; none of the 12 forbidden ones present; 2 <uses-feature> declared; 0 of the 4 activities lock their orientation, every one of them expected; no datatransport backend
+
 | Permission | Whose | What it is for | Console consequence |
 | --- | --- | --- | --- |
 | `CAMERA` | ours, the manifest (ADR-0009, decision 11) | the Mounted camera's CameraX captures; once declared, the handheld *Take a Photo*'s system camera intent needs it too, so that path asks first (`phase-G.md` D5) | none: not on Play's declaration list. The listing's *PERMISSIONS* block names it |
-| `ACCESS_NETWORK_STATE` | Play Billing's `datatransport` | read before its (blocked) log upload; it opens nothing | none, but a reviewer may ask why an app with no network reads it — this row is the answer |
+| `INTERNET` | ours, the manifest (ADR-0009, decisions 3 and 12) | the Mounted camera's link: a pinned TLS socket from the Player's phone to its paired camera on the same Wi-Fi, never to a server. The local-peer check and the pinned TLS keep it there | none: normal, not on Play's declaration list. Data safety stays *No data collected* on the end-to-end-encryption exemption (below) |
+| `CHANGE_WIFI_MULTICAST_STATE` | ours, the manifest (ADR-0009, decision 2) | the `MulticastLock` NSD needs below T extensions 7, taken only there and only while NSD runs | none: normal, granted at install |
+| `ACCESS_NETWORK_STATE` | ours, the manifest; Play Billing merges it too | the link connects through the Wi-Fi network the camera was found on; billing reads connectivity state | none |
 | `com.android.vending.BILLING` | Play Billing Library | the tip (ADR-0007): IPC to the Play app's billing service | none: not on Play's declaration list. The listing shows *Contains in-app purchases* once products exist |
 | `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AndroidX | its own non-exported receivers, signature-level | none: not user-visible |
 
-The billing library's `datatransport` dependency merges `INTERNET`; the manifest removes it with
-`tools:node="remove"`, and the gate is what proves it stayed out. It merges `ACCESS_NETWORK_STATE`
-too, and is that row's only owner, so the row goes with the tip.
+The billing library's `datatransport` would send its usage logging over `INTERNET`. Its only
+backend, `transport-backend-cct`, is excluded in `app/build.gradle.kts` (ADR-0009, decision 12), and
+the gate fails on any `backend:` meta-data entry in the artifact, so a dependency bump that brings
+one back cannot ship. Until phase G's checkpoint C the manifest removed the merged `INTERNET`
+instead.
 
 **Features**: `android.hardware.camera` and `android.hardware.camera.autofocus`, both declared at
 `required="false"` with `CAMERA`, which would otherwise imply them as required and hide the app from
 every phone without a camera (ADR-0009, decision 11). A required one fails the gate.
 
-**Forbidden, and asserted absent**: `INTERNET`, `AD_ID`, `QUERY_ALL_PACKAGES`,
-`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `USE_EXACT_ALARM`. The first two are what the Data
-safety and advertising-ID answers rest on. `CAMERA` left the list in phase G's checkpoint B.
+**Forbidden, and asserted absent**: `AD_ID`, `QUERY_ALL_PACKAGES`,
+`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `USE_EXACT_ALARM`, `NEARBY_WIFI_DEVICES`,
+`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`,
+`BLUETOOTH_ADVERTISE`, `ACCESS_LOCAL_NETWORK` (until target SDK 37) and `FOREGROUND_SERVICE_CAMERA`.
+`AD_ID` is what the advertising-ID answer rests on; the location, nearby-devices and Bluetooth ones
+are what NSD on the Wi-Fi does without (ADR-0009, decision 2). `CAMERA` left the list in phase G's
+checkpoint B, and `INTERNET` in checkpoint C.
 
 ---
 
@@ -130,8 +142,8 @@ badge claimed.
 **The Mounted camera keeps that answer** (ADR-0009, decision 13; the owner's choice, `phase-G.md` D7),
 so nothing is re-submitted in the Console when its build ships. The reasoning below is written for the
 app as it will be once phase G's checkpoints B to D ship, one release ahead of them (`phase-G.md` D6).
-Until the build that declares `INTERNET`, point 1's older and stronger fact still holds as well: the
-artifact carries no `INTERNET` at all (the table above).
+From phase G's checkpoint C the artifact declares `INTERNET` (the table above), so point 1 rests on
+the reasoning below alone; the builds before it carried no `INTERNET` at all.
 
 Play's definitions, from its Data safety help page (support.google.com, answer 10787469) — re-read
 them at each re-declaration rather than trusting this quote:

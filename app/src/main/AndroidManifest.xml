@@ -3,13 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        The Play Billing Library (the tip, ADR-0007) depends on Google's `datatransport`, whose
-        manifest merges INTERNET for the library's own usage logging. Billing never needs it: a
-        purchase is an IPC call to the Play Store app, which does the networking in its own process.
-        Removed here so the logging has no route off the phone and the privacy policy stays true.
-        It also merges ACCESS_NETWORK_STATE, which stays.
+        The link between the player's two phones (ADR-0009, decisions 2 and 11): a TLS socket from the
+        Player's phone to its paired Mounted camera on the same Wi-Fi, found by NSD, never to a server.
+        Code, not this permission, keeps it local: the local-peer check and the pinned TLS. The Play
+        Billing Library's datatransport would use INTERNET for its usage logging; its only backend is
+        excluded in Gradle, so that logging still has no route off the phone (decision 12).
+        ACCESS_NETWORK_STATE picks the Wi-Fi network to connect through; CHANGE_WIFI_MULTICAST_STATE
+        takes the MulticastLock NSD needs below T extensions 7.
     -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <!--
         The Mounted camera's captures through CameraX (ADR-0009, decision 11). Once declared, the

@@ -80,10 +80,10 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_mounted_camera),
                 subtitle =
                     stringResource(
-                        if (state.cameraRole) {
-                            R.string.settings_mounted_camera_role
-                        } else {
-                            R.string.settings_mounted_camera_off
+                        when {
+                            state.cameraRole -> R.string.settings_mounted_camera_role
+                            state.cameraPaired -> R.string.settings_mounted_camera_paired
+                            else -> R.string.settings_mounted_camera_off
                         },
                     ),
                 target = LinkTarget.Inside,

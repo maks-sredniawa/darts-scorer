@@ -11,10 +11,20 @@ import app.dartsscorer.camera.CameraRig
 import app.dartsscorer.camera.PairingStore
 import app.dartsscorer.camera.pairingStoreFile
 import app.dartsscorer.data.AppPreferences
+import app.dartsscorer.link.CameraFinder
+import app.dartsscorer.link.CameraServer
+import app.dartsscorer.link.LinkDebug
+import app.dartsscorer.link.LinkIdentity
+import app.dartsscorer.link.MulticastHold
+import app.dartsscorer.link.PlayerLink
 import app.dartsscorer.media.MediaFiles
 import app.dartsscorer.tip.TipJar
 import app.dartsscorer.ui.visit.DeviceVisitPhotos
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.time.Instant
 
 /**
@@ -59,6 +69,41 @@ class AppContainer(
 
     /** One per camera screen: it binds to that screen's lifecycle. */
     fun cameraRig() = CameraRig(appContext, media)
+
+    private val identityLock = Mutex()
+    private var identity: LinkIdentity? = null
+
+    /** This phone's Keystore key for the link (ADR-0009, decision 4), made on first use. */
+    suspend fun linkIdentity(): LinkIdentity =
+        identityLock.withLock {
+            identity ?: withContext(Dispatchers.IO) { LinkIdentity.load() }.also { identity = it }
+        }
+
+    private fun multicastHold() = MulticastHold(appContext) { LinkDebug.skipMulticastLock.value }
+
+    /**
+     * One for the app, so the screens that talk to the Mounted camera share one connection and one
+     * state; it runs only while a screen collects it, and the last screen to start it has it.
+     */
+    val playerLink by lazy {
+        PlayerLink(
+            ::linkIdentity,
+            CameraFinder(appContext, multicastHold()),
+            BuildConfig.VERSION_NAME,
+            LinkDebug.target,
+            LinkDebug.ACCEPTS_LOOPBACK,
+        )
+    }
+
+    /** One per camera screen: it listens only while that screen is in front. */
+    fun cameraServer() =
+        CameraServer(
+            appContext,
+            ::linkIdentity,
+            pairing,
+            BuildConfig.VERSION_NAME,
+            LinkDebug.ACCEPTS_LOOPBACK,
+        ) { LinkDebug.skipMulticastLock.value }
 
     /** Holds the model, so it outlives the Visit screen and is mapped only when the first Photo needs it. */
     val visitPhotos by lazy { DeviceVisitPhotos(appContext, media) }

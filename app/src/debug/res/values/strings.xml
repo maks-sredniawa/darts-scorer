@@ -24,6 +24,11 @@
         <item quantity="other">%1$d threads per Photo read</item>
     </plurals>
     <string name="debug_capture" translatable="false">Capture a Photo (debug, logs it)</string>
+    <string name="debug_skip_multicast_lock" translatable="false">Skip the MulticastLock (R2)</string>
+    <string name="debug_skip_multicast_lock_hint" translatable="false">Takes effect the next time the camera screen opens</string>
+    <string name="debug_link_address" translatable="false">Camera address, host:port (debug, instead of NSD)</string>
+    <string name="debug_link_address_use" translatable="false">Use</string>
+    <string name="debug_link_capture" translatable="false">Capture through the link (debug, logs it)</string>
     <plurals name="debug_marked_visits" translatable="false">
         <item quantity="one">%1$d marked Visit kept for darts-ml pull-marked</item>
         <item quantity="other">%1$d marked Visits kept for darts-ml pull-marked</item>

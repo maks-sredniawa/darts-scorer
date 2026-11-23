@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.File
@@ -33,6 +34,7 @@ class PairingStore(
         val ROLE = stringPreferencesKey("role")
         val PLAYER_PIN = stringPreferencesKey("player_pin")
         val CAMERA_ASKED = booleanPreferencesKey("camera_asked")
+        val CAMERA_PINS = stringSetPreferencesKey("camera_pins")
     }
 
     val role: Flow<PhoneRole> =
@@ -43,6 +45,9 @@ class PairingStore(
 
     /** On a Mounted camera, the fingerprint of the Player's phone it answers, or null while unpaired. */
     val playerPin: Flow<String?> = store.data.map { it[Keys.PLAYER_PIN] }
+
+    /** On the Player's phone, the fingerprints of the Mounted cameras it pairs with; one in phase G. */
+    val cameraPins: Flow<Set<String>> = store.data.map { it[Keys.CAMERA_PINS] ?: emptySet() }
 
     /** Whether the handheld *Take a Photo* has asked for `CAMERA` on this phone (`phase-G.md` D5). */
     val cameraAsked: Flow<Boolean> = store.data.map { it[Keys.CAMERA_ASKED] ?: false }
@@ -57,6 +62,14 @@ class PairingStore(
 
     suspend fun unpairPlayer() {
         store.edit { it.remove(Keys.PLAYER_PIN) }
+    }
+
+    suspend fun pinCamera(fingerprint: String) {
+        store.edit { it[Keys.CAMERA_PINS] = (it[Keys.CAMERA_PINS] ?: emptySet()) + fingerprint }
+    }
+
+    suspend fun unpairCameras() {
+        store.edit { it.remove(Keys.CAMERA_PINS) }
     }
 
     suspend fun markCameraAsked() {
