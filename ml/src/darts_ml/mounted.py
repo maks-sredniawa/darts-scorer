@@ -1,5 +1,3 @@
-"""A Mounted camera's Capture session, built from the marked Visits `pull-marked` copied off the Player's phone (phase-G.md §2)."""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -46,7 +44,6 @@ def read_kept(record: Path) -> KeptVisit:
     kept_at = dt.datetime.fromisoformat(raw["keptAt"])
     if kept_at.tzinfo is None:
         raise ValueError(f"keptAt {raw['keptAt']!r} names no time zone")
-    # A Dart the app filled in as a Miss to make up three was never thrown; the sheet records the thrown ones.
     darts = tuple(str(d["score"]) for d in raw["darts"] if not d.get("filled", False))
     for token in darts:
         Score.parse(token)

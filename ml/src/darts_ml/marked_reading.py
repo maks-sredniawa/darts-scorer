@@ -15,6 +15,8 @@ from .board import Ring, Score, score
 from .evaluate import Share
 from .homography import project
 from .locate import Located, matched_pairs
+from .mounted import claimed
+from .paths import DataDir
 from .repeatability import Spread
 
 _EXIF_ORIENTATION = 0x0112
@@ -34,9 +36,14 @@ class MarkedVisit:
     app_read: tuple[Score, ...]
 
 
-def marked_visits(captures: Path) -> tuple[list[MarkedVisit], list[tuple[str, str]]]:
+def marked_visits(data: DataDir) -> tuple[list[MarkedVisit], list[tuple[str, str]]]:
+    owners = claimed(data)
     visits, skipped = [], []
-    for path in sorted(captures.glob("*/*.json")):
+    for path in sorted(data.phone_captures().glob("*/*.json")):
+        owner = owners.get(path.relative_to(data.root).as_posix())
+        if owner:
+            skipped.append((path.name, f"built into Capture session {owner}"))
+            continue
         try:
             visits.append(_visit(path))
         except (KeyError, TypeError, ValueError) as error:

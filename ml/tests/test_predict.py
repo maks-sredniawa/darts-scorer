@@ -68,8 +68,10 @@ class PredictTest(unittest.TestCase):
         self.assertEqual(set(written["photos"]), set(self.held.photos))
         self.assertTrue(evaluate(self.data, path, self.manifest).found.total)
 
-    def test_predict_reads_a_session_outside_the_held_out_set_when_named(self):
+    def test_predict_reads_a_gate_session_when_named(self):
         reviewed_session(self.td, "s05", VISITS)
+        sheet = self.data.sheet("s05")
+        sheet.write_text(sheet.read_text(encoding="utf-8").replace('set = "training"', 'set = "gate"'), encoding="utf-8")
         folder = self.data.runs() / RUN
         folder.mkdir(parents=True)
         config = dataclasses.asdict(RunConfig("board", device="cpu", size=64, batch=4))
