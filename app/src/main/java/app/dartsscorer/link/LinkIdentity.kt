@@ -1,5 +1,6 @@
 package app.dartsscorer.link
 
+import android.annotation.SuppressLint
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.net.Socket
@@ -95,6 +96,8 @@ internal fun linkTlsContext(
 
             override fun getPrivateKey(alias: String?) = me.key
         }
+    // Pinning to one self-signed certificate is the design (ADR-0009, decision 4): there is no CA.
+    @SuppressLint("CustomX509TrustManager")
     val pinned =
         object : X509TrustManager {
             private fun check(chain: Array<out X509Certificate>?) {
