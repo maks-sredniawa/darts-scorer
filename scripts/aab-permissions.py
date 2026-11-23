@@ -26,7 +26,9 @@ gate stays a reading of *this* app rather than of the one it was copied from.
 `android.hardware.camera` at required="true" — the default when the attribute is
 omitted — filters the app off every device without a camera on Play. That is a
 distribution change no permission list would show, so the tool of record has to
-be able to see it.
+be able to see it. This app declares `CAMERA` for the Mounted camera (ADR-0009), which
+implies exactly that, so both camera features are expected at required="false" and
+one that turns required fails here.
 
 **Orientation is checked too, as a comparison rather than a ban.** A scanner library
 once shipped `android:screenOrientation="portrait"` on an invisible delegate activity;
@@ -93,6 +95,10 @@ EXPECTED = {
     # applicationId, which differs between the debug and release builds, so it is
     # matched by suffix rather than spelled out.
     "*.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION": "AndroidX, signature-level",
+    # Ours, in the manifest: the Mounted camera's CameraX captures (ADR-0009, decision
+    # 11). Declared, it makes the handheld TakePicture intent need it granted too, so
+    # that path asks for it at the first Take a Photo (phase-G.md D5).
+    "android.permission.CAMERA": "the Mounted camera, and the handheld Take a Photo once declared — ADR-0009",
 }
 
 # Permissions that must never appear. Absence is what the Data safety answers
@@ -107,16 +113,14 @@ FORBIDDEN = {
     # our source. An app that genuinely needs the network moves it to EXPECTED — and
     # rewrites both of those documents in the same commit.
     "android.permission.INTERNET": "no network: a merged one makes the privacy policy and Data safety wrong",
-    # The TakePicture intent needs no permission. Declaring CAMERA would make the
-    # intent *require* it to be granted, and changes the listing.
-    "android.permission.CAMERA": "the camera intent needs none; declaring it changes the listing",
     # Play permits USE_EXACT_ALARM only for alarm clocks and calendars.
     "android.permission.USE_EXACT_ALARM": "Play policy: alarm-clock and calendar apps only, and nothing here is scheduled",
 }
 
 # Every <uses-feature> the artifact is allowed to carry, with the required= value
-# each is allowed to carry it at. Empty on purpose: the template declares none, and
-# nothing it depends on merges one — asserted here rather than assumed.
+# each is allowed to carry it at. CAMERA implies both camera features as required,
+# so the manifest declares them at required="false" (ADR-0009, decision 11): the
+# Mounted camera is a role few use, and must not hide the app from phones without one.
 #
 # A feature at required="true" is a *distribution* rule — Play hides the app from
 # every device without it — which is why an unlisted one fails here rather than
@@ -124,7 +128,10 @@ FORBIDDEN = {
 # the feature is worth the devices it costs, write that into play-app-content.md,
 # and set it to False here (`android:required="false"`) unless it genuinely is
 # required.
-EXPECTED_FEATURES: dict[str, bool] = {}
+EXPECTED_FEATURES: dict[str, bool] = {
+    "android.hardware.camera": False,
+    "android.hardware.camera.autofocus": False,
+}
 
 # Every android:screenOrientation the release artifact is allowed to carry, and the
 # value it is allowed to carry it at, keyed by fully-qualified class name. Empty:

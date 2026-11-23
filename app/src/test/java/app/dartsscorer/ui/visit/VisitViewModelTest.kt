@@ -30,6 +30,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -117,6 +118,43 @@ class VisitViewModelTest {
             assertEquals(VisitNotice.Unreadable, state.notice)
             assertEquals(VisitPhase.Empty, state.phase)
         }
+    }
+
+    @Test
+    fun `the first Take a Photo without the camera explains before the system asks`() {
+        val visit = viewModel()
+        visit.cameraNotAllowed(systemWouldExplain = false)
+        assertTrue(visit.stateWhen { it.cameraRationale }.cameraRationale)
+        visit.cameraRationaleClosed()
+        assertEquals(null, visit.stateWhen { !it.cameraRationale }.notice)
+    }
+
+    @Test
+    fun `a denial shows the banner, and a grant in the settings clears it`() {
+        val visit = viewModel()
+        visit.cameraPermissionAnswered(granted = false)
+        assertEquals(VisitNotice.CameraDenied, visit.stateWhen { it.notice != null }.notice)
+        visit.cameraAllowed()
+        assertNull(visit.stateWhen { it.notice == null }.notice)
+    }
+
+    @Test
+    fun `once asked and refused for good, the banner shows without the dialog`() {
+        val visit = viewModel()
+        visit.cameraPermissionAnswered(granted = false)
+        visit.cameraAllowed()
+        visit.cameraNotAllowed(systemWouldExplain = false)
+        val state = visit.stateWhen { it.notice != null }
+        assertEquals(VisitNotice.CameraDenied, state.notice)
+        assertFalse(state.cameraRationale)
+    }
+
+    @Test
+    fun `a denial the system will ask about again explains again`() {
+        val visit = viewModel()
+        visit.cameraPermissionAnswered(granted = false)
+        visit.cameraNotAllowed(systemWouldExplain = true)
+        assertTrue(visit.stateWhen { it.cameraRationale }.cameraRationale)
     }
 
     @Test
