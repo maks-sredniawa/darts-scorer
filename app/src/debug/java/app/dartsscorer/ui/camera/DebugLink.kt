@@ -26,7 +26,9 @@ import app.dartsscorer.link.ReceivedPhoto
 import app.dartsscorer.theme.Spacing
 import app.dartsscorer.ui.common.SwitchRow
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.InetSocketAddress
 
 /** R2's switch: skip the `MulticastLock` on the next advertisement (`phase-G.md` §4). */
@@ -62,7 +64,16 @@ fun DebugPlayerLink(capture: suspend () -> ReceivedPhoto) {
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
-            OutlinedButton(onClick = { LinkDebug.target.value = parseTarget(address) }) {
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        LinkDebug.target.value =
+                            withContext(
+                                Dispatchers.IO,
+                            ) { parseTarget(address) }
+                    }
+                },
+            ) {
                 Text(stringResource(R.string.debug_link_address_use))
             }
         }
@@ -91,6 +102,7 @@ fun DebugPlayerLink(capture: suspend () -> ReceivedPhoto) {
     }
 }
 
+/** Blocking: a host name is looked up here. */
 private fun parseTarget(text: String): InetSocketAddress? {
     val host = text.substringBeforeLast(':', "").trim()
     val port = text.substringAfterLast(':', "").trim().toIntOrNull() ?: return null
