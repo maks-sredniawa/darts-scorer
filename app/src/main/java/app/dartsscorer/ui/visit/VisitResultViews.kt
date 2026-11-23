@@ -147,7 +147,7 @@ internal fun Modifier.takesFocusWhen(
             onPlaced()
         }
     }
-    return focusRequester(focus).focusableInTouchMode()
+    return focusRequester(focus)
 }
 
 /**
