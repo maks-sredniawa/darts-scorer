@@ -61,12 +61,11 @@ fun String.fingerprintPrefix(): String = take(16)
 
 /**
  * A fresh context per connection, so no TLS session is ever resumed past a pin that has since
- * changed. [trusts] sees the peer's fingerprint and decides; [onPeer] is told it either way.
+ * changed. [trusts] sees the peer's fingerprint and decides.
  */
 internal fun linkTlsContext(
     me: LinkIdentity,
     trusts: (String) -> Boolean,
-    onPeer: (String) -> Unit = {},
 ): SSLContext {
     val keys =
         object : X509KeyManager {
@@ -103,9 +102,7 @@ internal fun linkTlsContext(
         object : X509TrustManager {
             private fun check(chain: Array<out X509Certificate>?) {
                 val peer = chain?.firstOrNull() ?: throw CertificateException("No certificate")
-                val fingerprint = fingerprintOf(peer)
-                onPeer(fingerprint)
-                if (!trusts(fingerprint)) throw CertificateException("Not the pinned phone")
+                if (!trusts(fingerprintOf(peer))) throw CertificateException("Not the pinned phone")
             }
 
             override fun checkClientTrusted(

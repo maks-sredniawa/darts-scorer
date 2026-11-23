@@ -57,10 +57,12 @@ fun DetailScaffold(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     actions: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
     content: @Composable (Modifier) -> Unit,
 ) {
     Scaffold(
         modifier = modifier,
+        snackbarHost = snackbarHost,
         topBar = {
             TopAppBar(
                 title = { Text(title) },

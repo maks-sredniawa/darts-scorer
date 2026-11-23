@@ -485,7 +485,7 @@ class VisitViewModel(
                         app.container.installedAt,
                         app.container.visitPhotos,
                         createSavedStateHandle(),
-                        app.container.playerLink(),
+                        app.container.playerLink,
                     )
                 }
             }

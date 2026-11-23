@@ -112,12 +112,12 @@ the reminders are gone.
 - ⚠ **WorkManager merges three permissions your source never declares** — `WAKE_LOCK`,
   `ACCESS_NETWORK_STATE`, `FOREGROUND_SERVICE` — and `RECEIVE_BOOT_COMPLETED` for good measure. If you
   keep a boot receiver but drop WorkManager, **declare `RECEIVE_BOOT_COMPLETED` yourself first**, or the
-  receiver stops being called with nothing to say so. `ACCESS_NETWORK_STATE` on an app with no
-  `INTERNET` is a line a Play reviewer can ask about, and **the tip merges it too**: removing
-  WorkManager removes the question only if the tip goes as well.
+  receiver stops being called with nothing to say so. `ACCESS_NETWORK_STATE` stays whatever goes:
+  the manifest declares it for the Mounted camera's link (ADR-0009, decision 11), and the tip merges
+  it too.
 - `scripts/aab-permissions.py`'s EXPECTED rows for all of the above, in the same commit — except
-  `ACCESS_NETWORK_STATE` while the tip stays, which then belongs to billing alone: keep the row, and
-  its line in `play-app-content.md`, and name billing as the only owner.
+  `ACCESS_NETWORK_STATE`, which then belongs to the link (and billing, while the tip stays): keep the
+  row, and its line in `play-app-content.md`, and drop only WorkManager from its owners.
 - `scripts/device-gate.py`'s reminder checks, if nothing schedules: `ALARM_TAG` and the alarm reads
   (`app_alarms`, `armed`, `disarmed`), the channel pair (`channel_importance`, `set_channel`), the
   `--reboot` arm (`wait_for_unlock`, `reboot_and_wait`), and the exact-alarm line. Keep the autostart
@@ -153,8 +153,10 @@ are marked.
 - Gradle: `billing.ktx`, `androidx.lifecycle.process` and licensee's `allowUrl` for Google's terms in
   `app/build.gradle.kts`; the `billing` version and the `billing-ktx` and
   `androidx-lifecycle-process` aliases in `libs.versions.toml`
-- Manifest: the `INTERNET` `tools:node="remove"` and its comment — harmless once billing is gone, but
-  it then removes nothing and reads as a reason that no longer exists
+- Manifest: the billing half of the comment above `INTERNET` (its `datatransport` sentence).
+  `INTERNET` itself stays for the Mounted camera's link (ADR-0009, decision 12); Gradle's
+  `transport-backend-cct` exclusion and its `-dontwarn` in `app/proguard-rules.pro` go with billing,
+  since they then exclude nothing
 - `scripts/aab-permissions.py`: the `BILLING` row and its comment, and the datatransport comment above
   `ACCESS_NETWORK_STATE`. **Edit** that row's note back to WorkManager alone, or delete the row if
   WorkManager has already gone.

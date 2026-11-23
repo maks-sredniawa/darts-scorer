@@ -188,7 +188,7 @@
     <string name="add_camera_waiting">Waiting for the camera</string>
     <string name="add_camera_paired_header">Paired camera</string>
     <string name="add_camera_just_paired">Camera paired</string>
-    <string name="mounted_camera_unpair_body">It will stop answering this phone. To use it again, pair again.</string>
+    <string name="mounted_camera_unpair_body">This phone will forget the camera and stop asking it for Photos. To use it again, pair again.</string>
     <string name="link_looking">Looking for the camera</string>
     <string name="link_connected">Connected</string>
     <string name="link_not_found">Camera not found</string>
@@ -212,6 +212,8 @@
     <!-- The action TalkBack names on the dimmed screen: a touch brings the preview back. -->
     <string name="camera_role_show_preview">Show the preview</string>
     <string name="camera_role_unavailable">The camera could not be opened.</string>
+    <string name="camera_role_paired">Paired</string>
+    <string name="camera_role_unpaired">Unpaired</string>
     <string name="settings_data">Data</string>
     <!-- Settings → Data: every setting, the app language included, back to how the app came, after a confirmation. -->
     <string name="settings_restore">Restore default settings</string>

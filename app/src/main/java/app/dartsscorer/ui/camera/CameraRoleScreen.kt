@@ -1,14 +1,24 @@
 package app.dartsscorer.ui.camera
 
+import android.hardware.display.DisplayManager
+import android.os.Handler
+import android.os.Looper
+import android.view.Surface
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityEvent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,14 +59,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -65,21 +80,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -105,11 +124,15 @@ import app.dartsscorer.ui.common.NoticeBanner
 import app.dartsscorer.ui.common.OpenAppSettingsButton
 import app.dartsscorer.ui.common.hasCameraPermission
 import app.dartsscorer.ui.common.isShortWindow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private val CONTROL_PANE_WIDTH = 320.dp
 private const val RING_OF_SHORTER_SIDE = 0.8f
 private val CROSS = 16.dp
+private val FOCUS_OUTLINE = 2.dp
+private const val DIALOG_SETTLE_MILLIS = 1_500L
 
 /**
  * The Mounted camera's screen (`phase-G.md` §3, and the 2026-11-23 design): the preview and the
@@ -139,12 +162,14 @@ fun CameraRoleScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { granted = context.hasCameraPermission() }
     if (granted) {
         val owner = LocalLifecycleOwner.current
-        val rotation = LocalView.current.display?.rotation ?: 0
-        DisposableEffect(owner, rotation) {
-            viewModel.bind(owner, rotation)
+        val view = LocalView.current
+        DisposableEffect(owner) {
+            viewModel.bind(owner, view.display?.rotation ?: Surface.ROTATION_0)
             onDispose { viewModel.unbind() }
         }
+        DisplayRotation(viewModel::rotated)
     }
+    AssistiveActivity(viewModel::touched)
 
     val stop: () -> Unit = {
         scope.launch {
@@ -159,7 +184,10 @@ fun CameraRoleScreen(
                 Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.surface)
-                    .pointerInput(Unit) {
+                    .onPreviewKeyEvent {
+                        viewModel.touched()
+                        false
+                    }.pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -305,9 +333,25 @@ private fun ControlPane(
     onStop: () -> Unit,
     modifier: Modifier,
 ) {
+    val headingFocus = remember { FocusRequester() }
+    var focusedSwaps by remember { mutableIntStateOf(state.pairingSwaps) }
+    val window = LocalWindowInfo.current
+    LaunchedEffect(state.pairingSwaps) {
+        if (state.pairingSwaps != focusedSwaps) {
+            if (state.paired == false) {
+                // Unpairing is confirmed in a dialog, and TalkBack places its own focus about a second
+                // after that window closes, overriding any move made before then.
+                snapshotFlow { window.isWindowFocused }.first { it }
+                delay(DIALOG_SETTLE_MILLIS)
+            }
+            headingFocus.requestFocus()
+            focusedSwaps = state.pairingSwaps
+        }
+    }
+
     Surface(color = MaterialTheme.colorScheme.surface, modifier = modifier) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(Spacing.base)) {
-            Status(state.link)
+            Status(state.link, state.paired.takeIf { state.pairingSwaps > 0 })
             if (!granted) {
                 NoticeBanner(
                     stringResource(R.string.camera_denied_title),
@@ -319,14 +363,17 @@ private fun ControlPane(
                 Text(
                     stringResource(R.string.camera_role_unavailable),
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = Spacing.base),
+                    modifier =
+                        Modifier
+                            .padding(top = Spacing.base)
+                            .semantics { liveRegion = LiveRegionMode.Assertive },
                 )
             }
             Spacer(Modifier.height(Spacing.base))
-            if (state.paired) {
-                PairedBlock(viewModel::unpair)
-            } else {
-                PairingBlock(state, viewModel)
+            when (state.paired) {
+                true -> PairedBlock(viewModel::unpair, viewModel::inputActive, headingFocus)
+                false -> PairingBlock(state, viewModel, headingFocus)
+                null -> Unit
             }
             Spacer(Modifier.height(Spacing.section))
             OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) {
@@ -338,12 +385,26 @@ private fun ControlPane(
     }
 }
 
+/** [pairedChange] is set once pairing has changed on this screen, so the live region speaks it. */
 @Composable
-private fun Status(link: CameraLinkState) {
+private fun Status(
+    link: CameraLinkState,
+    pairedChange: Boolean?,
+) {
+    val change =
+        when (pairedChange) {
+            true -> stringResource(R.string.camera_role_paired)
+            false -> stringResource(R.string.camera_role_unpaired)
+            null -> null
+        }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
-        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        modifier =
+            Modifier.semantics(mergeDescendants = true) {
+                liveRegion = LiveRegionMode.Polite
+                if (change != null) stateDescription = change
+            },
     ) {
         val icon =
             when (link) {
@@ -370,6 +431,7 @@ private fun CameraLinkState.label(): Int =
 private fun PairingBlock(
     state: CameraRoleUiState,
     viewModel: CameraRoleViewModel,
+    headingFocus: FocusRequester,
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
@@ -390,7 +452,7 @@ private fun PairingBlock(
     Text(
         stringResource(R.string.camera_role_scan_title),
         style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.semantics { heading() },
+        modifier = Modifier.focusRequester(headingFocus).focusable().semantics { heading() },
     )
     Text(
         stringResource(R.string.camera_role_scan_hint),
@@ -450,12 +512,21 @@ private fun PairingBlock(
 }
 
 @Composable
-private fun PairedBlock(onUnpair: () -> Unit) {
+private fun PairedBlock(
+    onUnpair: () -> Unit,
+    holdAwake: (Boolean) -> Unit,
+    headingFocus: FocusRequester,
+) {
     var confirming by rememberSaveable { mutableStateOf(false) }
+    // The dialog is a window of its own, so touches in it never reach the screen's idle timer.
+    DisposableEffect(confirming) {
+        if (confirming) holdAwake(true)
+        onDispose { if (confirming) holdAwake(false) }
+    }
     Text(
         stringResource(R.string.camera_role_fit),
         style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.semantics { heading() },
+        modifier = Modifier.focusRequester(headingFocus).focusable().semantics { heading() },
     )
     Text(
         stringResource(R.string.camera_role_charger),
@@ -499,17 +570,22 @@ private fun Dimmed(
     slot: DimSlot,
     onWake: () -> Unit,
 ) {
+    val interactions = remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
+    val outline = MaterialTheme.colorScheme.primary
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.scrim)
                 .clickable(
-                    interactionSource = null,
+                    interactionSource = interactions,
                     indication = null,
                     onClickLabel = stringResource(R.string.camera_role_show_preview),
+                    role = Role.Button,
                     onClick = onWake,
                 ).windowInsetsPadding(WindowInsets.safeDrawing)
+                .then(if (focused) Modifier.border(FOCUS_OUTLINE, outline) else Modifier)
                 .padding(Spacing.base),
     ) {
         Text(
@@ -523,6 +599,64 @@ private fun Dimmed(
         )
     }
 }
+
+/** A 180° turn changes the display's rotation without a configuration change, so nothing recomposes. */
+@Composable
+private fun DisplayRotation(onRotation: (Int) -> Unit) {
+    val view = LocalView.current
+    val current by rememberUpdatedState(onRotation)
+    DisposableEffect(view) {
+        val displays = view.context.getSystemService(DisplayManager::class.java)
+        val listener =
+            object : DisplayManager.DisplayListener {
+                override fun onDisplayChanged(displayId: Int) {
+                    val display = view.display ?: return
+                    if (display.displayId == displayId) current(display.rotation)
+                }
+
+                override fun onDisplayAdded(displayId: Int) = Unit
+
+                override fun onDisplayRemoved(displayId: Int) = Unit
+            }
+        displays.registerDisplayListener(listener, Handler(Looper.getMainLooper()))
+        onDispose { displays.unregisterDisplayListener(listener) }
+    }
+}
+
+/**
+ * TalkBack, switch access and the like act without raw touches, so the idle timer also counts the
+ * accessibility events they cause, which bubble up through the Compose view's parent.
+ */
+@Composable
+private fun AssistiveActivity(onActivity: () -> Unit) {
+    val view = LocalView.current
+    val current by rememberUpdatedState(onActivity)
+    DisposableEffect(view) {
+        val parent = view.parent as? ViewGroup
+        parent?.setAccessibilityDelegate(
+            object : View.AccessibilityDelegate() {
+                override fun onRequestSendAccessibilityEvent(
+                    host: ViewGroup,
+                    child: View,
+                    event: AccessibilityEvent,
+                ): Boolean {
+                    if (event.eventType and USER_ACCESSIBILITY_EVENTS != 0) current()
+                    return super.onRequestSendAccessibilityEvent(host, child, event)
+                }
+            },
+        )
+        onDispose { parent?.setAccessibilityDelegate(null) }
+    }
+}
+
+private const val USER_ACCESSIBILITY_EVENTS =
+    AccessibilityEvent.TYPE_VIEW_CLICKED or
+        AccessibilityEvent.TYPE_VIEW_LONG_CLICKED or
+        AccessibilityEvent.TYPE_VIEW_FOCUSED or
+        AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED or
+        AccessibilityEvent.TYPE_VIEW_HOVER_ENTER or
+        AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
+        AccessibilityEvent.TYPE_VIEW_SCROLLED
 
 @Composable
 private fun KeepScreenOn() {

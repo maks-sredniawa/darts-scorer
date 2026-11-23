@@ -289,15 +289,19 @@ preview hides and the window's brightness drops to its lowest, leaving a status 
 position every minute; a touch restores both (ADR-0009, decision 10). That status line (*Waiting for
 your phone*, *Connected*) is a polite live region (`LiveRegionMode.Polite`), so TalkBack announces
 each change without a touch, dimmed or not. No lock on orientation: the
-Photo's rotation is baked in from the display's, so a phone mounted sideways sends an upright Photo.
+Photo's rotation is baked in from the display's, followed while the screen is open (a 180° turn
+included, which recreates nothing), so a phone mounted sideways sends an upright Photo.
 
 *Amended 2026-11-23, deciding the screen design's open points under the owner's delegation:* **no
 dimming before the first capture.** The 30 s countdown starts only after the first capture taken while
 paired since the camera screen opened; before it the screen stays lit, because aiming a stand 3 m away
 takes longer than 30 s without a touch. Every change to the paste field restarts the countdown, and it
-is paused while the field has focus or the keyboard shows. Once paired, the camera screen's pairing
+is paused while the field has focus, the keyboard shows or the Unpair confirmation is open; TalkBack's,
+switch access's and a keyboard's activity counts as a touch. Once paired, the camera screen's pairing
 block becomes *Fit the whole Board inside the ring*, *Keep this phone on a charger.* and an
-**Unpair** button with a confirmation; in B, with no link yet, Unpair clears the stored pin. The pairing
+**Unpair** button with a confirmation; in B, with no link yet, Unpair clears the stored pin. Each swap
+between the two blocks is announced (*Paired*, *Unpaired*) and moves focus to the new block's heading.
+*Stop being a camera* keeps the stored pin on purpose, so taking the role up again needs no new pairing. The pairing
 text is `DARTSSCORER:1:<fingerprint>:<token>`, the fingerprint and the token in uppercase hex (64 and
 32 digits), so the QR fits ZXing's alphanumeric mode; the parser drops whitespace and line breaks
 anywhere, since a share target may wrap the line. *Refusing an ultra-wide* reads each back camera's
@@ -340,7 +344,7 @@ as replaced by it once B ships.
 **Shape.** ADR-0009, decisions 2 to 4: an EC P-256 Keystore key per phone; the Mounted camera
 registers `_dartsscorer._tcp` and listens on TLS; the Player's phone shows the QR, the camera scans
 it or the player pastes its text (D10), the Player's phone connects in pairing mode, checks the MAC
-and pins; from then on, mutual TLS pinned both ways, the five frame types, `PING` every 5 s. When
+and pins; from then on, mutual TLS pinned both ways, the frame types with `NOT_PAIRED`, `PING` every 5 s. When
 `SDK_INT < 30` or `SdkExtensions.getExtensionVersion(TIRAMISU) < 7`, each side holds a
 `MulticastLock` while NSD runs (ADR-0009, decision 2). Each Keystore key allows `DIGEST_NONE` as
 well as `DIGEST_SHA256`, or no handshake completes, and the Player's phone connects through the
@@ -365,13 +369,17 @@ lock-off reading on the Redmi. Neither exists in the release build.
 *Amended 2026-11-23, deciding C's open points under the owner's delegation:*
 
 - **When the Player's phone's link state is *Pair again*, the paired row shows a single *Pair
-  again* button** (the screen design's point 8). It unpairs without a confirmation, since the camera
-  has already dropped this phone, and the QR comes back with a new token. *Unpair*, with its
-  confirmation, stays for every other state.
+  again* button** (the screen design's point 8). It asks *Unpair*'s confirmation first, since it
+  unpairs, and the QR then comes back with a new token. *Unpair*, with the same confirmation, stays
+  for every other state. *Pair again* comes only from the camera's `NOT_PAIRED` over a completed
+  handshake pinned to it (ADR-0009, decision 4's amendment); a stale one gives way to *Camera not
+  found* once the camera has been silent for 10 s.
 - **The pairing nonce and proof ride in `HELLO`**: the Player's phone's `HELLO` carries the nonce in
-  pairing mode, and the camera's answering `HELLO` carries the MAC. The five frame types stay five.
+  pairing mode, and the camera's answering `HELLO` carries the MAC. The camera keeps the token until
+  the pinned phone connects without a nonce, so a proof lost on the way can be asked for again. A
+  sixth frame type, `NOT_PAIRED`, is the camera's answer to a phone it is not paired with.
 - **The camera's side of *Pair again*.** The camera listens and advertises whenever its screen is in
-  front, paired or not, so a Player's phone that the camera unpaired fails its handshake and says
+  front, paired or not, so a Player's phone that the camera unpaired is told `NOT_PAIRED` and says
   *Pair again* rather than *Camera not found*. The other way round, a Player's phone that unpaired
   comes back in pairing mode with its unchanged certificate; the camera, still pinned to it but
   holding no token, takes that as the unpairing, drops its pin, and its status line says *Pair
@@ -457,6 +465,12 @@ and NSD is read on the newer images and on the real phones. What the table adds:
   default route, `NsdServiceInfo.network` on API 33 and later and the `TRANSPORT_WIFI` network from
   `ConnectivityManager` below, and retries on the next resolve; a real phone whose default network
   is mobile data has the same shape.
+- **Where binding is not allowed, the route table picks** (2026-11-23, the owner's Redmi). Under a
+  VPN the app cannot bypass (Tailscale), binding to the Wi-Fi `Network` fails `EPERM`; a phone that
+  hosts the hotspot has no Wi-Fi station network to bind to. A bound connect that fails for any
+  reason but a refusal is tried once more unbound, and the local-peer check still holds the address.
+  A split-tunnel VPN routes only its own prefixes, so a 192.168.x camera still goes out by Wi-Fi.
+  The hotspot-host case is unread on a device.
 
 **Acceptance (C):**
 
@@ -466,7 +480,7 @@ and NSD is read on the newer images and on the real phones. What the table adds:
   debug button returns a Photo; a packet capture of the camera emulator (`emulator -tcpdump`) shows
   TLS records and no plaintext JPEG marker (`FF D8 FF`).
 - A third emulator running the app, unpaired, on the same virtual Wi-Fi: its connection to the camera
-  fails the handshake, and a camera it advertises is not accepted by the Player's phone. Both visible
+  is answered `NOT_PAIRED` and closed, and a camera it advertises is not accepted by the Player's phone. Both visible
   in `adb logcat` under the link's tag.
 - **Both pairing routes with TalkBack on** (D10), on both phones: TalkBack reads the QR's content
   description; *Copy the code* and *Share the code* are reachable and labelled, and the share sheet
@@ -475,7 +489,7 @@ and NSD is read on the newer images and on the real phones. What the table adds:
   phones the paired state (*Connected* on the camera, the camera listed as paired on the Player's
   phone) is announced politely without moving focus (WCAG 2.2, 4.1.3); and the pins on both routes
   are the same kind of pin, read in `adb logcat` under the link's tag.
-- Unpairing on one side: the other's next handshake fails and it says *Pair again*.
+- Unpairing on one side: the other's next connection is refused and it says *Pair again*.
 - Restarting either app, and turning the camera emulator's Wi-Fi off and on: the link comes back
   without pairing again.
 - A backup and restore (`adb shell bmgr backupnow` and `bmgr restore`) brings back the preferences
@@ -573,9 +587,15 @@ ignores a second tap, so TalkBack's focus never sits on a control that has just 
 - **The pairing proof**: a MAC under the wrong token, over swapped fingerprints, over a fingerprint
   other than the session's, or over a replayed nonce, is refused. Fails toward a stranger's phone
   being trusted.
-- **The frame reader's bound**: a declared length over 16 MiB is refused before allocating, a
-  truncated frame ends the connection, an unknown frame type ends it. Fails toward a peer crashing the
-  app or exhausting its memory.
+- **The frame reader's bound**: a declared length over 16 MiB is refused before allocating, a first
+  frame over the `HELLO` bound likewise, a truncated frame ends the connection, an unknown frame type
+  ends it. Fails toward a peer crashing the app or exhausting its memory.
+- **The greeting's deadline**: a peer that never answers is cut off at it rather than at the read
+  timeout, and one that hangs does not stop another camera from being reached. Fails toward the link
+  hanging on a stranger.
+- ***Pair again*'s source**: only `NOT_PAIRED` read after the pinned handshake gives it; no frame (a
+  TLS failure, a reset) or any other frame never does, and *Camera not found* replaces a stale one.
+  Fails toward a reset or a stranger unpairing the Player's phone.
 - **The QR payload**, one parser for the scanned QR and the pasted text (D10): a wrong version, a
   malformed fingerprint or a short token is refused; the pasted text's surrounding whitespace and line
   breaks are trimmed, and a QR and its text give the same payload. Fails toward pairing with garbage.

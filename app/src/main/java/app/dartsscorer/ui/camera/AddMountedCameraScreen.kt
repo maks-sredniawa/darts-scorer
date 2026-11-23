@@ -27,6 +27,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -83,11 +85,16 @@ fun AddMountedCameraScreen(
         viewModel(factory = AddMountedCameraViewModel.Factory, extras = appViewModelExtras()),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
     LifecycleStartEffect(viewModel) {
         viewModel.start()
         onStopOrDispose { viewModel.stop() }
     }
-    DetailScaffold(title = stringResource(R.string.mounted_camera_add), onBack = onBack) { modifier ->
+    DetailScaffold(
+        title = stringResource(R.string.mounted_camera_add),
+        onBack = onBack,
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { modifier ->
         Column(modifier.verticalScroll(rememberScrollState())) {
             if (state.paired) SectionHeader(stringResource(R.string.add_camera_paired_header))
             // One node in both states, so pairing is announced as a change of this live region.
@@ -95,7 +102,7 @@ fun AddMountedCameraScreen(
             if (state.paired) {
                 PairedActions(state.link, viewModel::unpair)
             } else {
-                state.code?.let { PairingCode(it) }
+                state.code?.let { PairingCode(it, snackbar) }
             }
             DebugPlayerLink(viewModel::capture)
         }
@@ -170,11 +177,14 @@ private fun PlayerLinkState.label(): Int =
     }
 
 @Composable
-private fun PairingCode(code: String) {
+private fun PairingCode(
+    code: String,
+    snackbar: SnackbarHostState,
+) {
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    var copied by rememberSaveable { mutableStateOf(false) }
+    val copied = stringResource(R.string.add_camera_copied)
     Column(
         modifier = Modifier.padding(horizontal = Spacing.base),
         verticalArrangement = Arrangement.spacedBy(Spacing.tight),
@@ -192,8 +202,14 @@ private fun PairingCode(code: String) {
                                 PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
                         }
                     }
-                scope.launch { clipboard.setClipEntry(ClipEntry(clip)) }
-                copied = true
+                scope.launch {
+                    clipboard.setClipEntry(ClipEntry(clip))
+                    // From Android 13 the system confirms a copy itself.
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                        snackbar.currentSnackbarData?.dismiss()
+                        snackbar.showSnackbar(copied)
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -209,14 +225,6 @@ private fun PairingCode(code: String) {
         ) {
             Icon(Icons.Filled.Share, contentDescription = null)
             Text(stringResource(R.string.add_camera_share), Modifier.padding(start = Spacing.tight))
-        }
-        // From Android 13 the system shows its own confirmation of a copy.
-        if (copied && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            Text(
-                stringResource(R.string.add_camera_copied),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
         }
         Text(
             stringResource(R.string.add_camera_caption),
@@ -280,8 +288,7 @@ private fun PairedActions(
     var confirming by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.padding(horizontal = Spacing.base)) {
         if (link == PlayerLinkState.PAIR_AGAIN) {
-            // The camera already dropped this phone, so there is nothing left to confirm.
-            Button(onClick = onUnpair, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { confirming = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.link_pair_again))
             }
         } else {

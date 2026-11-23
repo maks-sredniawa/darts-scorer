@@ -81,8 +81,11 @@ class AppContainer(
 
     private fun multicastHold() = MulticastHold(appContext) { LinkDebug.skipMulticastLock.value }
 
-    /** One per screen that talks to the Mounted camera; it runs only while that screen collects it. */
-    fun playerLink() =
+    /**
+     * One for the app, so the screens that talk to the Mounted camera share one connection and one
+     * state; it runs only while a screen collects it, and the last screen to start it has it.
+     */
+    val playerLink by lazy {
         PlayerLink(
             ::linkIdentity,
             CameraFinder(appContext, multicastHold()),
@@ -90,6 +93,7 @@ class AppContainer(
             LinkDebug.target,
             LinkDebug.ACCEPTS_LOOPBACK,
         )
+    }
 
     /** One per camera screen: it listens only while that screen is in front. */
     fun cameraServer() =
