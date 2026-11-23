@@ -22,8 +22,14 @@ Read at **versionCode 206, versionName 0.2.0** by `publish-play.yml`'s verify st
 
 > 3 permissions, all accounted for; none of the 6 forbidden ones present; 0 <uses-feature> declared; 0 of the 4 activities lock their orientation, every one of them expected
 
+From phase G's checkpoint B (2026-11-23), read off a local `bundleRelease` until the first upload
+that carries it:
+
+> 4 permissions, all accounted for; none of the 5 forbidden ones present; 2 <uses-feature> declared; 0 of the 4 activities lock their orientation, every one of them expected
+
 | Permission | Whose | What it is for | Console consequence |
 | --- | --- | --- | --- |
+| `CAMERA` | ours, the manifest (ADR-0009, decision 11) | the Mounted camera's CameraX captures; once declared, the handheld *Take a Photo*'s system camera intent needs it too, so that path asks first (`phase-G.md` D5) | none: not on Play's declaration list. The listing's *PERMISSIONS* block names it |
 | `ACCESS_NETWORK_STATE` | Play Billing's `datatransport` | read before its (blocked) log upload; it opens nothing | none, but a reviewer may ask why an app with no network reads it — this row is the answer |
 | `com.android.vending.BILLING` | Play Billing Library | the tip (ADR-0007): IPC to the Play app's billing service | none: not on Play's declaration list. The listing shows *Contains in-app purchases* once products exist |
 | `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AndroidX | its own non-exported receivers, signature-level | none: not user-visible |
@@ -32,9 +38,13 @@ The billing library's `datatransport` dependency merges `INTERNET`; the manifest
 `tools:node="remove"`, and the gate is what proves it stayed out. It merges `ACCESS_NETWORK_STATE`
 too, and is that row's only owner, so the row goes with the tip.
 
+**Features**: `android.hardware.camera` and `android.hardware.camera.autofocus`, both declared at
+`required="false"` with `CAMERA`, which would otherwise imply them as required and hide the app from
+every phone without a camera (ADR-0009, decision 11). A required one fails the gate.
+
 **Forbidden, and asserted absent**: `INTERNET`, `AD_ID`, `QUERY_ALL_PACKAGES`,
-`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `CAMERA`, `USE_EXACT_ALARM`. The first two are what the Data
-safety and advertising-ID answers rest on.
+`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `USE_EXACT_ALARM`. The first two are what the Data
+safety and advertising-ID answers rest on. `CAMERA` left the list in phase G's checkpoint B.
 
 ---
 
