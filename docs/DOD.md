@@ -101,12 +101,12 @@ only on a model that met this phase's bar.
 - [x] **The owner's questions answered** 2026-11-22, recorded as `phase-G.md` D5 to D9: the handheld
       `CAMERA` ask, the paperwork first, Data safety unchanged, all three mount positions, the Redmi
       Note 8 Pro on Android 11 as the spare. On 2026-11-23, D10: pairing by the QR or by its text,
-      pasted, both accepted with TalkBack on in B and C; D11: B to D first, and
-      the gate read on the finished app from the owner's 3 m stand.
+      pasted, both accepted with TalkBack on in B and C; D11: B to D first, and the gate read on the
+      finished app from the owner's 3 m stand.
 - [ ] **The paperwork (E)** merged and the policy live, before B merges.
+- [ ] **B, C, D** in that order, each with its acceptance checks read.
 - [ ] **The gate (A):** the Board half of M1's bar on the Mounted camera's own Photos from the
       stand's positions, read on the finished app after D (R1, D11). Needs no Darts thrown.
-- [ ] **B, C, D** in that order, each with its acceptance checks read.
 - [ ] **R8**, the Darts half of the bar from the mount, once the owner can throw again: the phase
       closes on it.
 

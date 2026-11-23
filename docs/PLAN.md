@@ -42,7 +42,8 @@ was extracted from and the first app built from it settled on exactly this split
   only, with the amendments phase S listed for it (ADR-0007, `scripts/aab-permissions.py`, the
   privacy policy live before any build carries it, the Data safety answers); the Mounted camera holds
   `CAMERA`, which also makes the handheld *Take a Photo* ask for it (`phase-G.md` D5). Its gate
-  reads the Board half of M1's bar on Photos from three mount positions; the Darts half closes it. It ships in 1.0.0. **Before the door**. (Amended 2026-11-22: the owner
+  reads the Board half of M1's bar on Photos from at least three positions of the owner's stand;
+  the Darts half closes it. It ships in 1.0.0. **Before the door**. (Amended 2026-11-22: the owner
   chose the spare phone over a network camera or a GoPro, one camera first and before phase 2; no
   Bluetooth. Phase S, if built after, adds only the sharing's own part)
 - [ ] **Phase 2** — As few photos as it needs: merging several angles in board millimetres, and
