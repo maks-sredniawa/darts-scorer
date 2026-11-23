@@ -105,9 +105,14 @@ either end:
 | `CAPTURE` | Player's phone | a request id |
 | `PHOTO` | Mounted camera | that request id, the JPEG (decision 6), its size, when it was taken |
 | `ERROR` | Mounted camera | that request id and a code: camera not ready, permission withdrawn, busy |
+| `NOT_PAIRED` | Mounted camera, instead of its `HELLO` | nothing; this camera is not paired with the phone that connected |
 
 - A frame is a 4-byte length, a 1-byte type and its body. A declared length over 16 MiB is refused
   before anything is allocated, and the connection closed.
+- *Amended 2026-11-23, under the owner's delegation:* before the peer is known, the handshake and the
+  first `HELLO` together get 5 s, and that `HELLO` is refused over 512 bytes. The Player's phone tries
+  every camera it found at once, so a slow peer cannot hold up the real one, and the camera serves at
+  most four connections still greeting.
 - A protocol version the other phone does not speak ends the connection with a message on both
   screens: *Update Darts Scorer on both phones*. The two phones are updated by Play separately and
   can run different versions for days.
@@ -165,6 +170,12 @@ the LAN may read a Photo in transit.
   through the platform's own `SSLSocket`. No crypto library is added.
 - **Unpairing** is a row on either phone; it deletes that pin, and the other phone fails its next
   handshake and says *Pair again*.
+- *Amended 2026-11-23, under the owner's delegation:* the camera's handshake takes any client
+  certificate and checks the pin straight after it, answering a phone it is not paired with
+  `NOT_PAIRED` and closing; nothing past that answer is reachable without the pin. The Player's phone
+  says *Pair again* only on that frame, read over a completed handshake pinned to the camera; a TLS
+  failure or a reset is *Camera not found*, never *Pair again*, since anyone on the Wi-Fi can cause
+  one.
 - **The pins, the camera list and the role live in a store outside Auto Backup**: a DataStore file in
   `noBackupFilesDir`
   (`PreferenceDataStoreFactory.create(produceFile = { File(context.noBackupFilesDir, "pairing.preferences_pb") })`),
