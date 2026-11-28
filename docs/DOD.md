@@ -227,15 +227,10 @@ Console matches. A new permission, foreground service or data type is a Console 
       ([`RELEASING.md`](RELEASING.md)), or a deliberate decision to stay on 0.x. In order: production
       access granted, *then* that version's release notes in every locale on an ordinary branch (never
       on release-please's own, which it force-pushes), *then* the AAB and the listing go up together.
-- [ ] **Turn on the weekly CI run once the app is live on Play.** Add this under `on:` in
-      `.github/workflows/ci.yml`; until then edge-to-edge runs only from the Run workflow button.
-
-      ```yaml
-      schedule:
-        - cron: '47 1 * * 0'
-      ```
-
-      GitHub's `schedule` is best-effort and can drop a run: a week with no run is not a green week.
+- [ ] **Turn on the weekly CI run once the app is live on Play.** Add
+      `schedule: [{cron: '47 1 * * 0'}]` under `on:` in `.github/workflows/ci.yml`; until then
+      edge-to-edge runs only from the Run workflow button. GitHub's `schedule` is best-effort and
+      can drop a run: a week with no run is not a green week.
 
 ## Standing checks that never close
 
