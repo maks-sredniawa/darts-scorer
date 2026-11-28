@@ -182,8 +182,8 @@ are marked.
   the seed rows in `DebugSettings.kt` with their `debug_seed` and `debug_wipe` strings — or keep the
   seeding seam and point it at your own data
 - **`scripts/edge-to-edge.py`'s SCENES**, `TAB_BAR`, `HOME_TAB` and `SEED_WALK`: they walk the
-  template's screens. Rewrite them against yours the same week — until then the nightly job boots ten
-  emulators to walk screens that do not exist and reports a red everyone learns to ignore.
+  template's screens. Rewrite them against yours the same week — until then every edge-to-edge run
+  boots ten emulators to walk screens that do not exist and reports a red everyone learns to ignore.
 
 ## Around the code
 
